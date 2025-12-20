@@ -52,7 +52,8 @@ export function PositionsTable({
                 <TableHead className="text-xs text-muted-foreground font-medium">Asset</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">YES</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">NO</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Entry</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">Combined</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">Shares</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Locked</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Exit</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Time</TableHead>
@@ -63,76 +64,82 @@ export function PositionsTable({
             <TableBody>
               {positions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
                     No open positions
                   </TableCell>
                 </TableRow>
               ) : (
-                positions.map((position) => (
-                  <TableRow
-                    key={position.id}
-                    className="border-border/20 hover:bg-muted/30"
-                  >
-                    <TableCell className="font-medium text-xs max-w-[150px] truncate">
-                      {position.marketName}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs font-mono">
-                        {position.token}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-mono">
-                      {formatNumber(position.yesSize)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-mono">
-                      {formatNumber(position.noSize)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-mono">
-                      {formatCurrency(position.entryCost)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-mono">
-                      {formatCurrency(position.lockedCapital)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
+                positions.map((position) => {
+                  const combinedPrice = position.yesEntryPrice + position.noEntryPrice;
+                  return (
+                    <TableRow
+                      key={position.id}
+                      className="border-border/20 hover:bg-muted/30"
+                    >
+                      <TableCell className="font-medium text-xs max-w-[150px] truncate">
+                        {position.marketName}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {position.token}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono text-green-400">
+                        ${position.yesEntryPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono text-red-400">
+                        ${position.noEntryPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono text-primary">
+                        ${combinedPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono">
+                        {position.shares}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono">
+                        {formatCurrency(position.lockedCapital)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "text-xs",
+                            position.exitMode === 'hold_to_settlement'
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          )}
+                        >
+                          {position.exitMode === 'hold_to_settlement' ? 'Hold' : 'Threshold'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-xs">
+                        <span className="flex items-center justify-end gap-1 text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatTimeRemaining(position.timeRemaining)}
+                        </span>
+                      </TableCell>
+                      <TableCell
                         className={cn(
-                          "text-xs",
-                          position.exitMode === 'hold_to_settlement'
-                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          "text-right text-xs font-mono font-medium",
+                          position.unrealizedPnl >= 0 ? "text-green-400" : "text-red-400"
                         )}
                       >
-                        {position.exitMode === 'hold_to_settlement' ? 'Hold' : 'Threshold'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right text-xs">
-                      <span className="flex items-center justify-end gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {formatTimeRemaining(position.timeRemaining)}
-                      </span>
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "text-right text-xs font-mono font-medium",
-                        position.unrealizedPnl >= 0 ? "text-green-400" : "text-red-400"
-                      )}
-                    >
-                      {position.unrealizedPnl >= 0 ? '+' : ''}
-                      {formatCurrency(position.unrealizedPnl)}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => onClosePosition(position.id)}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        {position.unrealizedPnl >= 0 ? '+' : ''}
+                        {formatCurrency(position.unrealizedPnl)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => onClosePosition(position.id)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
