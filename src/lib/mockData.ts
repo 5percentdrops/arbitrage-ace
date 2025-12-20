@@ -67,21 +67,26 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
   return Array.from({ length: count }, (_, i) => {
     const asset = CRYPTO_ASSETS[i % CRYPTO_ASSETS.length];
     const marketName = getMarketName(asset);
-    // Entry cost per share should be under $1.00 (combined YES + NO price)
-    const sharesQuantity = Math.floor(randomInRange(50, 200));
-    const entryPricePerShare = randomInRange(0.90, 0.98); // Under $1.00
-    const totalEntryCost = sharesQuantity * entryPricePerShare;
-    const lockedCapital = sharesQuantity * 1.00; // Max payout at $1 per share
-    const unrealizedPnl = lockedCapital - totalEntryCost; // Profit if held to settlement
+    
+    // Generate YES and NO entry prices that sum to < $1.00 for arbitrage profit
+    const combinedPrice = randomInRange(0.92, 0.98);
+    const yesEntryPrice = randomInRange(0.35, combinedPrice - 0.35);
+    const noEntryPrice = combinedPrice - yesEntryPrice;
+    
+    const shares = Math.floor(randomInRange(50, 200));
+    const entryCost = shares * combinedPrice;
+    const lockedCapital = shares * 1.00; // Max payout at $1 per share pair
+    const unrealizedPnl = lockedCapital - entryCost; // Profit if held to settlement
 
     return {
       id: `pos-${Date.now()}-${i}`,
       marketId: `market-pos-${i}`,
       marketName,
       token: asset as unknown as TokenSymbol,
-      yesSize: sharesQuantity,
-      noSize: sharesQuantity,
-      entryCost: Number(entryPricePerShare.toFixed(3)), // Per-share cost under $1.00
+      yesEntryPrice: Number(yesEntryPrice.toFixed(3)),
+      noEntryPrice: Number(noEntryPrice.toFixed(3)),
+      shares,
+      entryCost: Number(entryCost.toFixed(2)),
       lockedCapital: Number(lockedCapital.toFixed(2)),
       exitMode: Math.random() > 0.5 ? 'hold_to_settlement' : 'sell_at_threshold',
       timeRemaining: Math.floor(randomInRange(30, 720)),

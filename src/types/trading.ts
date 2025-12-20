@@ -87,8 +87,9 @@ export interface OpenPosition {
   marketId: string;
   marketName: string;
   token: TokenSymbol;
-  yesSize: number;
-  noSize: number;
+  yesEntryPrice: number;
+  noEntryPrice: number;
+  shares: number;
   entryCost: number;
   lockedCapital: number;
   exitMode: ExitMode;
