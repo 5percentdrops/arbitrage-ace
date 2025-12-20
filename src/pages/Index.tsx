@@ -159,7 +159,7 @@ const Index = () => {
   const allChecksPass = preflightChecks.every((check) => check.passed);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background terminal-scanlines terminal-vignette terminal-flicker">
       <Toaster position="top-right" richColors />
       
       {/* Header */}
@@ -228,7 +228,7 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 terminal-grid">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Configuration */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-4">
