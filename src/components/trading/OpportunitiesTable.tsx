@@ -43,7 +43,7 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
-                <TableHead className="w-16">Token</TableHead>
+                <TableHead className="w-20">Category</TableHead>
                 <TableHead>Market</TableHead>
                 <TableHead className="text-right">YES</TableHead>
                 <TableHead className="text-right">NO</TableHead>

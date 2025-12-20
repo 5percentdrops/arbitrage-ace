@@ -49,7 +49,7 @@ export function PositionsTable({
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border/30">
                 <TableHead className="text-xs text-muted-foreground font-medium">Market</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Token</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Category</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">YES</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">NO</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Entry</TableHead>
