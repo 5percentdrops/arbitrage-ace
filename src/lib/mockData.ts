@@ -3,6 +3,7 @@ import {
   OpenPosition, 
   PerformanceMetrics, 
   TokenSymbol,
+  MarketTimeframe,
   OpportunityStatus,
   TOKENS 
 } from '@/types/trading';
@@ -15,15 +16,21 @@ const randomAsset = (): TokenSymbol => {
   return TOKENS[Math.floor(Math.random() * TOKENS.length)];
 };
 
-// Market name formats for daily UP/DOWN crypto markets
-const getMarketName = (asset: TokenSymbol): string => {
-  const formats = [
-    `${asset} Daily UP/DOWN`,
-    `${asset} 24h Direction`,
-    `${asset} Price Movement Today`,
-    `Will ${asset} go UP today?`,
-  ];
-  return formats[Math.floor(Math.random() * formats.length)];
+const TIMEFRAMES: MarketTimeframe[] = ['15m', '1h', '4h', 'daily'];
+
+const randomTimeframe = (): MarketTimeframe => {
+  return TIMEFRAMES[Math.floor(Math.random() * TIMEFRAMES.length)];
+};
+
+// Market name formats for crypto markets
+const getMarketName = (asset: TokenSymbol, timeframe: MarketTimeframe): string => {
+  const timeLabels: Record<MarketTimeframe, string> = {
+    '15m': '15 Min',
+    '1h': 'Hourly',
+    '4h': '4 Hour',
+    'daily': 'Daily'
+  };
+  return `${asset} ${timeLabels[timeframe]} UP/DOWN`;
 };
 
 // Generate mock arbitrage opportunities
@@ -32,13 +39,23 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
 
   return Array.from({ length: count }, (_, i) => {
     const asset = randomAsset();
-    const marketName = getMarketName(asset);
+    const timeframe = randomTimeframe();
+    const marketName = getMarketName(asset, timeframe);
     
     // Generate combined price between 0.92 and 0.98 (valid arbitrage - buy YES+NO for < $1, redeem for $1)
     const combinedPrice = randomInRange(0.92, 0.98);
     const yesPrice = randomInRange(0.35, combinedPrice - 0.35);
     const noPrice = combinedPrice - yesPrice;
     const spreadPercent = (1 - combinedPrice) * 100;
+
+    // Derive timeToSettlement from timeframe
+    const timeRanges: Record<MarketTimeframe, [number, number]> = {
+      '15m': [5, 15],
+      '1h': [15, 60],
+      '4h': [60, 240],
+      'daily': [240, 1440]
+    };
+    const [minTime, maxTime] = timeRanges[timeframe];
 
     return {
       id: `opp-${Date.now()}-${i}`,
@@ -51,7 +68,8 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
       spreadPercent: Number(spreadPercent.toFixed(2)),
       liquidity: Math.floor(randomInRange(15000, 500000)),
       volume24h: Math.floor(randomInRange(8000, 200000)),
-      timeToSettlement: Math.floor(randomInRange(30, 1200)),
+      timeframe,
+      timeToSettlement: Math.floor(randomInRange(minTime, maxTime)),
       status: statuses[Math.floor(Math.random() * 3)] as OpportunityStatus,
       detectedAt: new Date(Date.now() - Math.floor(randomInRange(0, 3600000))),
     };
@@ -62,7 +80,8 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
 export const generateMockPositions = (count: number = 3): OpenPosition[] => {
   return Array.from({ length: count }, (_, i) => {
     const asset = TOKENS[i % TOKENS.length];
-    const marketName = getMarketName(asset);
+    const timeframe = randomTimeframe();
+    const marketName = getMarketName(asset, timeframe);
     
     // Generate YES and NO entry prices that sum to < $1.00 for arbitrage profit
     const combinedPrice = randomInRange(0.92, 0.98);

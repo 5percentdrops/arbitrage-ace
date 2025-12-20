@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArbitrageOpportunity } from '@/types/trading';
-import { formatCurrency, formatNumber, formatTimeRemaining } from '@/lib/mockData';
+import { ArbitrageOpportunity, MarketTimeframe } from '@/types/trading';
+import { formatCurrency, formatNumber } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { TrendingUp, RefreshCw } from 'lucide-react';
 
@@ -22,6 +22,22 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
       missed: 'bg-destructive/20 text-destructive',
     };
     return <Badge className={cn("text-xs", styles[status])}>{status}</Badge>;
+  };
+
+  const getTimeframeBadge = (timeframe: MarketTimeframe) => {
+    const styles: Record<MarketTimeframe, string> = {
+      '15m': 'bg-orange-500/20 text-orange-400',
+      '1h': 'bg-blue-500/20 text-blue-400',
+      '4h': 'bg-purple-500/20 text-purple-400',
+      'daily': 'bg-green-500/20 text-green-400',
+    };
+    const labels: Record<MarketTimeframe, string> = {
+      '15m': '15m',
+      '1h': '1h',
+      '4h': '4h',
+      'daily': 'Daily',
+    };
+    return <Badge className={cn("text-xs", styles[timeframe])}>{labels[timeframe]}</Badge>;
   };
 
   return (
@@ -100,7 +116,7 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
                         {profit > 0 ? `$${profit.toFixed(2)} (${profitPercent.toFixed(1)}%)` : '—'}
                       </TableCell>
                       <TableCell className="text-right">{formatNumber(opp.liquidity)}</TableCell>
-                      <TableCell className="text-right">{formatTimeRemaining(opp.timeToSettlement)}</TableCell>
+                      <TableCell className="text-center">{getTimeframeBadge(opp.timeframe)}</TableCell>
                       <TableCell>{getStatusBadge(opp.status)}</TableCell>
                     </TableRow>
                   );
