@@ -10,29 +10,63 @@ import {
 const randomInRange = (min: number, max: number) => 
   Math.random() * (max - min) + min;
 
-// Helper to generate random token
-const randomToken = (): TokenSymbol => {
-  const tokens: TokenSymbol[] = ['BTC', 'ETH', 'SOL', 'XRP'];
-  return tokens[Math.floor(Math.random() * tokens.length)];
+// Market categories for Polymarket
+type MarketCategory = 'Politics' | 'Crypto' | 'Sports' | 'Finance' | 'Entertainment';
+
+const randomCategory = (): MarketCategory => {
+  const categories: MarketCategory[] = ['Politics', 'Crypto', 'Sports', 'Finance', 'Entertainment'];
+  return categories[Math.floor(Math.random() * categories.length)];
+};
+
+// Realistic Polymarket market names by category
+const marketNamesByCategory: Record<MarketCategory, string[]> = {
+  Politics: [
+    'Will Trump win 2024 election?',
+    'Will Biden drop out before November?',
+    'Will Republicans win Senate?',
+    'Will there be a government shutdown in 2024?',
+    'Will Ukraine peace deal happen by year end?',
+  ],
+  Crypto: [
+    'Will BTC hit $100k by Dec 31?',
+    'Will ETH reach $5k this year?',
+    'Will SEC approve more spot ETFs?',
+    'Will Solana flip Ethereum in TVL?',
+    'Will there be a major exchange hack?',
+  ],
+  Sports: [
+    'Will Chiefs win Super Bowl?',
+    'Will Lakers make playoffs?',
+    'Will Messi win Ballon d\'Or?',
+    'Will Yankees win World Series?',
+    'Will Max Verstappen win F1 championship?',
+  ],
+  Finance: [
+    'Will Fed cut rates in December?',
+    'Will S&P 500 hit 6000?',
+    'Will US enter recession in 2024?',
+    'Will inflation drop below 2%?',
+    'Will Tesla hit $300?',
+  ],
+  Entertainment: [
+    'Will Taylor Swift tour gross $1B?',
+    'Will a streaming show win Emmy?',
+    'Will box office exceed 2023?',
+    'Will there be a major studio merger?',
+    'Will AI-generated content win major award?',
+  ],
 };
 
 // Generate mock arbitrage opportunities
-export const generateMockOpportunities = (count: number = 8): ArbitrageOpportunity[] => {
+export const generateMockOpportunities = (count: number = 15): ArbitrageOpportunity[] => {
   const statuses: OpportunityStatus[] = ['detected', 'executing', 'open', 'settled', 'missed'];
-  const marketNames = [
-    'Will {TOKEN} hit $X by end of month?',
-    '{TOKEN} price above $X on Dec 31?',
-    'Will {TOKEN} outperform ETH this week?',
-    '{TOKEN} to reach new ATH in 2024?',
-    'Will {TOKEN} break resistance at $X?',
-    '{TOKEN} daily close above $X?',
-    'Will {TOKEN} market cap exceed $X?',
-    '{TOKEN} volatility above 5% today?',
-  ];
 
   return Array.from({ length: count }, (_, i) => {
-    const token = randomToken();
-    // Generate combined price between 0.92 and 0.98 (valid arbitrage - buy for < $1, redeem for $1)
+    const category = randomCategory();
+    const marketNames = marketNamesByCategory[category];
+    const marketName = marketNames[Math.floor(Math.random() * marketNames.length)];
+    
+    // Generate combined price between 0.92 and 0.98 (valid arbitrage - buy YES+NO for < $1, redeem for $1)
     const combinedPrice = randomInRange(0.92, 0.98);
     const yesPrice = randomInRange(0.35, combinedPrice - 0.35);
     const noPrice = combinedPrice - yesPrice;
@@ -40,10 +74,8 @@ export const generateMockOpportunities = (count: number = 8): ArbitrageOpportuni
 
     return {
       id: `opp-${Date.now()}-${i}`,
-      token,
-      marketName: marketNames[i % marketNames.length]
-        .replace('{TOKEN}', token)
-        .replace('$X', `$${Math.floor(randomInRange(10000, 100000))}`),
+      token: category as unknown as TokenSymbol, // Using category instead of token
+      marketName,
       marketId: `market-${i}-${Date.now()}`,
       yesPrice: Number(yesPrice.toFixed(3)),
       noPrice: Number(noPrice.toFixed(3)),
@@ -60,8 +92,16 @@ export const generateMockOpportunities = (count: number = 8): ArbitrageOpportuni
 
 // Generate mock open positions
 export const generateMockPositions = (count: number = 3): OpenPosition[] => {
+  const positionMarkets = [
+    { category: 'Politics', name: 'Will Trump win 2024 election?' },
+    { category: 'Crypto', name: 'Will BTC hit $100k by Dec 31?' },
+    { category: 'Sports', name: 'Will Chiefs win Super Bowl?' },
+    { category: 'Finance', name: 'Will Fed cut rates in December?' },
+    { category: 'Entertainment', name: 'Will Taylor Swift tour gross $1B?' },
+  ];
+
   return Array.from({ length: count }, (_, i) => {
-    const token = randomToken();
+    const market = positionMarkets[i % positionMarkets.length];
     // Entry cost per share should be under $1.00 (combined YES + NO price)
     const sharesQuantity = Math.floor(randomInRange(50, 200));
     const entryPricePerShare = randomInRange(0.90, 0.98); // Under $1.00
@@ -72,8 +112,8 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
     return {
       id: `pos-${Date.now()}-${i}`,
       marketId: `market-pos-${i}`,
-      marketName: `${token} price prediction #${i + 1}`,
-      token,
+      marketName: market.name,
+      token: market.category as unknown as TokenSymbol,
       yesSize: sharesQuantity,
       noSize: sharesQuantity,
       entryCost: Number(entryPricePerShare.toFixed(3)), // Per-share cost under $1.00
