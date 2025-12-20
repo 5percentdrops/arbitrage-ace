@@ -60,14 +60,14 @@ export function useOpportunities({
     isArbitrage: opp.combinedPrice <= 0.98 && opp.spreadPercent > 0,
   }));
 
+  // Load initial mock data on mount (regardless of running state)
+  useEffect(() => {
+    loadOpportunities();
+  }, [loadOpportunities]);
+
   // Auto-refresh when running
   useEffect(() => {
     if (isRunning) {
-      // Initial load
-      if (opportunities.length === 0) {
-        loadOpportunities();
-      }
-
       // Set up interval for price updates
       intervalRef.current = setInterval(() => {
         setOpportunities(prev => {
@@ -102,7 +102,7 @@ export function useOpportunities({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, refreshInterval, loadOpportunities, opportunities.length]);
+  }, [isRunning, refreshInterval]);
 
   const refresh = useCallback(() => {
     loadOpportunities();
