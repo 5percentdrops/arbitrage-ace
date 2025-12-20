@@ -70,7 +70,11 @@ export function PositionsTable({
                 </TableRow>
               ) : (
                 positions.map((position) => {
-                  const combinedPrice = position.yesEntryPrice + position.noEntryPrice;
+                  const yesPrice = position.yesEntryPrice ?? 0;
+                  const noPrice = position.noEntryPrice ?? 0;
+                  const combinedPrice = yesPrice + noPrice;
+                  const shares = position.shares ?? 0;
+                  
                   return (
                     <TableRow
                       key={position.id}
@@ -85,16 +89,16 @@ export function PositionsTable({
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right text-xs font-mono text-green-400">
-                        ${position.yesEntryPrice.toFixed(2)}
+                        ${yesPrice.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-xs font-mono text-red-400">
-                        ${position.noEntryPrice.toFixed(2)}
+                        ${noPrice.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-xs font-mono text-primary">
                         ${combinedPrice.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-xs font-mono">
-                        {position.shares}
+                        {shares}
                       </TableCell>
                       <TableCell className="text-right text-xs font-mono">
                         {formatCurrency(position.lockedCapital)}
