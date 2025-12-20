@@ -10,6 +10,9 @@ export type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error
 // Exit strategy modes
 export type ExitMode = 'hold_to_settlement' | 'sell_at_threshold';
 
+// Market timeframe categories
+export type MarketTimeframe = '15m' | '1h' | '4h' | 'daily';
+
 // Opportunity status
 export type OpportunityStatus = 'detected' | 'executing' | 'open' | 'settled' | 'missed';
 
@@ -76,6 +79,7 @@ export interface ArbitrageOpportunity {
   spreadPercent: number;
   liquidity: number;
   volume24h: number;
+  timeframe: MarketTimeframe;
   timeToSettlement: number; // in minutes
   status: OpportunityStatus;
   detectedAt: Date;
