@@ -42,7 +42,9 @@ export interface WalletConfig {
 // Filter parameters
 export interface FilterParams {
   minLiquidity: number;
+  maxLiquidity: number;
   minVolume: number;
+  maxVolume: number;
   minTimeToSettlement: number;
   maxTimeToSettlement: number;
   minSpread: number; // e.g., 0.90 means YES + NO >= 0.90
@@ -132,7 +134,9 @@ export interface BotState {
 // Default values
 export const DEFAULT_FILTERS: FilterParams = {
   minLiquidity: 10000,
+  maxLiquidity: 10000000,
   minVolume: 5000,
+  maxVolume: 5000000,
   minTimeToSettlement: 5,
   maxTimeToSettlement: 1440, // 24 hours
   minSpread: 0.90,

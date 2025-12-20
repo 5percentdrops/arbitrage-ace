@@ -39,9 +39,11 @@ export function useOpportunities({
     
     // Liquidity filter
     if (opp.liquidity < filters.minLiquidity) return false;
+    if (opp.liquidity > filters.maxLiquidity) return false;
     
     // Volume filter
     if (opp.volume24h < filters.minVolume) return false;
+    if (opp.volume24h > filters.maxVolume) return false;
     
     // Time to settlement filter
     if (opp.timeToSettlement < filters.minTimeToSettlement) return false;

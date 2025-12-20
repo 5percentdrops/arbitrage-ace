@@ -66,11 +66,29 @@ export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {
             />
           </div>
           <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Max Liquidity ($)</Label>
+            <Input
+              type="number"
+              value={filters.maxLiquidity}
+              onChange={(e) => onUpdate({ maxLiquidity: Number(e.target.value) })}
+              className="font-mono text-sm"
+            />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Min Volume ($)</Label>
             <Input
               type="number"
               value={filters.minVolume}
               onChange={(e) => onUpdate({ minVolume: Number(e.target.value) })}
+              className="font-mono text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Max Volume ($)</Label>
+            <Input
+              type="number"
+              value={filters.maxVolume}
+              onChange={(e) => onUpdate({ maxVolume: Number(e.target.value) })}
               className="font-mono text-sm"
             />
           </div>

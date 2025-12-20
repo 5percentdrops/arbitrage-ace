@@ -26,14 +26,14 @@ export function usePositions({
     }, 300);
   }, []);
 
-  // Update positions over time
+  // Load initial mock data on mount
+  useEffect(() => {
+    loadPositions();
+  }, [loadPositions]);
+
+  // Update positions over time when running
   useEffect(() => {
     if (isRunning) {
-      // Initial load
-      if (positions.length === 0) {
-        loadPositions();
-      }
-
       // Set up interval for position updates
       intervalRef.current = setInterval(() => {
         setPositions(prev => {
@@ -69,7 +69,7 @@ export function usePositions({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, refreshInterval, loadPositions, positions.length]);
+  }, [isRunning, refreshInterval]);
 
   const closePosition = useCallback((positionId: string) => {
     setPositions(prev => prev.filter(p => p.id !== positionId));
