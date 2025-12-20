@@ -15,8 +15,11 @@ import { RpcConfigPanel } from '@/components/config/RpcConfigPanel';
 import { BotControlPanel } from '@/components/bot/BotControlPanel';
 import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
+import { CompoundingControls } from '@/components/settings/CompoundingControls';
+import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
 import { OpportunitiesTable } from '@/components/trading/OpportunitiesTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
+import { PositionsTable } from '@/components/trading/PositionsTable';
 
 const Index = () => {
   // Bot state management
@@ -28,6 +31,7 @@ const Index = () => {
     toggleToken,
     updateFilters,
     updateCompounding,
+    updateExitSettings,
     getPreflightChecks,
     canStartBot,
   } = useBotState();
@@ -60,7 +64,7 @@ const Index = () => {
   });
 
   // Positions tracking
-  const { positions, performance } = usePositions({
+  const { positions, performance, closePosition, isLoading: isLoadingPositions } = usePositions({
     isRunning: state.status === 'running',
   });
 
@@ -267,6 +271,20 @@ const Index = () => {
 
             {/* Filters */}
             <FiltersPanel filters={state.filters} onUpdate={updateFilters} />
+
+            {/* Compounding Controls */}
+            <CompoundingControls
+              settings={state.compounding}
+              onUpdate={updateCompounding}
+              disabled={state.status === 'running'}
+            />
+
+            {/* Exit Logic */}
+            <ExitLogicPanel
+              settings={state.exitSettings}
+              onUpdate={updateExitSettings}
+              disabled={state.status === 'running'}
+            />
           </div>
 
           {/* Right Column - Bot Control & Data */}
@@ -298,6 +316,13 @@ const Index = () => {
               opportunities={opportunities}
               isLoading={isLoadingOpps}
               lastRefresh={lastRefresh}
+            />
+
+            {/* Positions Table */}
+            <PositionsTable
+              positions={positions}
+              onClosePosition={closePosition}
+              isLoading={isLoadingPositions}
             />
           </div>
         </div>
