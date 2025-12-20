@@ -32,9 +32,10 @@ export const generateMockOpportunities = (count: number = 8): ArbitrageOpportuni
 
   return Array.from({ length: count }, (_, i) => {
     const token = randomToken();
-    const yesPrice = randomInRange(0.35, 0.65);
-    const noPrice = randomInRange(0.35, 0.65);
-    const combinedPrice = yesPrice + noPrice;
+    // Generate combined price between 0.92 and 0.98 (valid arbitrage - buy for < $1, redeem for $1)
+    const combinedPrice = randomInRange(0.92, 0.98);
+    const yesPrice = randomInRange(0.35, combinedPrice - 0.35);
+    const noPrice = combinedPrice - yesPrice;
     const spreadPercent = (1 - combinedPrice) * 100;
 
     return {
@@ -48,10 +49,10 @@ export const generateMockOpportunities = (count: number = 8): ArbitrageOpportuni
       noPrice: Number(noPrice.toFixed(3)),
       combinedPrice: Number(combinedPrice.toFixed(3)),
       spreadPercent: Number(spreadPercent.toFixed(2)),
-      liquidity: Math.floor(randomInRange(5000, 100000)),
-      volume24h: Math.floor(randomInRange(1000, 50000)),
-      timeToSettlement: Math.floor(randomInRange(10, 1440)),
-      status: statuses[Math.floor(Math.random() * 3)] as OpportunityStatus, // Mostly detected/executing/open
+      liquidity: Math.floor(randomInRange(15000, 500000)),
+      volume24h: Math.floor(randomInRange(8000, 200000)),
+      timeToSettlement: Math.floor(randomInRange(30, 1200)),
+      status: statuses[Math.floor(Math.random() * 3)] as OpportunityStatus,
       detectedAt: new Date(Date.now() - Math.floor(randomInRange(0, 3600000))),
     };
   });
@@ -61,18 +62,21 @@ export const generateMockOpportunities = (count: number = 8): ArbitrageOpportuni
 export const generateMockPositions = (count: number = 3): OpenPosition[] => {
   return Array.from({ length: count }, (_, i) => {
     const token = randomToken();
-    const entryCost = randomInRange(50, 200);
-    const lockedCapital = entryCost * 1.05;
-    const unrealizedPnl = randomInRange(-10, 20);
+    // Entry cost per share should be under $1.00 (combined YES + NO price)
+    const sharesQuantity = Math.floor(randomInRange(50, 200));
+    const entryPricePerShare = randomInRange(0.90, 0.98); // Under $1.00
+    const totalEntryCost = sharesQuantity * entryPricePerShare;
+    const lockedCapital = sharesQuantity * 1.00; // Max payout at $1 per share
+    const unrealizedPnl = lockedCapital - totalEntryCost; // Profit if held to settlement
 
     return {
       id: `pos-${Date.now()}-${i}`,
       marketId: `market-pos-${i}`,
       marketName: `${token} price prediction #${i + 1}`,
       token,
-      yesSize: Math.floor(randomInRange(50, 200)),
-      noSize: Math.floor(randomInRange(50, 200)),
-      entryCost: Number(entryCost.toFixed(2)),
+      yesSize: sharesQuantity,
+      noSize: sharesQuantity,
+      entryCost: Number(entryPricePerShare.toFixed(3)), // Per-share cost under $1.00
       lockedCapital: Number(lockedCapital.toFixed(2)),
       exitMode: Math.random() > 0.5 ? 'hold_to_settlement' : 'sell_at_threshold',
       timeRemaining: Math.floor(randomInRange(30, 720)),
