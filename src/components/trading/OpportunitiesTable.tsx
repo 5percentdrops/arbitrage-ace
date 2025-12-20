@@ -47,7 +47,8 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
                 <TableHead>Market</TableHead>
                 <TableHead className="text-right">YES</TableHead>
                 <TableHead className="text-right">NO</TableHead>
-                <TableHead className="text-right">Spread%</TableHead>
+                <TableHead className="text-right">Combined</TableHead>
+                <TableHead className="text-right">Profit</TableHead>
                 <TableHead className="text-right">Liq</TableHead>
                 <TableHead className="text-right">Time</TableHead>
                 <TableHead>Status</TableHead>
@@ -61,29 +62,49 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
                   </TableCell>
                 </TableRow>
               ) : (
-                opportunities.slice(0, 10).map((opp) => (
-                  <TableRow 
-                    key={opp.id} 
-                    className={cn(
-                      "text-xs font-mono",
-                      opp.isArbitrage && "bg-success/5 border-l-2 border-l-success"
-                    )}
-                  >
-                    <TableCell className="font-semibold">{opp.token}</TableCell>
-                    <TableCell className="max-w-[200px] truncate font-sans">{opp.marketName}</TableCell>
-                    <TableCell className="text-right text-trading-buy">${opp.yesPrice.toFixed(3)}</TableCell>
-                    <TableCell className="text-right text-trading-sell">${opp.noPrice.toFixed(3)}</TableCell>
-                    <TableCell className={cn(
-                      "text-right font-semibold",
-                      opp.spreadPercent > 2 ? "text-success" : "text-muted-foreground"
-                    )}>
-                      {opp.spreadPercent.toFixed(1)}%
-                    </TableCell>
-                    <TableCell className="text-right">{formatNumber(opp.liquidity)}</TableCell>
-                    <TableCell className="text-right">{formatTimeRemaining(opp.timeToSettlement)}</TableCell>
-                    <TableCell>{getStatusBadge(opp.status)}</TableCell>
-                  </TableRow>
-                ))
+                opportunities.slice(0, 10).map((opp) => {
+                  const yesPrice = opp.yesPrice ?? 0;
+                  const noPrice = opp.noPrice ?? 0;
+                  const combinedPrice = yesPrice + noPrice;
+                  const profit = 1.00 - combinedPrice;
+                  const profitPercent = profit * 100;
+                  const isProfitable = profit > 0.01;
+                  const isMarginal = profit > 0 && profit <= 0.01;
+
+                  return (
+                    <TableRow 
+                      key={opp.id} 
+                      className={cn(
+                        "text-xs font-mono",
+                        opp.isArbitrage && "bg-success/5 border-l-2 border-l-success"
+                      )}
+                    >
+                      <TableCell className="font-semibold">{opp.token}</TableCell>
+                      <TableCell className="max-w-[200px] truncate font-sans">{opp.marketName}</TableCell>
+                      <TableCell className="text-right text-trading-buy">${yesPrice.toFixed(3)}</TableCell>
+                      <TableCell className="text-right text-trading-sell">${noPrice.toFixed(3)}</TableCell>
+                      <TableCell className={cn(
+                        "text-right font-semibold",
+                        isProfitable && "text-success",
+                        isMarginal && "text-warning",
+                        !isProfitable && !isMarginal && "text-muted-foreground"
+                      )}>
+                        ${combinedPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className={cn(
+                        "text-right font-semibold",
+                        isProfitable && "text-success",
+                        isMarginal && "text-warning",
+                        profit <= 0 && "text-destructive"
+                      )}>
+                        {profit > 0 ? `$${profit.toFixed(2)} (${profitPercent.toFixed(1)}%)` : '—'}
+                      </TableCell>
+                      <TableCell className="text-right">{formatNumber(opp.liquidity)}</TableCell>
+                      <TableCell className="text-right">{formatTimeRemaining(opp.timeToSettlement)}</TableCell>
+                      <TableCell>{getStatusBadge(opp.status)}</TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
