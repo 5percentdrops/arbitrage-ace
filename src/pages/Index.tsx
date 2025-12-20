@@ -230,8 +230,47 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 terminal-grid">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - Configuration */}
+          {/* Left Column - Controls & Configuration (Priority at top) */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-4">
+            {/* Bot Control - Priority #1 */}
+            <BotControlPanel
+              status={state.status}
+              availableCapital={state.availableCapital}
+              lockedCapital={state.lockedCapital}
+              activeMarkets={positions.length}
+              lastTradeAt={state.lastTradeAt}
+              compoundingEnabled={state.compounding.enabled}
+              preflightChecks={preflightChecks}
+              canStart={allChecksPass}
+              onStart={handleStart}
+              onStop={handleStop}
+              onEmergencyStop={handleEmergencyStop}
+              onToggleCompounding={(enabled) => updateCompounding({ enabled })}
+            />
+
+            {/* Compounding Controls - Priority #2 */}
+            <CompoundingControls
+              settings={state.compounding}
+              onUpdate={updateCompounding}
+              disabled={state.status === 'running'}
+            />
+
+            {/* Exit Logic - Priority #3 */}
+            <ExitLogicPanel
+              settings={state.exitSettings}
+              onUpdate={updateExitSettings}
+              disabled={state.status === 'running'}
+            />
+
+            {/* Token Selection */}
+            <TokenSelector
+              selectedTokens={state.selectedTokens}
+              onToggle={toggleToken}
+            />
+
+            {/* Filters with Time Intervals */}
+            <FiltersPanel filters={state.filters} onUpdate={updateFilters} />
+
             {/* API Configuration */}
             <ApiConfigPanel
               apiKey={apiConfig.apiKey}
@@ -262,54 +301,12 @@ const Index = () => {
               onTestConnection={handleRpcTest}
               onDisconnect={disconnectRpc}
             />
-
-            {/* Token Selection */}
-            <TokenSelector
-              selectedTokens={state.selectedTokens}
-              onToggle={toggleToken}
-            />
-
-            {/* Filters */}
-            <FiltersPanel filters={state.filters} onUpdate={updateFilters} />
-
-            {/* Compounding Controls */}
-            <CompoundingControls
-              settings={state.compounding}
-              onUpdate={updateCompounding}
-              disabled={state.status === 'running'}
-            />
-
-            {/* Exit Logic */}
-            <ExitLogicPanel
-              settings={state.exitSettings}
-              onUpdate={updateExitSettings}
-              disabled={state.status === 'running'}
-            />
           </div>
 
-          {/* Right Column - Bot Control & Data */}
+          {/* Right Column - Data & Performance */}
           <div className="lg:col-span-8 xl:col-span-9 space-y-4">
-            {/* Top Row - Bot Control & Performance */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              {/* Bot Control */}
-              <BotControlPanel
-                status={state.status}
-                availableCapital={state.availableCapital}
-                lockedCapital={state.lockedCapital}
-                activeMarkets={positions.length}
-                lastTradeAt={state.lastTradeAt}
-                compoundingEnabled={state.compounding.enabled}
-                preflightChecks={preflightChecks}
-                canStart={allChecksPass}
-                onStart={handleStart}
-                onStop={handleStop}
-                onEmergencyStop={handleEmergencyStop}
-                onToggleCompounding={(enabled) => updateCompounding({ enabled })}
-              />
-
-              {/* Performance */}
-              <PerformancePanel metrics={performance} />
-            </div>
+            {/* Performance Panel */}
+            <PerformancePanel metrics={performance} />
 
             {/* Opportunities Table */}
             <OpportunitiesTable
