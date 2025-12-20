@@ -163,3 +163,58 @@ export const TOKEN_INFO: Record<TokenSymbol, { name: string; color: string }> = 
   SOL: { name: 'Solana', color: 'hsl(280, 67%, 55%)' },
   XRP: { name: 'Ripple', color: 'hsl(210, 10%, 50%)' },
 };
+
+// ============= Dump & Hedge Strategy Types =============
+
+// Dump & Hedge cycle state
+export type DumpHedgeCycleState = 'waiting' | 'leg1_executed' | 'leg2_executed' | 'settled';
+
+// Dump & Hedge parameters
+export interface DumpHedgeParams {
+  shares: number;           // Number of shares per leg (default: 10)
+  sumTarget: number;        // Price threshold for hedge: Leg1 + OppositeAsk <= sumTarget (default: 0.95)
+  moveThreshold: number;    // Price drop % to trigger Leg1 (default: 0.15)
+  windowMinutes: number;    // Observation window in minutes (default: 3)
+}
+
+// Single leg execution data
+export interface DumpHedgeLeg {
+  side: 'YES' | 'NO';
+  entryPrice: number;
+  shares: number;
+  executedAt: Date;
+}
+
+// Complete cycle record
+export interface DumpHedgeCycle {
+  id: string;
+  leg1: DumpHedgeLeg | null;
+  leg2: DumpHedgeLeg | null;
+  lockedProfit: number;
+  lockedProfitPercent: number;
+  status: DumpHedgeCycleState;
+  completedAt: Date | null;
+}
+
+// Full Dump & Hedge state
+export interface DumpHedgeState {
+  enabled: boolean;           // Auto mode toggle
+  params: DumpHedgeParams;
+  currentCycle: DumpHedgeCycle | null;
+  cycleHistory: DumpHedgeCycle[];  // Last 5 completed cycles
+}
+
+// Default values for Dump & Hedge
+export const DEFAULT_DUMP_HEDGE_PARAMS: DumpHedgeParams = {
+  shares: 10,
+  sumTarget: 0.95,
+  moveThreshold: 0.15,
+  windowMinutes: 3,
+};
+
+export const DEFAULT_DUMP_HEDGE_STATE: DumpHedgeState = {
+  enabled: false,
+  params: DEFAULT_DUMP_HEDGE_PARAMS,
+  currentCycle: null,
+  cycleHistory: [],
+};
