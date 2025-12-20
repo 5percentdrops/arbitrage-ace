@@ -8,6 +8,7 @@ import { useApiConnection } from '@/hooks/useApiConnection';
 import { useRpcConnection } from '@/hooks/useRpcConnection';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { usePositions } from '@/hooks/usePositions';
+import { useDumpHedge } from '@/hooks/useDumpHedge';
 
 // Components
 import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
@@ -17,6 +18,7 @@ import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
 import { CompoundingControls } from '@/components/settings/CompoundingControls';
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
+import { DumpHedgePanel } from '@/components/trading/DumpHedgePanel';
 import { OpportunitiesTable } from '@/components/trading/OpportunitiesTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
@@ -67,6 +69,14 @@ const Index = () => {
   const { positions, performance, closePosition, isLoading: isLoadingPositions } = usePositions({
     isRunning: state.status === 'running',
   });
+
+  // Dump & Hedge strategy (independent of main bot)
+  const {
+    state: dumpHedgeState,
+    toggleAutoMode: toggleDumpHedgeAutoMode,
+    updateParams: updateDumpHedgeParams,
+    getWarnings: getDumpHedgeWarnings,
+  } = useDumpHedge();
 
   // Handlers
   const handleStart = () => {
@@ -260,6 +270,14 @@ const Index = () => {
               settings={state.exitSettings}
               onUpdate={updateExitSettings}
               disabled={state.status === 'running'}
+            />
+
+            {/* Dump & Hedge Strategy (Optional) */}
+            <DumpHedgePanel
+              state={dumpHedgeState}
+              onToggleAutoMode={toggleDumpHedgeAutoMode}
+              onUpdateParams={updateDumpHedgeParams}
+              warnings={getDumpHedgeWarnings()}
             />
 
             {/* Token Selection */}
