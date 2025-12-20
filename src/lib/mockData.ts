@@ -3,24 +3,20 @@ import {
   OpenPosition, 
   PerformanceMetrics, 
   TokenSymbol,
-  OpportunityStatus 
+  OpportunityStatus,
+  TOKENS 
 } from '@/types/trading';
 
 // Helper to generate random number in range
 const randomInRange = (min: number, max: number) => 
   Math.random() * (max - min) + min;
 
-// Crypto assets for daily UP/DOWN markets
-type CryptoAsset = 'BTC' | 'ETH' | 'SOL' | 'DOGE' | 'XRP' | 'AVAX' | 'MATIC' | 'LINK' | 'ADA' | 'DOT';
-
-const CRYPTO_ASSETS: CryptoAsset[] = ['BTC', 'ETH', 'SOL', 'DOGE', 'XRP', 'AVAX', 'MATIC', 'LINK', 'ADA', 'DOT'];
-
-const randomAsset = (): CryptoAsset => {
-  return CRYPTO_ASSETS[Math.floor(Math.random() * CRYPTO_ASSETS.length)];
+const randomAsset = (): TokenSymbol => {
+  return TOKENS[Math.floor(Math.random() * TOKENS.length)];
 };
 
 // Market name formats for daily UP/DOWN crypto markets
-const getMarketName = (asset: CryptoAsset): string => {
+const getMarketName = (asset: TokenSymbol): string => {
   const formats = [
     `${asset} Daily UP/DOWN`,
     `${asset} 24h Direction`,
@@ -46,7 +42,7 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
 
     return {
       id: `opp-${Date.now()}-${i}`,
-      token: asset as unknown as TokenSymbol,
+      token: asset,
       marketName,
       marketId: `market-${i}-${Date.now()}`,
       yesPrice: Number(yesPrice.toFixed(3)),
@@ -65,7 +61,7 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
 // Generate mock open positions
 export const generateMockPositions = (count: number = 3): OpenPosition[] => {
   return Array.from({ length: count }, (_, i) => {
-    const asset = CRYPTO_ASSETS[i % CRYPTO_ASSETS.length];
+    const asset = TOKENS[i % TOKENS.length];
     const marketName = getMarketName(asset);
     
     // Generate YES and NO entry prices that sum to < $1.00 for arbitrage profit
@@ -82,7 +78,7 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
       id: `pos-${Date.now()}-${i}`,
       marketId: `market-pos-${i}`,
       marketName,
-      token: asset as unknown as TokenSymbol,
+      token: asset,
       yesEntryPrice: Number(yesEntryPrice.toFixed(3)),
       noEntryPrice: Number(noEntryPrice.toFixed(3)),
       shares,
