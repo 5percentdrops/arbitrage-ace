@@ -61,7 +61,17 @@ export function useBotState() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return { ...initialState, ...parsed, status: 'stopped' };
+        return {
+          ...initialState,
+          ...parsed,
+          // Ensure we always have at least one token selected so the UI isn't empty
+          selectedTokens:
+            Array.isArray(parsed?.selectedTokens) && parsed.selectedTokens.length > 0
+              ? parsed.selectedTokens
+              : initialState.selectedTokens,
+          // Never restore a running status from disk
+          status: 'stopped',
+        };
       }
     } catch (e) {
       console.error('Failed to load bot state:', e);
