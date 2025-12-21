@@ -19,10 +19,22 @@ const TIME_INTERVALS = [
 
 export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {
   const handleTimeIntervalSelect = (minutes: number) => {
-    onUpdate({ 
-      minTimeToSettlement: 0, 
-      maxTimeToSettlement: minutes 
+    onUpdate({
+      minTimeToSettlement: 0,
+      maxTimeToSettlement: minutes,
     });
+  };
+
+  const handleMinSpreadChange = (value: number) => {
+    const nextMin = value;
+    const nextMax = Math.max(filters.maxSpread, nextMin);
+    onUpdate({ minSpread: nextMin, maxSpread: nextMax });
+  };
+
+  const handleMaxSpreadChange = (value: number) => {
+    const nextMax = value;
+    const nextMin = Math.min(filters.minSpread, nextMax);
+    onUpdate({ minSpread: nextMin, maxSpread: nextMax });
   };
 
   return (
@@ -98,7 +110,7 @@ export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {
               type="number"
               step="0.01"
               value={filters.minSpread}
-              onChange={(e) => onUpdate({ minSpread: Number(e.target.value) })}
+              onChange={(e) => handleMinSpreadChange(Number(e.target.value))}
               className="font-mono text-sm"
             />
           </div>
@@ -108,7 +120,7 @@ export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {
               type="number"
               step="0.01"
               value={filters.maxSpread}
-              onChange={(e) => onUpdate({ maxSpread: Number(e.target.value) })}
+              onChange={(e) => handleMaxSpreadChange(Number(e.target.value))}
               className="font-mono text-sm"
             />
           </div>
