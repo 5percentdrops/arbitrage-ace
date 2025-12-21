@@ -26,10 +26,10 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
 
   const getTimeframeBadge = (timeframe: MarketTimeframe) => {
     const styles: Record<MarketTimeframe, string> = {
-      '15m': 'bg-orange-500/20 text-orange-400',
-      '1h': 'bg-blue-500/20 text-blue-400',
-      '4h': 'bg-purple-500/20 text-purple-400',
-      'daily': 'bg-green-500/20 text-green-400',
+      '15m': 'bg-warning/20 text-warning',
+      '1h': 'bg-primary/20 text-primary',
+      '4h': 'bg-secondary text-foreground',
+      'daily': 'bg-success/20 text-success',
     };
     const labels: Record<MarketTimeframe, string> = {
       '15m': '15m',
@@ -37,7 +37,7 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
       '4h': '4h',
       'daily': 'Daily',
     };
-    return <Badge className={cn("text-xs", styles[timeframe])}>{labels[timeframe]}</Badge>;
+    return <Badge className={cn('text-xs', styles[timeframe])}>{labels[timeframe]}</Badge>;
   };
 
   return (
@@ -73,7 +73,7 @@ export function OpportunitiesTable({ opportunities, isLoading, lastRefresh }: Op
             <TableBody>
               {opportunities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No opportunities found matching filters
                   </TableCell>
                 </TableRow>
