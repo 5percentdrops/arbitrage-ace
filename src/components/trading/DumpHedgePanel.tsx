@@ -87,21 +87,21 @@ export function DumpHedgePanel({ state, onToggleAutoMode, onUpdateParams, warnin
                   <div className="space-y-1.5">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Label htmlFor="shares" className="text-xs flex items-center gap-1 cursor-help">
+                        <Label htmlFor="leg1Shares" className="text-xs flex items-center gap-1 cursor-help">
                           <Zap className="h-3 w-3" />
-                          Shares
+                          Leg 1 Shares
                         </Label>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-xs">Number of shares per leg</p>
+                        <p className="text-xs">Number of shares for Leg 1</p>
                       </TooltipContent>
                     </Tooltip>
                     <Input
-                      id="shares"
+                      id="leg1Shares"
                       type="number"
                       min={1}
-                      value={params.shares}
-                      onChange={(e) => onUpdateParams({ shares: Number(e.target.value) })}
+                      value={params.leg1Shares}
+                      onChange={(e) => onUpdateParams({ leg1Shares: Number(e.target.value) })}
                       disabled={enabled}
                       className="h-8 text-sm"
                     />
@@ -110,23 +110,46 @@ export function DumpHedgePanel({ state, onToggleAutoMode, onUpdateParams, warnin
                   <div className="space-y-1.5">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Label htmlFor="sumTarget" className="text-xs flex items-center gap-1 cursor-help">
-                          <Target className="h-3 w-3" />
-                          Sum Target
+                        <Label htmlFor="leg2Shares" className="text-xs flex items-center gap-1 cursor-help">
+                          <Zap className="h-3 w-3" />
+                          Leg 2 Shares
                         </Label>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-xs">Leg1 + OppositeAsk must be ≤ this value</p>
+                        <p className="text-xs">Number of shares for Leg 2</p>
                       </TooltipContent>
                     </Tooltip>
                     <Input
-                      id="sumTarget"
+                      id="leg2Shares"
                       type="number"
-                      min={0.5}
+                      min={1}
+                      value={params.leg2Shares}
+                      onChange={(e) => onUpdateParams({ leg2Shares: Number(e.target.value) })}
+                      disabled={enabled}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label htmlFor="discoveryPercent" className="text-xs flex items-center gap-1 cursor-help">
+                          <Target className="h-3 w-3" />
+                          Discovery %
+                        </Label>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Minimum price movement to detect opportunity</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Input
+                      id="discoveryPercent"
+                      type="number"
+                      min={0.01}
                       max={1}
                       step={0.01}
-                      value={params.sumTarget}
-                      onChange={(e) => onUpdateParams({ sumTarget: Number(e.target.value) })}
+                      value={params.discoveryPercent}
+                      onChange={(e) => onUpdateParams({ discoveryPercent: Number(e.target.value) })}
                       disabled={enabled}
                       className="h-8 text-sm"
                     />
@@ -135,22 +158,23 @@ export function DumpHedgePanel({ state, onToggleAutoMode, onUpdateParams, warnin
                   <div className="space-y-1.5">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Label htmlFor="moveThreshold" className="text-xs flex items-center gap-1 cursor-help">
-                          Move %
+                        <Label htmlFor="lockedPercent" className="text-xs flex items-center gap-1 cursor-help">
+                          <Target className="h-3 w-3" />
+                          Locked %
                         </Label>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-xs">Price drop % to trigger Leg1</p>
+                        <p className="text-xs">Target locked profit percentage</p>
                       </TooltipContent>
                     </Tooltip>
                     <Input
-                      id="moveThreshold"
+                      id="lockedPercent"
                       type="number"
                       min={0.01}
                       max={0.5}
                       step={0.01}
-                      value={params.moveThreshold}
-                      onChange={(e) => onUpdateParams({ moveThreshold: Number(e.target.value) })}
+                      value={params.lockedPercent}
+                      onChange={(e) => onUpdateParams({ lockedPercent: Number(e.target.value) })}
                       disabled={enabled}
                       className="h-8 text-sm"
                     />
