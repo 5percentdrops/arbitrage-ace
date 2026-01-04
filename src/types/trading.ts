@@ -175,9 +175,10 @@ export type DumpHedgeCycleState = 'waiting' | 'leg1_executed' | 'leg2_executed' 
 
 // Dump & Hedge parameters
 export interface DumpHedgeParams {
-  shares: number;           // Number of shares per leg (default: 10)
-  sumTarget: number;        // Price threshold for hedge: Leg1 + OppositeAsk <= sumTarget (default: 0.95)
-  moveThreshold: number;    // Price drop % to trigger Leg1 (default: 0.15)
+  leg1Shares: number;       // Shares target for Leg 1 (default: 10)
+  leg2Shares: number;       // Shares target for Leg 2 (default: 10)
+  discoveryPercent: number; // Discovery % - minimum price movement to detect opportunity (default: 0.15)
+  lockedPercent: number;    // Locked % - target locked profit percentage (default: 0.05)
   windowMinutes: number;    // Observation window in minutes (default: 3)
 }
 
@@ -210,9 +211,10 @@ export interface DumpHedgeState {
 
 // Default values for Dump & Hedge
 export const DEFAULT_DUMP_HEDGE_PARAMS: DumpHedgeParams = {
-  shares: 10,
-  sumTarget: 0.95,
-  moveThreshold: 0.15,
+  leg1Shares: 10,
+  leg2Shares: 10,
+  discoveryPercent: 0.15,
+  lockedPercent: 0.05,
   windowMinutes: 3,
 };
 

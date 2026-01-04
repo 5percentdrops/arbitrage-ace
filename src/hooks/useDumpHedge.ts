@@ -214,27 +214,31 @@ export function useDumpHedge() {
     }));
   }, []);
 
-  // Validation: Check if Leg2 can be executed based on sum target
+  // Validation: Check if Leg2 can be executed based on locked percent target
   const canExecuteLeg2 = useCallback(
     (oppositeAsk: number): boolean => {
       if (!state.currentCycle?.leg1) return false;
       const leg1Price = state.currentCycle.leg1.entryPrice;
-      return leg1Price + oppositeAsk <= state.params.sumTarget;
+      const potentialProfit = 1 - (leg1Price + oppositeAsk);
+      return potentialProfit >= state.params.lockedPercent;
     },
-    [state.currentCycle?.leg1, state.params.sumTarget]
+    [state.currentCycle?.leg1, state.params.lockedPercent]
   );
 
   // Validation warnings
   const getWarnings = useCallback((): string[] => {
     const warnings: string[] = [];
-    if (state.params.moveThreshold > 0.25) {
-      warnings.push('Move threshold is high (>25%). Leg1 may rarely trigger.');
+    if (state.params.discoveryPercent > 0.50) {
+      warnings.push('Discovery % is very high (>50%). Opportunities may rarely trigger.');
     }
-    if (state.params.sumTarget > 0.99) {
-      warnings.push('Sum target is very high (>0.99). Leg2 may rarely trigger.');
+    if (state.params.lockedPercent < 0.01) {
+      warnings.push('Locked % is very low (<1%). Consider a higher target.');
     }
-    if (state.params.shares < 1) {
-      warnings.push('Shares must be at least 1.');
+    if (state.params.leg1Shares < 1) {
+      warnings.push('Leg 1 shares must be at least 1.');
+    }
+    if (state.params.leg2Shares < 1) {
+      warnings.push('Leg 2 shares must be at least 1.');
     }
     if (state.params.windowMinutes < 1) {
       warnings.push('Window must be at least 1 minute.');
