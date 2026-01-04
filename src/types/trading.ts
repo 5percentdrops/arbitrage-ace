@@ -64,7 +64,7 @@ export interface CompoundingSettings {
 // Exit logic settings
 export interface ExitSettings {
   mode: ExitMode;
-  earlyExitThreshold: number; // e.g., 1.00 means exit when value reaches $1.00
+  pnlPercent: number; // e.g., 10 means exit when profit reaches 10%
 }
 
 // Arbitrage opportunity
@@ -156,7 +156,7 @@ export const DEFAULT_COMPOUNDING: CompoundingSettings = {
 
 export const DEFAULT_EXIT_SETTINGS: ExitSettings = {
   mode: 'hold_to_settlement',
-  earlyExitThreshold: 1.00,
+  pnlPercent: 10,
 };
 
 export const TOKENS: TokenSymbol[] = ['BTC', 'ETH', 'SOL', 'XRP'];

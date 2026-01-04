@@ -60,22 +60,22 @@ export function ExitLogicPanel({
 
         {settings.mode === 'sell_at_threshold' && (
           <div className="space-y-2 pt-2 border-t border-border/30">
-            <Label htmlFor="threshold-value" className="text-xs text-muted-foreground">
-              Early Exit Threshold (USD)
+            <Label htmlFor="pnl-percent" className="text-xs text-muted-foreground">
+              PNL %
             </Label>
             <Input
-              id="threshold-value"
+              id="pnl-percent"
               type="number"
-              min={0.01}
-              max={1.00}
-              step={0.01}
-              value={settings.earlyExitThreshold}
-              onChange={(e) => onUpdate({ earlyExitThreshold: Number(e.target.value) })}
+              min={1}
+              max={100}
+              step={1}
+              value={settings.pnlPercent}
+              onChange={(e) => onUpdate({ pnlPercent: Number(e.target.value) })}
               disabled={disabled}
               className="bg-background/50 border-border/50 h-9"
             />
             <p className="text-xs text-muted-foreground">
-              Exit when token value reaches ${settings.earlyExitThreshold.toFixed(2)}
+              Exit when profit reaches {settings.pnlPercent}%
             </p>
           </div>
         )}
