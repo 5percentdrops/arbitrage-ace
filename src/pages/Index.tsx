@@ -18,6 +18,7 @@ import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
 import { CompoundingControls } from '@/components/settings/CompoundingControls';
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
+import { PositionSizePanel } from '@/components/settings/PositionSizePanel';
 import { DumpHedgePanel } from '@/components/trading/DumpHedgePanel';
 import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
@@ -34,6 +35,7 @@ const Index = () => {
     updateFilters,
     updateCompounding,
     updateExitSettings,
+    updatePositionSizeSettings,
     getPreflightChecks,
     canStartBot,
   } = useBotState();
@@ -256,7 +258,14 @@ const Index = () => {
               onToggleCompounding={(enabled) => updateCompounding({ enabled })}
             />
 
-            {/* Compounding Controls - Priority #2 */}
+            {/* Position Size - Priority #2 */}
+            <PositionSizePanel
+              settings={state.positionSizeSettings}
+              onUpdate={updatePositionSizeSettings}
+              disabled={state.status === 'running'}
+            />
+
+            {/* Compounding Controls - Priority #3 */}
             <CompoundingControls
               settings={state.compounding}
               onUpdate={updateCompounding}
