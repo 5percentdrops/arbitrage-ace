@@ -9,9 +9,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Briefcase, X, Clock, Loader2 } from 'lucide-react';
-import { OpenPosition } from '@/types/trading';
-import { formatNumber, formatCurrency, formatTimeRemaining } from '@/lib/mockData';
+import { Briefcase, X, Loader2 } from 'lucide-react';
+import { OpenPosition, MarketTimeframe } from '@/types/trading';
+import { formatNumber, formatCurrency } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 
 interface PositionsTableProps {
@@ -25,6 +25,25 @@ export function PositionsTable({
   onClosePosition,
   isLoading = false,
 }: PositionsTableProps) {
+  const getTimeframeBadge = (timeframe: MarketTimeframe) => {
+    const labels: Record<MarketTimeframe, string> = {
+      '15m': '15M',
+      '1h': '1H',
+      '4h': '4H',
+      'daily': '1D',
+    };
+    const styles: Record<MarketTimeframe, string> = {
+      '15m': 'bg-warning/20 text-warning',
+      '1h': 'bg-primary/20 text-primary',
+      '4h': 'bg-secondary text-foreground',
+      'daily': 'bg-success/20 text-success',
+    };
+    return (
+      <Badge className={cn('text-xs', styles[timeframe])}>
+        {labels[timeframe]}
+      </Badge>
+    );
+  };
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
       <CardHeader className="pb-3">
@@ -48,15 +67,14 @@ export function PositionsTable({
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border/30">
-                <TableHead className="text-xs text-muted-foreground font-medium">Market</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Asset</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Ticker</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">YES</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">NO</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Combined</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Shares</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Locked</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Exit</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Time</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Time</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">PnL</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium w-10"></TableHead>
               </TableRow>
@@ -64,7 +82,7 @@ export function PositionsTable({
             <TableBody>
               {positions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     No open positions
                   </TableCell>
                 </TableRow>
@@ -80,10 +98,7 @@ export function PositionsTable({
                       key={position.id}
                       className="border-border/20 hover:bg-muted/30"
                     >
-                      <TableCell className="font-medium text-xs max-w-[150px] truncate">
-                        {position.marketName}
-                      </TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium text-xs">
                         <Badge variant="outline" className="text-xs font-mono">
                           {position.token}
                         </Badge>
@@ -116,11 +131,8 @@ export function PositionsTable({
                           {position.exitMode === 'hold_to_settlement' ? 'Hold' : 'Threshold'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right text-xs">
-                        <span className="flex items-center justify-end gap-1 text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {formatTimeRemaining(position.timeRemaining)}
-                        </span>
+                      <TableCell>
+                        {getTimeframeBadge(position.timeframe)}
                       </TableCell>
                       <TableCell
                         className={cn(

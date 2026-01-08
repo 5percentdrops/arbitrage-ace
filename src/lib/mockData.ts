@@ -98,6 +98,7 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
       marketId: `market-pos-${i}`,
       marketName,
       token: asset,
+      timeframe,
       yesEntryPrice: Number(yesEntryPrice.toFixed(3)),
       noEntryPrice: Number(noEntryPrice.toFixed(3)),
       shares,
