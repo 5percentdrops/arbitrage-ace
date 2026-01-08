@@ -100,6 +100,9 @@ export interface OrderHistory {
   createdAt: Date;
 }
 
+// Leg 2 fill status (tri-state)
+export type Leg2FillStatus = 'yes' | 'no' | 'pending';
+
 // Open position
 export interface OpenPosition {
   id: string;
@@ -111,9 +114,16 @@ export interface OpenPosition {
   leg2Shares: number;
   leg1Locked: number;
   leg1Filled: boolean;
-  leg2Filled: boolean;
+  leg2Filled: Leg2FillStatus;
   exitMode: ExitMode;
   openedAt: Date;
+}
+
+// Position size settings
+export interface PositionSizeSettings {
+  defaultSize: number;
+  minSize: number;
+  maxSize: number;
 }
 
 // Performance metrics
@@ -142,6 +152,7 @@ export interface BotState {
   filters: FilterParams;
   compounding: CompoundingSettings;
   exitSettings: ExitSettings;
+  positionSizeSettings: PositionSizeSettings;
   apiConfig: ApiConfig;
   rpcConfig: RpcConfig;
   walletConfig: WalletConfig;
@@ -171,6 +182,12 @@ export const DEFAULT_COMPOUNDING: CompoundingSettings = {
 export const DEFAULT_EXIT_SETTINGS: ExitSettings = {
   mode: 'hold_to_settlement',
   pnlPercent: 10,
+};
+
+export const DEFAULT_POSITION_SIZE_SETTINGS: PositionSizeSettings = {
+  defaultSize: 50,
+  minSize: 10,
+  maxSize: 500,
 };
 
 export const TOKENS: TokenSymbol[] = ['BTC', 'ETH', 'SOL', 'XRP'];

@@ -6,12 +6,14 @@ import {
   FilterParams,
   CompoundingSettings,
   ExitSettings,
+  PositionSizeSettings,
   ApiConfig,
   RpcConfig,
   WalletConfig,
   DEFAULT_FILTERS,
   DEFAULT_COMPOUNDING,
   DEFAULT_EXIT_SETTINGS,
+  DEFAULT_POSITION_SIZE_SETTINGS,
   PreflightCheck,
 } from '@/types/trading';
 
@@ -46,6 +48,7 @@ const initialState: BotState = {
   filters: DEFAULT_FILTERS,
   compounding: DEFAULT_COMPOUNDING,
   exitSettings: DEFAULT_EXIT_SETTINGS,
+  positionSizeSettings: DEFAULT_POSITION_SIZE_SETTINGS,
   apiConfig: initialApiConfig,
   rpcConfig: initialRpcConfig,
   walletConfig: initialWalletConfig,
@@ -152,6 +155,14 @@ export function useBotState() {
     }));
   }, []);
 
+  // Position size settings
+  const updatePositionSizeSettings = useCallback((settings: Partial<PositionSizeSettings>) => {
+    setState(prev => ({
+      ...prev,
+      positionSizeSettings: { ...prev.positionSizeSettings, ...settings },
+    }));
+  }, []);
+
   // API config
   const updateApiConfig = useCallback((config: Partial<ApiConfig>) => {
     setState(prev => ({
@@ -248,6 +259,7 @@ export function useBotState() {
     updateFilters,
     updateCompounding,
     updateExitSettings,
+    updatePositionSizeSettings,
     // Connections
     updateApiConfig,
     updateRpcConfig,

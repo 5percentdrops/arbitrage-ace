@@ -10,7 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Briefcase, X, Loader2 } from 'lucide-react';
-import { OpenPosition, MarketTimeframe } from '@/types/trading';
+import { OpenPosition, MarketTimeframe, Leg2FillStatus } from '@/types/trading';
 import { formatNumber, formatCurrency } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 
@@ -117,9 +117,13 @@ export function PositionsTable({
                     <TableCell className="text-center">
                       <Badge className={cn(
                         "text-xs",
-                        position.leg2Filled ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                        position.leg2Filled === 'yes' 
+                          ? "bg-success/20 text-success" 
+                          : position.leg2Filled === 'pending'
+                          ? "bg-warning/20 text-warning"
+                          : "bg-muted text-muted-foreground"
                       )}>
-                        {position.leg2Filled ? 'Yes' : 'No'}
+                        {position.leg2Filled === 'yes' ? 'Yes' : position.leg2Filled === 'pending' ? 'Pending' : 'No'}
                       </Badge>
                     </TableCell>
                     <TableCell>

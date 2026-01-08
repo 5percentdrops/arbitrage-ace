@@ -87,7 +87,14 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
     const leg2Shares = Math.floor(randomInRange(10, 50));
     const leg1Locked = leg1Shares * randomInRange(0.4, 0.6);
     const leg1Filled = Math.random() > 0.3;
-    const leg2Filled = leg1Filled && Math.random() > 0.4;
+    
+    // Tri-state for leg2Filled: 'yes', 'no', 'pending'
+    let leg2Filled: 'yes' | 'no' | 'pending' = 'no';
+    if (leg1Filled) {
+      const rand = Math.random();
+      if (rand < 0.4) leg2Filled = 'yes';
+      else if (rand < 0.7) leg2Filled = 'pending';
+    }
 
     return {
       id: `pos-${Date.now()}-${i}`,

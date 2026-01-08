@@ -55,8 +55,11 @@ export function usePositions({
             if (!pos.leg1Filled && Math.random() < 0.3) {
               return { ...pos, leg1Filled: true };
             }
-            if (pos.leg1Filled && !pos.leg2Filled && Math.random() < 0.3) {
-              return { ...pos, leg2Filled: true };
+            if (pos.leg1Filled && pos.leg2Filled === 'no' && Math.random() < 0.3) {
+              return { ...pos, leg2Filled: 'pending' };
+            }
+            if (pos.leg1Filled && pos.leg2Filled === 'pending' && Math.random() < 0.3) {
+              return { ...pos, leg2Filled: 'yes' };
             }
             return pos;
           }));
