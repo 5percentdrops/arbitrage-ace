@@ -23,7 +23,6 @@ import { DumpHedgePanel } from '@/components/trading/DumpHedgePanel';
 import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
-
 const Index = () => {
   // Bot state management
   const {
@@ -37,7 +36,7 @@ const Index = () => {
     updateExitSettings,
     updatePositionSizeSettings,
     getPreflightChecks,
-    canStartBot,
+    canStartBot
   } = useBotState();
 
   // API connection
@@ -46,7 +45,7 @@ const Index = () => {
     isTesting: isTestingApi,
     updateCredentials,
     testConnection: testApiConnection,
-    disconnect: disconnectApi,
+    disconnect: disconnectApi
   } = useApiConnection();
 
   // RPC connection
@@ -57,17 +56,26 @@ const Index = () => {
     updateRpcUrl,
     updatePrivateKey,
     testRpcConnection,
-    disconnectRpc,
+    disconnectRpc
   } = useRpcConnection();
 
   // Order history tracking
-  const { orders, isLoading: isLoadingOrders, lastRefresh } = useOrderHistory({
-    isRunning: state.status === 'running',
+  const {
+    orders,
+    isLoading: isLoadingOrders,
+    lastRefresh
+  } = useOrderHistory({
+    isRunning: state.status === 'running'
   });
 
   // Positions tracking
-  const { positions, performance, closePosition, isLoading: isLoadingPositions } = usePositions({
-    isRunning: state.status === 'running',
+  const {
+    positions,
+    performance,
+    closePosition,
+    isLoading: isLoadingPositions
+  } = usePositions({
+    isRunning: state.status === 'running'
   });
 
   // Dump & Hedge strategy (independent of main bot)
@@ -75,7 +83,7 @@ const Index = () => {
     state: dumpHedgeState,
     toggleAutoMode: toggleDumpHedgeAutoMode,
     updateParams: updateDumpHedgeParams,
-    getWarnings: getDumpHedgeWarnings,
+    getWarnings: getDumpHedgeWarnings
   } = useDumpHedge();
 
   // Handlers
@@ -83,75 +91,65 @@ const Index = () => {
     if (canStartBot()) {
       startBot();
       toast.success('Bot started successfully', {
-        description: 'Scanning for arbitrage opportunities...',
+        description: 'Scanning for arbitrage opportunities...'
       });
     } else {
       toast.error('Cannot start bot', {
-        description: 'Please complete all preflight checks first.',
+        description: 'Please complete all preflight checks first.'
       });
     }
   };
-
   const handleStop = () => {
     stopBot();
     toast.info('Bot stopping', {
-      description: 'Waiting for open operations to complete...',
+      description: 'Waiting for open operations to complete...'
     });
   };
-
   const handleEmergencyStop = () => {
     emergencyStop();
     toast.warning('Emergency stop activated', {
-      description: 'All operations halted immediately.',
+      description: 'All operations halted immediately.'
     });
   };
-
   const handleApiTest = async () => {
     const success = await testApiConnection();
     if (success) {
       toast.success('API connected', {
-        description: 'Polymarket API connection established.',
+        description: 'Polymarket API connection established.'
       });
     } else {
       toast.error('API connection failed', {
-        description: 'Check your credentials and try again.',
+        description: 'Check your credentials and try again.'
       });
     }
   };
-
   const handleRpcTest = async () => {
     const success = await testRpcConnection();
     if (success) {
       toast.success('RPC connected', {
-        description: `Connected to Polygon network.`,
+        description: `Connected to Polygon network.`
       });
     } else {
       toast.error('RPC connection failed', {
-        description: 'Check your RPC URL and try again.',
+        description: 'Check your RPC URL and try again.'
       });
     }
   };
 
   // Get preflight checks with live connection status
-  const preflightChecks = [
-    {
-      id: 'api',
-      label: 'API Connected',
-      passed: apiConfig.status === 'connected',
-      message: apiConfig.status !== 'connected' ? 'Polymarket API not connected' : undefined,
-    },
-    {
-      id: 'tokens',
-      label: 'Tokens Selected',
-      passed: state.selectedTokens.length > 0,
-      message: state.selectedTokens.length === 0 ? 'No tokens selected for scanning' : undefined,
-    },
-  ];
-
-  const allChecksPass = preflightChecks.every((check) => check.passed);
-
-  return (
-    <div className="min-h-screen bg-background terminal-scanlines terminal-vignette terminal-flicker">
+  const preflightChecks = [{
+    id: 'api',
+    label: 'API Connected',
+    passed: apiConfig.status === 'connected',
+    message: apiConfig.status !== 'connected' ? 'Polymarket API not connected' : undefined
+  }, {
+    id: 'tokens',
+    label: 'Tokens Selected',
+    passed: state.selectedTokens.length > 0,
+    message: state.selectedTokens.length === 0 ? 'No tokens selected for scanning' : undefined
+  }];
+  const allChecksPass = preflightChecks.every(check => check.passed);
+  return <div className="min-h-screen bg-background terminal-scanlines terminal-vignette terminal-flicker">
       <Toaster position="top-right" richColors />
       
       {/* Header */}
@@ -172,46 +170,18 @@ const Index = () => {
               {/* Connection Status Indicators */}
               <div className="hidden sm:flex items-center gap-3 text-xs">
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className={`h-2 w-2 rounded-full ${
-                      apiConfig.status === 'connected'
-                        ? 'bg-success glow-success'
-                        : apiConfig.status === 'connecting'
-                        ? 'bg-warning animate-pulse'
-                        : 'bg-muted-foreground'
-                    }`}
-                  />
+                  <div className={`h-2 w-2 rounded-full ${apiConfig.status === 'connected' ? 'bg-success glow-success' : apiConfig.status === 'connecting' ? 'bg-warning animate-pulse' : 'bg-muted-foreground'}`} />
                   <span className="text-muted-foreground">API</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className={`h-2 w-2 rounded-full ${
-                      rpcConfig.status === 'connected'
-                        ? 'bg-success glow-success'
-                        : rpcConfig.status === 'connecting'
-                        ? 'bg-warning animate-pulse'
-                        : 'bg-muted-foreground'
-                    }`}
-                  />
-                  <span className="text-muted-foreground">RPC</span>
+                  <div className={`h-2 w-2 rounded-full ${rpcConfig.status === 'connected' ? 'bg-success glow-success' : rpcConfig.status === 'connecting' ? 'bg-warning animate-pulse' : 'bg-muted-foreground'}`} />
+                  
                 </div>
               </div>
 
               {/* Bot Status */}
-              <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                  state.status === 'running'
-                    ? 'bg-success/20 text-success border border-success/30'
-                    : state.status === 'starting' || state.status === 'stopping'
-                    ? 'bg-warning/20 text-warning border border-warning/30'
-                    : 'bg-secondary text-muted-foreground border border-border'
-                }`}
-              >
-                <Activity
-                  className={`h-3 w-3 ${
-                    state.status === 'running' ? 'animate-pulse' : ''
-                  }`}
-                />
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${state.status === 'running' ? 'bg-success/20 text-success border border-success/30' : state.status === 'starting' || state.status === 'stopping' ? 'bg-warning/20 text-warning border border-warning/30' : 'bg-secondary text-muted-foreground border border-border'}`}>
+                <Activity className={`h-3 w-3 ${state.status === 'running' ? 'animate-pulse' : ''}`} />
                 {state.status.charAt(0).toUpperCase() + state.status.slice(1)}
               </div>
             </div>
@@ -225,89 +195,33 @@ const Index = () => {
           {/* Left Column - Controls & Configuration (Priority at top) */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-4">
             {/* Bot Control - Priority #1 */}
-            <BotControlPanel
-              status={state.status}
-              availableCapital={state.availableCapital}
-              lockedCapital={state.lockedCapital}
-              activeMarkets={positions.length}
-              lastTradeAt={state.lastTradeAt}
-              compoundingEnabled={state.compounding.enabled}
-              preflightChecks={preflightChecks}
-              canStart={allChecksPass}
-              onStart={handleStart}
-              onStop={handleStop}
-              onEmergencyStop={handleEmergencyStop}
-              onToggleCompounding={(enabled) => updateCompounding({ enabled })}
-            />
+            <BotControlPanel status={state.status} availableCapital={state.availableCapital} lockedCapital={state.lockedCapital} activeMarkets={positions.length} lastTradeAt={state.lastTradeAt} compoundingEnabled={state.compounding.enabled} preflightChecks={preflightChecks} canStart={allChecksPass} onStart={handleStart} onStop={handleStop} onEmergencyStop={handleEmergencyStop} onToggleCompounding={enabled => updateCompounding({
+            enabled
+          })} />
 
             {/* Position Size - Priority #2 */}
-            <PositionSizePanel
-              settings={state.positionSizeSettings}
-              onUpdate={updatePositionSizeSettings}
-              disabled={state.status === 'running'}
-            />
+            <PositionSizePanel settings={state.positionSizeSettings} onUpdate={updatePositionSizeSettings} disabled={state.status === 'running'} />
 
             {/* Compounding Controls - Priority #3 */}
-            <CompoundingControls
-              settings={state.compounding}
-              onUpdate={updateCompounding}
-              disabled={state.status === 'running'}
-            />
+            <CompoundingControls settings={state.compounding} onUpdate={updateCompounding} disabled={state.status === 'running'} />
 
             {/* Exit Logic - Priority #3 */}
-            <ExitLogicPanel
-              settings={state.exitSettings}
-              onUpdate={updateExitSettings}
-              disabled={state.status === 'running'}
-            />
+            <ExitLogicPanel settings={state.exitSettings} onUpdate={updateExitSettings} disabled={state.status === 'running'} />
 
             {/* Dump & Hedge Strategy (Optional) */}
-            <DumpHedgePanel
-              state={dumpHedgeState}
-              onToggleAutoMode={toggleDumpHedgeAutoMode}
-              onUpdateParams={updateDumpHedgeParams}
-              warnings={getDumpHedgeWarnings()}
-            />
+            <DumpHedgePanel state={dumpHedgeState} onToggleAutoMode={toggleDumpHedgeAutoMode} onUpdateParams={updateDumpHedgeParams} warnings={getDumpHedgeWarnings()} />
 
             {/* Token Selection */}
-            <TokenSelector
-              selectedTokens={state.selectedTokens}
-              onToggle={toggleToken}
-            />
+            <TokenSelector selectedTokens={state.selectedTokens} onToggle={toggleToken} />
 
             {/* Filters with Time Intervals */}
             <FiltersPanel filters={state.filters} onUpdate={updateFilters} />
 
             {/* API Configuration */}
-            <ApiConfigPanel
-              apiKey={apiConfig.apiKey}
-              apiSecret={apiConfig.apiSecret}
-              status={apiConfig.status}
-              lastConnected={apiConfig.lastConnected}
-              error={apiConfig.error}
-              isTesting={isTestingApi}
-              onCredentialsChange={updateCredentials}
-              onTestConnection={handleApiTest}
-              onDisconnect={disconnectApi}
-            />
+            <ApiConfigPanel apiKey={apiConfig.apiKey} apiSecret={apiConfig.apiSecret} status={apiConfig.status} lastConnected={apiConfig.lastConnected} error={apiConfig.error} isTesting={isTestingApi} onCredentialsChange={updateCredentials} onTestConnection={handleApiTest} onDisconnect={disconnectApi} />
 
             {/* RPC Configuration */}
-            <RpcConfigPanel
-              rpcUrl={rpcConfig.rpcUrl}
-              chainId={rpcConfig.chainId}
-              rpcStatus={rpcConfig.status}
-              blockNumber={rpcConfig.blockNumber}
-              rpcError={rpcConfig.error}
-              privateKey={walletConfig.privateKey}
-              walletAddress={walletConfig.address}
-              maticBalance={walletConfig.maticBalance}
-              usdcBalance={walletConfig.usdcBalance}
-              isTesting={isTestingRpc}
-              onRpcUrlChange={updateRpcUrl}
-              onPrivateKeyChange={updatePrivateKey}
-              onTestConnection={handleRpcTest}
-              onDisconnect={disconnectRpc}
-            />
+            <RpcConfigPanel rpcUrl={rpcConfig.rpcUrl} chainId={rpcConfig.chainId} rpcStatus={rpcConfig.status} blockNumber={rpcConfig.blockNumber} rpcError={rpcConfig.error} privateKey={walletConfig.privateKey} walletAddress={walletConfig.address} maticBalance={walletConfig.maticBalance} usdcBalance={walletConfig.usdcBalance} isTesting={isTestingRpc} onRpcUrlChange={updateRpcUrl} onPrivateKeyChange={updatePrivateKey} onTestConnection={handleRpcTest} onDisconnect={disconnectRpc} />
           </div>
 
           {/* Right Column - Data & Performance */}
@@ -316,18 +230,10 @@ const Index = () => {
             <PerformancePanel metrics={performance} />
 
             {/* Positions Table */}
-            <PositionsTable
-              positions={positions}
-              onClosePosition={closePosition}
-              isLoading={isLoadingPositions}
-            />
+            <PositionsTable positions={positions} onClosePosition={closePosition} isLoading={isLoadingPositions} />
 
             {/* Order History Table */}
-            <OrderHistoryTable
-              orders={orders}
-              isLoading={isLoadingOrders}
-              lastRefresh={lastRefresh}
-            />
+            <OrderHistoryTable orders={orders} isLoading={isLoadingOrders} lastRefresh={lastRefresh} />
           </div>
         </div>
       </main>
@@ -348,8 +254,6 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
