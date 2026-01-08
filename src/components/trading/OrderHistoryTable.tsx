@@ -46,6 +46,7 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                 <TableHead>Ticker</TableHead>
                 <TableHead className="text-right">L1 Shares</TableHead>
                 <TableHead className="text-right">L2 Shares</TableHead>
+                <TableHead className="text-right">Combined</TableHead>
                 <TableHead className="text-right">L1 Locked</TableHead>
                 <TableHead className="text-center">L1 Filled</TableHead>
                 <TableHead className="text-center">L2 Filled</TableHead>
@@ -56,7 +57,7 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     No order history available
                   </TableCell>
                 </TableRow>
@@ -70,6 +71,7 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                     <TableCell className="font-sans">{order.ticker}</TableCell>
                     <TableCell className="text-right">{formatNumber(order.leg1Shares)}</TableCell>
                     <TableCell className="text-right">{formatNumber(order.leg2Shares)}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{formatNumber(order.leg1Shares + order.leg2Shares)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(order.leg1Locked)}</TableCell>
                     <TableCell className="text-center">
                       <Badge className={cn(
