@@ -1,10 +1,11 @@
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { OrderHistory } from '@/types/trading';
 import { formatCurrency, formatNumber } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
-import { History, RefreshCw } from 'lucide-react';
+import { History, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface OrderHistoryTableProps {
   orders: OrderHistory[];
@@ -12,7 +13,73 @@ interface OrderHistoryTableProps {
   lastRefresh: Date | null;
 }
 
+type SortField = 'token' | 'leg1Shares' | 'leg2Shares' | 'combined' | 'leg1Locked' | 'pnl' | 'status' | 'createdAt';
+type SortDirection = 'asc' | 'desc';
+
 export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHistoryTableProps) {
+  const [sortField, setSortField] = useState<SortField>('createdAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'token':
+          comparison = a.token.localeCompare(b.token);
+          break;
+        case 'leg1Shares':
+          comparison = a.leg1Shares - b.leg1Shares;
+          break;
+        case 'leg2Shares':
+          comparison = a.leg2Shares - b.leg2Shares;
+          break;
+        case 'combined':
+          comparison = (a.leg1Shares + a.leg2Shares) - (b.leg1Shares + b.leg2Shares);
+          break;
+        case 'leg1Locked':
+          comparison = a.leg1Locked - b.leg1Locked;
+          break;
+        case 'pnl':
+          comparison = a.pnl - b.pnl;
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'createdAt':
+          comparison = a.createdAt.getTime() - b.createdAt.getTime();
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [orders, sortField, sortDirection]);
+
+  const SortableHeader = ({ field, children, className }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead 
+      className={cn("cursor-pointer hover:bg-muted/50 select-none transition-colors", className)}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortField === field ? (
+          sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </div>
+    </TableHead>
+  );
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       filled: 'bg-success/20 text-success',
@@ -21,6 +88,12 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
       cancelled: 'bg-destructive/20 text-destructive',
     };
     return <Badge className={cn("text-xs", styles[status])}>{status}</Badge>;
+  };
+
+  const formatDateTime = (date: Date) => {
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${dateStr} ${timeStr}`;
   };
 
   return (
@@ -42,16 +115,16 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
-                <TableHead className="w-20">Asset</TableHead>
-                <TableHead className="text-right">L1 Shares</TableHead>
-                <TableHead className="text-right">L2 Shares</TableHead>
-                <TableHead className="text-right">Combined</TableHead>
-                <TableHead className="text-right">L1 Locked</TableHead>
+                <SortableHeader field="token" className="w-20">Asset</SortableHeader>
+                <SortableHeader field="leg1Shares" className="text-right">L1 Shares</SortableHeader>
+                <SortableHeader field="leg2Shares" className="text-right">L2 Shares</SortableHeader>
+                <SortableHeader field="combined" className="text-right">Combined</SortableHeader>
+                <SortableHeader field="leg1Locked" className="text-right">L1 Locked</SortableHeader>
                 <TableHead className="text-center">L1 Filled</TableHead>
                 <TableHead className="text-center">L2 Filled</TableHead>
-                <TableHead className="text-right">PnL</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Time</TableHead>
+                <SortableHeader field="pnl" className="text-right">PnL</SortableHeader>
+                <SortableHeader field="status">Status</SortableHeader>
+                <SortableHeader field="createdAt">Date/Time</SortableHeader>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -62,7 +135,7 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                   </TableCell>
                 </TableRow>
               ) : (
-                orders.slice(0, 10).map((order) => (
+                sortedOrders.slice(0, 10).map((order) => (
                   <TableRow 
                     key={order.id} 
                     className="text-xs font-mono"
@@ -95,8 +168,8 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                       {order.pnl >= 0 ? '+' : ''}{formatCurrency(order.pnl)}
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {order.createdAt.toLocaleTimeString()}
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(order.createdAt)}
                     </TableCell>
                   </TableRow>
                 ))
