@@ -324,18 +324,18 @@ const Index = () => {
             {/* Performance Panel */}
             <PerformancePanel metrics={performance} />
 
-            {/* Order History Table */}
-            <OrderHistoryTable
-              orders={orders}
-              isLoading={isLoadingOrders}
-              lastRefresh={lastRefresh}
-            />
-
             {/* Positions Table */}
             <PositionsTable
               positions={positions}
               onClosePosition={closePosition}
               isLoading={isLoadingPositions}
+            />
+
+            {/* Order History Table */}
+            <OrderHistoryTable
+              orders={orders}
+              isLoading={isLoadingOrders}
+              lastRefresh={lastRefresh}
             />
           </div>
         </div>
