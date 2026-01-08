@@ -16,6 +16,8 @@ function generateMockOrderHistory(count: number): OrderHistory[] {
     const leg1Locked = leg1Shares * (Math.random() * 0.5 + 0.4);
     const leg1Filled = Math.random() > 0.3;
     const leg2Filled = leg1Filled && Math.random() > 0.4;
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const pnl = status === 'filled' ? (Math.random() - 0.3) * 50 : 0;
     
     orders.push({
       id: `order-${Date.now()}-${i}`,
@@ -26,7 +28,8 @@ function generateMockOrderHistory(count: number): OrderHistory[] {
       leg1Locked,
       leg1Filled,
       leg2Filled,
-      status: statuses[Math.floor(Math.random() * statuses.length)],
+      pnl: Number(pnl.toFixed(2)),
+      status,
       createdAt: new Date(Date.now() - Math.random() * 86400000),
     });
   }

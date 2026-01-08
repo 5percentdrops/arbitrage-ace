@@ -83,15 +83,11 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
     const timeframe = randomTimeframe();
     const marketName = getMarketName(asset, timeframe);
     
-    // Generate YES and NO entry prices that sum to < $1.00 for arbitrage profit
-    const combinedPrice = randomInRange(0.92, 0.98);
-    const yesEntryPrice = randomInRange(0.35, combinedPrice - 0.35);
-    const noEntryPrice = combinedPrice - yesEntryPrice;
-    
-    const shares = Math.floor(randomInRange(50, 200));
-    const entryCost = shares * combinedPrice;
-    const lockedCapital = shares * 1.00; // Max payout at $1 per share pair
-    const unrealizedPnl = lockedCapital - entryCost; // Profit if held to settlement
+    const leg1Shares = Math.floor(randomInRange(10, 50));
+    const leg2Shares = Math.floor(randomInRange(10, 50));
+    const leg1Locked = leg1Shares * randomInRange(0.4, 0.6);
+    const leg1Filled = Math.random() > 0.3;
+    const leg2Filled = leg1Filled && Math.random() > 0.4;
 
     return {
       id: `pos-${Date.now()}-${i}`,
@@ -99,14 +95,12 @@ export const generateMockPositions = (count: number = 3): OpenPosition[] => {
       marketName,
       token: asset,
       timeframe,
-      yesEntryPrice: Number(yesEntryPrice.toFixed(3)),
-      noEntryPrice: Number(noEntryPrice.toFixed(3)),
-      shares,
-      entryCost: Number(entryCost.toFixed(2)),
-      lockedCapital: Number(lockedCapital.toFixed(2)),
+      leg1Shares,
+      leg2Shares,
+      leg1Locked: Number(leg1Locked.toFixed(2)),
+      leg1Filled,
+      leg2Filled,
       exitMode: Math.random() > 0.5 ? 'hold_to_settlement' : 'sell_at_threshold',
-      timeRemaining: Math.floor(randomInRange(30, 720)),
-      unrealizedPnl: Number(unrealizedPnl.toFixed(2)),
       openedAt: new Date(Date.now() - Math.floor(randomInRange(3600000, 86400000))),
     };
   });

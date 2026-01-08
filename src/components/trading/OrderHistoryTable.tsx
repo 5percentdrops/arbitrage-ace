@@ -49,13 +49,14 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                 <TableHead className="text-right">L1 Locked</TableHead>
                 <TableHead className="text-center">L1 Filled</TableHead>
                 <TableHead className="text-center">L2 Filled</TableHead>
+                <TableHead className="text-right">PnL</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No order history available
                   </TableCell>
                 </TableRow>
@@ -85,6 +86,12 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                       )}>
                         {order.leg2Filled ? 'Yes' : 'No'}
                       </Badge>
+                    </TableCell>
+                    <TableCell className={cn(
+                      "text-right text-xs font-mono font-medium",
+                      order.pnl >= 0 ? "text-green-400" : "text-red-400"
+                    )}>
+                      {order.pnl >= 0 ? '+' : ''}{formatCurrency(order.pnl)}
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                   </TableRow>
