@@ -71,6 +71,7 @@ export function PositionsTable({
                 <TableHead className="text-xs text-muted-foreground font-medium">Ticker</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">L1 Shares</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">L2 Shares</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">Combined</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">L1 Locked</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-center">L1 Filled</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-center">L2 Filled</TableHead>
@@ -82,7 +83,7 @@ export function PositionsTable({
             <TableBody>
               {positions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     No open positions
                   </TableCell>
                 </TableRow>
@@ -102,6 +103,9 @@ export function PositionsTable({
                     </TableCell>
                     <TableCell className="text-right text-xs font-mono">
                       {formatNumber(position.leg2Shares)}
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-mono font-semibold text-primary">
+                      {formatNumber(position.leg1Shares + position.leg2Shares)}
                     </TableCell>
                     <TableCell className="text-right text-xs font-mono">
                       {formatCurrency(position.leg1Locked)}
