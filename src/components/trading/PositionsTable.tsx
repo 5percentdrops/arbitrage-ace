@@ -44,6 +44,7 @@ export function PositionsTable({
       </Badge>
     );
   };
+
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
       <CardHeader className="pb-3">
@@ -68,94 +69,87 @@ export function PositionsTable({
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border/30">
                 <TableHead className="text-xs text-muted-foreground font-medium">Ticker</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">YES</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">NO</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Combined</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Shares</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Locked</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">L1 Shares</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">L2 Shares</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">L1 Locked</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-center">L1 Filled</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-center">L2 Filled</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Exit</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Time</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">PnL</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {positions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     No open positions
                   </TableCell>
                 </TableRow>
               ) : (
-                positions.map((position) => {
-                  const yesPrice = position.yesEntryPrice ?? 0;
-                  const noPrice = position.noEntryPrice ?? 0;
-                  const combinedPrice = yesPrice + noPrice;
-                  const shares = position.shares ?? 0;
-                  
-                  return (
-                    <TableRow
-                      key={position.id}
-                      className="border-border/20 hover:bg-muted/30"
-                    >
-                      <TableCell className="font-medium text-xs">
-                        <Badge variant="outline" className="text-xs font-mono">
-                          {position.token}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-mono text-green-400">
-                        ${yesPrice.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-mono text-red-400">
-                        ${noPrice.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-mono text-primary">
-                        ${combinedPrice.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-mono">
-                        {shares}
-                      </TableCell>
-                      <TableCell className="text-right text-xs font-mono">
-                        {formatCurrency(position.lockedCapital)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "text-xs",
-                            position.exitMode === 'hold_to_settlement'
-                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                          )}
-                        >
-                          {position.exitMode === 'hold_to_settlement' ? 'Hold' : 'Threshold'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {getTimeframeBadge(position.timeframe)}
-                      </TableCell>
-                      <TableCell
+                positions.map((position) => (
+                  <TableRow
+                    key={position.id}
+                    className="border-border/20 hover:bg-muted/30"
+                  >
+                    <TableCell className="font-medium text-xs">
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {position.token}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-mono">
+                      {formatNumber(position.leg1Shares)}
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-mono">
+                      {formatNumber(position.leg2Shares)}
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-mono">
+                      {formatCurrency(position.leg1Locked)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className={cn(
+                        "text-xs",
+                        position.leg1Filled ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                      )}>
+                        {position.leg1Filled ? 'Yes' : 'No'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className={cn(
+                        "text-xs",
+                        position.leg2Filled ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                      )}>
+                        {position.leg2Filled ? 'Yes' : 'No'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
                         className={cn(
-                          "text-right text-xs font-mono font-medium",
-                          position.unrealizedPnl >= 0 ? "text-green-400" : "text-red-400"
+                          "text-xs",
+                          position.exitMode === 'hold_to_settlement'
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                         )}
                       >
-                        {position.unrealizedPnl >= 0 ? '+' : ''}
-                        {formatCurrency(position.unrealizedPnl)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => onClosePosition(position.id)}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                        {position.exitMode === 'hold_to_settlement' ? 'Hold' : 'Threshold'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {getTimeframeBadge(position.timeframe)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => onClosePosition(position.id)}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>

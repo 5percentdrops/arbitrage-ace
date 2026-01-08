@@ -36,14 +36,6 @@ export function usePositions({
     if (isRunning) {
       // Set up interval for position updates
       intervalRef.current = setInterval(() => {
-        setPositions(prev => {
-          return prev.map(pos => ({
-            ...pos,
-            timeRemaining: Math.max(0, pos.timeRemaining - 1),
-            unrealizedPnl: pos.unrealizedPnl + (Math.random() - 0.4) * 2,
-          })).filter(pos => pos.timeRemaining > 0);
-        });
-
         // Update performance metrics
         setPerformance(prev => ({
           ...prev,
@@ -55,6 +47,19 @@ export function usePositions({
         if (Math.random() < 0.1) {
           const newPos = generateMockPositions(1)[0];
           setPositions(prev => [...prev, newPos].slice(-8)); // Max 8 positions
+        }
+        
+        // Occasionally update filled status
+        if (Math.random() < 0.2) {
+          setPositions(prev => prev.map(pos => {
+            if (!pos.leg1Filled && Math.random() < 0.3) {
+              return { ...pos, leg1Filled: true };
+            }
+            if (pos.leg1Filled && !pos.leg2Filled && Math.random() < 0.3) {
+              return { ...pos, leg2Filled: true };
+            }
+            return pos;
+          }));
         }
       }, refreshInterval);
     } else {
