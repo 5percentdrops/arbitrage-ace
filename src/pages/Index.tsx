@@ -141,24 +141,6 @@ const Index = () => {
       message: apiConfig.status !== 'connected' ? 'Polymarket API not connected' : undefined,
     },
     {
-      id: 'rpc',
-      label: 'RPC Connected',
-      passed: rpcConfig.status === 'connected',
-      message: rpcConfig.status !== 'connected' ? 'Polygon RPC not connected' : undefined,
-    },
-    {
-      id: 'wallet',
-      label: 'Wallet Configured',
-      passed: !!walletConfig.address,
-      message: !walletConfig.address ? 'Wallet not configured' : undefined,
-    },
-    {
-      id: 'funded',
-      label: 'Wallet Funded',
-      passed: walletConfig.usdcBalance > 0,
-      message: walletConfig.usdcBalance <= 0 ? 'Wallet has no USDC balance' : undefined,
-    },
-    {
       id: 'tokens',
       label: 'Tokens Selected',
       passed: state.selectedTokens.length > 0,
