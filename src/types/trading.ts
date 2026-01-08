@@ -85,6 +85,20 @@ export interface ArbitrageOpportunity {
   detectedAt: Date;
 }
 
+// Order history entry
+export interface OrderHistory {
+  id: string;
+  token: TokenSymbol;
+  ticker: string;
+  leg1Shares: number;
+  leg2Shares: number;
+  leg1Locked: number;
+  leg1Filled: boolean;
+  leg2Filled: boolean;
+  status: 'filled' | 'partial' | 'pending' | 'cancelled';
+  createdAt: Date;
+}
+
 // Open position
 export interface OpenPosition {
   id: string;

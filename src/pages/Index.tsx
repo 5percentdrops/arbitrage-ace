@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useBotState } from '@/hooks/useBotState';
 import { useApiConnection } from '@/hooks/useApiConnection';
 import { useRpcConnection } from '@/hooks/useRpcConnection';
-import { useOpportunities } from '@/hooks/useOpportunities';
+import { useOrderHistory } from '@/hooks/useOrderHistory';
 import { usePositions } from '@/hooks/usePositions';
 import { useDumpHedge } from '@/hooks/useDumpHedge';
 
@@ -19,7 +19,7 @@ import { FiltersPanel } from '@/components/settings/FiltersPanel';
 import { CompoundingControls } from '@/components/settings/CompoundingControls';
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
 import { DumpHedgePanel } from '@/components/trading/DumpHedgePanel';
-import { OpportunitiesTable } from '@/components/trading/OpportunitiesTable';
+import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
 
@@ -58,10 +58,8 @@ const Index = () => {
     disconnectRpc,
   } = useRpcConnection();
 
-  // Opportunities tracking
-  const { opportunities, isLoading: isLoadingOpps, lastRefresh } = useOpportunities({
-    tokens: state.selectedTokens,
-    filters: state.filters,
+  // Order history tracking
+  const { orders, isLoading: isLoadingOrders, lastRefresh } = useOrderHistory({
     isRunning: state.status === 'running',
   });
 
@@ -326,10 +324,10 @@ const Index = () => {
             {/* Performance Panel */}
             <PerformancePanel metrics={performance} />
 
-            {/* Opportunities Table */}
-            <OpportunitiesTable
-              opportunities={opportunities}
-              isLoading={isLoadingOpps}
+            {/* Order History Table */}
+            <OrderHistoryTable
+              orders={orders}
+              isLoading={isLoadingOrders}
               lastRefresh={lastRefresh}
             />
 
