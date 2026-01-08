@@ -43,7 +43,6 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
             <TableHeader>
               <TableRow className="text-xs">
                 <TableHead className="w-20">Asset</TableHead>
-                <TableHead>Ticker</TableHead>
                 <TableHead className="text-right">L1 Shares</TableHead>
                 <TableHead className="text-right">L2 Shares</TableHead>
                 <TableHead className="text-right">Combined</TableHead>
@@ -52,6 +51,7 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                 <TableHead className="text-center">L2 Filled</TableHead>
                 <TableHead className="text-right">PnL</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -68,7 +68,6 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                     className="text-xs font-mono"
                   >
                     <TableCell className="font-semibold">{order.token}</TableCell>
-                    <TableCell className="font-sans">{order.ticker}</TableCell>
                     <TableCell className="text-right">{formatNumber(order.leg1Shares)}</TableCell>
                     <TableCell className="text-right">{formatNumber(order.leg2Shares)}</TableCell>
                     <TableCell className="text-right font-semibold text-primary">{formatNumber(order.leg1Shares + order.leg2Shares)}</TableCell>
@@ -96,6 +95,9 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                       {order.pnl >= 0 ? '+' : ''}{formatCurrency(order.pnl)}
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {order.createdAt.toLocaleTimeString()}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
