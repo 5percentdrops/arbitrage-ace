@@ -105,6 +105,7 @@ export interface OpenPosition {
   marketId: string;
   marketName: string;
   token: TokenSymbol;
+  timeframe: MarketTimeframe;
   yesEntryPrice: number;
   noEntryPrice: number;
   shares: number;
