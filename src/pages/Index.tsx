@@ -9,6 +9,9 @@ import { useRpcConnection } from '@/hooks/useRpcConnection';
 import { useOrderHistory } from '@/hooks/useOrderHistory';
 import { usePositions } from '@/hooks/usePositions';
 import { useDumpHedge } from '@/hooks/useDumpHedge';
+import { useRoundTimer } from '@/hooks/useRoundTimer';
+import { useManualTrading } from '@/hooks/useManualTrading';
+import { useBotStateApi } from '@/hooks/useBotStateApi';
 
 // Components
 import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
@@ -23,6 +26,12 @@ import { DumpHedgePanel } from '@/components/trading/DumpHedgePanel';
 import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
+import { RoundTimerCard } from '@/components/trading/RoundTimerCard';
+import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
+import { MarketSnapshotCard } from '@/components/trading/MarketSnapshotCard';
+import { OpenOrdersTable } from '@/components/trading/OpenOrdersTable';
+import { PositionsPnlCard } from '@/components/trading/PositionsPnlCard';
+
 const Index = () => {
   // Bot state management
   const {
@@ -85,6 +94,20 @@ const Index = () => {
     updateParams: updateDumpHedgeParams,
     getWarnings: getDumpHedgeWarnings
   } = useDumpHedge();
+
+  // Round Timer
+  const roundTimer = useRoundTimer('BTC');
+
+  // Manual Trading
+  const manualTrading = useManualTrading({
+    isBotRunning: state.status === 'running'
+  });
+
+  // Bot State API (for positions/PnL)
+  const botStateApi = useBotStateApi({
+    asset: manualTrading.formState.asset,
+    enabled: true
+  });
 
   // Handlers
   const handleStart = () => {
@@ -149,6 +172,14 @@ const Index = () => {
     message: state.selectedTokens.length === 0 ? 'No tokens selected for scanning' : undefined
   }];
   const allChecksPass = preflightChecks.every(check => check.passed);
+
+  // Get current ask price for estimated shares calculation
+  const currentAsk = manualTrading.marketSnapshot
+    ? (manualTrading.formState.outcome === 'YES' 
+        ? manualTrading.marketSnapshot.yesAsk 
+        : manualTrading.marketSnapshot.noAsk)
+    : null;
+
   return <div className="min-h-screen bg-background terminal-scanlines terminal-vignette terminal-flicker">
       <Toaster position="top-right" richColors />
       
@@ -226,8 +257,69 @@ const Index = () => {
 
           {/* Right Column - Data & Performance */}
           <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+            {/* Round Timer - NEW: Priority at top */}
+            <RoundTimerCard
+              roundStart={roundTimer.roundStart}
+              roundEnd={roundTimer.roundEnd}
+              secondsRemaining={roundTimer.secondsRemaining}
+              progressPercent={roundTimer.progressPercent}
+              isJustStarted={roundTimer.isJustStarted}
+              syncStatus={roundTimer.syncStatus}
+              asset={roundTimer.asset}
+              onAssetChange={roundTimer.setAsset}
+              onRefresh={roundTimer.refresh}
+            />
+
             {/* Performance Panel */}
             <PerformancePanel metrics={performance} />
+
+            {/* Manual Trading + Market Snapshot - NEW */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <ManualTradePanel
+                formState={manualTrading.formState}
+                onFieldChange={manualTrading.updateField}
+                validationErrors={manualTrading.validationErrors}
+                isValid={manualTrading.isValid}
+                canSubmit={manualTrading.canSubmit}
+                isSubmitting={manualTrading.isSubmitting}
+                submitError={manualTrading.submitError}
+                submitSuccess={manualTrading.submitSuccess}
+                onSubmit={manualTrading.submitOrder}
+                isBotRunning={state.status === 'running'}
+                allowManualWhileAuto={manualTrading.allowManualWhileAuto}
+                onAllowManualChange={manualTrading.setAllowManualWhileAuto}
+                estimatedShares={manualTrading.estimatedShares}
+                currentAsk={currentAsk}
+                isTradingDisabled={botStateApi.isTradingDisabled}
+                disabledReason={botStateApi.disabledReason}
+              />
+              <MarketSnapshotCard
+                asset={manualTrading.formState.asset}
+                snapshot={manualTrading.marketSnapshot}
+                isLoading={manualTrading.isLoadingSnapshot}
+                error={manualTrading.snapshotError}
+                lastUpdated={manualTrading.snapshotLastUpdated}
+                onRefresh={manualTrading.fetchMarketSnapshot}
+              />
+            </div>
+
+            {/* Open Orders Table - NEW */}
+            <OpenOrdersTable
+              asset={manualTrading.formState.asset}
+              orders={manualTrading.openOrders}
+              isLoading={manualTrading.isLoadingOrders}
+              error={manualTrading.ordersError}
+              onCancelOrder={manualTrading.cancelOrder}
+              onCancelAll={manualTrading.cancelAllOrders}
+            />
+
+            {/* Positions & PnL - NEW (conditional render) */}
+            <PositionsPnlCard
+              asset={manualTrading.formState.asset}
+              botState={botStateApi.botState}
+              isLoading={botStateApi.isLoading}
+              error={botStateApi.error}
+            />
 
             {/* Positions Table */}
             <PositionsTable positions={positions} onClosePosition={closePosition} isLoading={isLoadingPositions} />
