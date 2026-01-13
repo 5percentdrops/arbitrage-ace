@@ -1,4 +1,4 @@
-import { ArrowUpDown, AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { ArrowUpDown, AlertTriangle, Check, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { TOKENS, type TokenSymbol } from '@/types/trading';
-import type { ManualTradeFormState, ValidationErrors } from '@/types/manual-trading';
+import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType } from '@/types/manual-trading';
 import { cn } from '@/lib/utils';
 
 interface ManualTradePanelProps {
@@ -115,34 +115,43 @@ export function ManualTradePanel({
           </ToggleGroup>
         </div>
 
-        {/* Outcome Selection */}
+        {/* Direction Selection - More Prominent */}
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Outcome</Label>
-          <ToggleGroup
-            type="single"
-            value={formState.outcome}
-            onValueChange={(v) => v && onFieldChange('outcome', v as 'YES' | 'NO')}
-            className="justify-start"
-          >
-            <ToggleGroupItem
-              value="YES"
+          <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+            Direction
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => onFieldChange('outcome', 'YES')}
               className={cn(
-                "px-6",
-                formState.outcome === 'YES' && "bg-success text-success-foreground"
+                "h-14 rounded-lg font-bold text-lg transition-all duration-200",
+                "flex items-center justify-center gap-2",
+                "border-2",
+                formState.outcome === 'YES'
+                  ? "bg-success border-success text-success-foreground shadow-lg shadow-success/30"
+                  : "bg-muted/30 border-muted-foreground/30 text-muted-foreground hover:border-success/50 hover:text-success"
               )}
             >
-              YES
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="NO"
+              <TrendingUp className="h-5 w-5" />
+              UP
+            </button>
+            <button
+              type="button"
+              onClick={() => onFieldChange('outcome', 'NO')}
               className={cn(
-                "px-6",
-                formState.outcome === 'NO' && "bg-destructive text-destructive-foreground"
+                "h-14 rounded-lg font-bold text-lg transition-all duration-200",
+                "flex items-center justify-center gap-2",
+                "border-2",
+                formState.outcome === 'NO'
+                  ? "bg-destructive border-destructive text-destructive-foreground shadow-lg shadow-destructive/30"
+                  : "bg-muted/30 border-muted-foreground/30 text-muted-foreground hover:border-destructive/50 hover:text-destructive"
               )}
             >
-              NO
-            </ToggleGroupItem>
-          </ToggleGroup>
+              <TrendingDown className="h-5 w-5" />
+              DOWN
+            </button>
+          </div>
         </div>
 
         {/* Action Selection */}
@@ -167,6 +176,35 @@ export function ManualTradePanel({
               SELL
             </ToggleGroupItem>
           </ToggleGroup>
+        </div>
+
+        {/* Order Type Selection */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Order Type</Label>
+          <ToggleGroup
+            type="single"
+            value={formState.orderType}
+            onValueChange={(v) => v && onFieldChange('orderType', v as ManualTradingOrderType)}
+            className="justify-start"
+          >
+            <ToggleGroupItem
+              value="LIMIT"
+              className="px-6 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              LIMIT
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="MARKET"
+              className="px-6 data-[state=on]:bg-warning data-[state=on]:text-warning-foreground"
+            >
+              MARKET
+            </ToggleGroupItem>
+          </ToggleGroup>
+          {formState.orderType === 'MARKET' && (
+            <p className="text-xs text-warning">
+              ⚠️ Market orders execute immediately at best available price
+            </p>
+          )}
         </div>
 
         {/* Shares / Notional Toggle */}
@@ -227,26 +265,28 @@ export function ManualTradePanel({
           </div>
         )}
 
-        {/* Limit Price */}
-        <div className="space-y-2">
-          <Label htmlFor="limitPrice" className="text-xs text-muted-foreground">
-            Limit Price <span className="text-muted-foreground/70">(0.01 - 0.99)</span>
-          </Label>
-          <Input
-            id="limitPrice"
-            type="number"
-            min="0.01"
-            max="0.99"
-            step="0.001"
-            placeholder="e.g., 0.42"
-            value={formState.limitPrice}
-            onChange={(e) => onFieldChange('limitPrice', e.target.value)}
-            className={validationErrors.limitPrice ? 'border-destructive' : ''}
-          />
-          {validationErrors.limitPrice && (
-            <p className="text-xs text-destructive">{validationErrors.limitPrice}</p>
-          )}
-        </div>
+        {/* Limit Price - Only for LIMIT orders */}
+        {formState.orderType === 'LIMIT' && (
+          <div className="space-y-2">
+            <Label htmlFor="limitPrice" className="text-xs text-muted-foreground">
+              Limit Price <span className="text-muted-foreground/70">(0.01 - 0.99)</span>
+            </Label>
+            <Input
+              id="limitPrice"
+              type="number"
+              min="0.01"
+              max="0.99"
+              step="0.001"
+              placeholder="e.g., 0.42"
+              value={formState.limitPrice}
+              onChange={(e) => onFieldChange('limitPrice', e.target.value)}
+              className={validationErrors.limitPrice ? 'border-destructive' : ''}
+            />
+            {validationErrors.limitPrice && (
+              <p className="text-xs text-destructive">{validationErrors.limitPrice}</p>
+            )}
+          </div>
+        )}
 
         {/* Submit Button */}
         <Button
@@ -261,7 +301,7 @@ export function ManualTradePanel({
               Submitting...
             </>
           ) : (
-            <>Submit {formState.action} Order</>
+            <>Submit {formState.orderType} {formState.action} Order</>
           )}
         </Button>
 

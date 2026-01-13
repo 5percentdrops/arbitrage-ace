@@ -24,6 +24,7 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     asset: 'BTC',
     outcome: 'YES',
     action: 'BUY',
+    orderType: 'LIMIT',
     shares: '',
     limitPrice: '',
     useNotional: false,
@@ -62,9 +63,12 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
       }
     }
 
-    const price = parseFloat(formState.limitPrice);
-    if (isNaN(price) || price < 0.01 || price > 0.99) {
-      errors.limitPrice = 'Must be between 0.01 and 0.99';
+    // Only validate limit price for LIMIT orders
+    if (formState.orderType === 'LIMIT') {
+      const price = parseFloat(formState.limitPrice);
+      if (isNaN(price) || price < 0.01 || price > 0.99) {
+        errors.limitPrice = 'Must be between 0.01 and 0.99';
+      }
     }
 
     return errors;
@@ -150,10 +154,12 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
       asset: formState.asset,
       outcome: formState.outcome,
       action: formState.action,
-      orderType: 'LIMIT',
+      orderType: formState.orderType,
       shares,
-      limitPrice: parseFloat(formState.limitPrice),
-      timeInForce: 'GTC',
+      ...(formState.orderType === 'LIMIT' && {
+        limitPrice: parseFloat(formState.limitPrice),
+      }),
+      timeInForce: formState.orderType === 'LIMIT' ? 'GTC' : 'IOC',
     };
 
     const response = await apiPost('/order', order);
