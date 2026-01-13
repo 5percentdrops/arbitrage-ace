@@ -70,12 +70,7 @@ export function MarketSnapshotCard({
         </div>
       </CardHeader>
       <CardContent>
-        {error ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
-        ) : isLoading && !snapshot ? (
+        {isLoading && !snapshot ? (
           <div className="space-y-3">
             <Skeleton className="h-16 w-full" />
           </div>

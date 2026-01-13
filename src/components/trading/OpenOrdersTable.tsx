@@ -68,12 +68,7 @@ export function OpenOrdersTable({
         </div>
       </CardHeader>
       <CardContent>
-        {error ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
-        ) : isLoading && orders.length === 0 ? (
+        {isLoading && !error && orders.length === 0 ? (
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />

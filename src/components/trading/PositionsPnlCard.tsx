@@ -66,12 +66,7 @@ export function PositionsPnlCard({
         </div>
       </CardHeader>
       <CardContent>
-        {error ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-            <AlertCircle className="h-4 w-4" />
-            <span>{error}</span>
-          </div>
-        ) : isLoading && !botState ? (
+        {isLoading && !botState ? (
           <div className="space-y-3">
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-8 w-full" />
