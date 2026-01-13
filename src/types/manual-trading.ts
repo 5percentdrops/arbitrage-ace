@@ -14,13 +14,15 @@ export type ManualTradingOutcome = 'YES' | 'NO';
 export type ManualTradingAction = 'BUY' | 'SELL';
 export type TimeInForce = 'GTC' | 'IOC';
 
+export type ManualTradingOrderType = 'LIMIT' | 'MARKET';
+
 export interface ManualOrder {
   asset: TokenSymbol;
   outcome: ManualTradingOutcome;
   action: ManualTradingAction;
-  orderType: 'LIMIT';
+  orderType: ManualTradingOrderType;
   shares: number;
-  limitPrice: number;
+  limitPrice?: number;
   timeInForce: TimeInForce;
 }
 
@@ -91,6 +93,7 @@ export interface ManualTradeFormState {
   asset: TokenSymbol;
   outcome: ManualTradingOutcome;
   action: ManualTradingAction;
+  orderType: ManualTradingOrderType;
   shares: string;
   limitPrice: string;
   useNotional: boolean;
@@ -101,6 +104,7 @@ export const INITIAL_FORM_STATE: ManualTradeFormState = {
   asset: 'BTC',
   outcome: 'YES',
   action: 'BUY',
+  orderType: 'LIMIT',
   shares: '',
   limitPrice: '',
   useNotional: false,
