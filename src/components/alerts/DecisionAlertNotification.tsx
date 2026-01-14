@@ -64,12 +64,12 @@ export function DecisionAlertNotification({
     previousAlertsLength.current = alerts.length;
   }, [alerts.length, currentIndex]);
 
-  // Auto-show when first alert arrives
+  // Auto-show when alerts exist
   useEffect(() => {
-    if (alerts.length > 0 && previousAlertsLength.current === 0) {
+    if (alerts.length > 0 && !isVisible) {
       onVisibilityChange(true);
     }
-  }, [alerts.length, onVisibilityChange]);
+  }, [alerts.length, isVisible, onVisibilityChange]);
 
   const currentAlert = alerts[currentIndex];
   const hasMultiple = alerts.length > 1;
