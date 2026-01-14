@@ -213,9 +213,9 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Center - Sticky Timer (absolutely positioned for true centering) */}
+            {/* Center - Sticky Timer (aligned with Round Status card in right column) */}
             <div className={cn(
-              "absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-300",
+              "absolute left-1/2 -translate-x-1/2 lg:left-[66.67%] xl:left-[62.5%] flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-300",
               isScrolled 
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 -translate-y-2 pointer-events-none',
