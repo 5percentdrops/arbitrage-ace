@@ -40,6 +40,12 @@ const Index = () => {
     executeAction: executeAlertAction,
     isActionInFlight: isAlertActionInFlight
   } = useDecisionAlerts({ assetFilter: 'ALL', autoRefresh: true });
+
+  // Always show notification when we have (demo or real) alerts
+  useEffect(() => {
+    if (decisionAlerts.length > 0) setIsAlertVisible(true);
+  }, [decisionAlerts.length]);
+
   // Scroll detection for sticky timer
   const [isScrolled, setIsScrolled] = useState(false);
 
