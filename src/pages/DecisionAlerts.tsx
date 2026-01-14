@@ -12,6 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from '@/components/ui/carousel';
 import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
 import { DecisionAlertCard } from '@/components/alerts/DecisionAlertCard';
 import { DecisionAlertsSkeleton } from '@/components/alerts/DecisionAlertsSkeleton';
@@ -148,15 +155,26 @@ export default function DecisionAlerts() {
             <p className="text-sm mt-1">Alerts will appear when opportunities are detected</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {alerts.map((alert) => (
-              <DecisionAlertCard
-                key={alert.id}
-                alert={alert}
-                onAction={executeAction}
-                isActionInFlight={isActionInFlight}
-              />
-            ))}
+          <div className="relative px-12">
+            <Carousel opts={{ loop: true }} className="w-full">
+              <CarouselContent>
+                {alerts.map((alert) => (
+                  <CarouselItem key={alert.id}>
+                    <DecisionAlertCard
+                      alert={alert}
+                      onAction={executeAction}
+                      isActionInFlight={isActionInFlight}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+            
+            <div className="text-center mt-4 text-sm text-muted-foreground">
+              Swipe or use arrows to navigate • {alerts.length} alerts
+            </div>
           </div>
         )}
       </main>
