@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Activity, Zap, Shield, Bell, Clock } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
@@ -47,16 +47,24 @@ const Index = () => {
     if (decisionAlerts.length > 0) setIsAlertVisible(true);
   }, [decisionAlerts.length]);
 
-  // Scroll detection for sticky timer
-  const [isScrolled, setIsScrolled] = useState(false);
+  // Ref for Round Timer card to detect when it's out of view
+  const roundTimerRef = useRef<HTMLDivElement>(null);
+  const [isTimerOutOfView, setIsTimerOutOfView] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const timerElement = roundTimerRef.current;
+    if (!timerElement) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Show sticky header timer when Round Status card is NOT visible
+        setIsTimerOutOfView(!entry.isIntersecting);
+      },
+      { threshold: 0, rootMargin: '-80px 0px 0px 0px' } // Account for sticky header height
+    );
+
+    observer.observe(timerElement);
+    return () => observer.disconnect();
   }, []);
 
   // Bot state management
@@ -216,7 +224,7 @@ const Index = () => {
             {/* Center - Sticky Timer (aligned with Round Status card in right column) */}
             <div className={cn(
               "absolute left-1/2 -translate-x-1/2 lg:left-[66.67%] xl:left-[62.5%] flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-300",
-              isScrolled 
+              isTimerOutOfView 
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 -translate-y-2 pointer-events-none',
               roundTimer.secondsRemaining <= 300 
@@ -314,17 +322,19 @@ const Index = () => {
             <PerformancePanel metrics={performance} />
 
             {/* Round Timer */}
-            <RoundTimerCard
-              roundStart={roundTimer.roundStart}
-              roundEnd={roundTimer.roundEnd}
-              secondsRemaining={roundTimer.secondsRemaining}
+            <div ref={roundTimerRef}>
+              <RoundTimerCard
+                roundStart={roundTimer.roundStart}
+                roundEnd={roundTimer.roundEnd}
+                secondsRemaining={roundTimer.secondsRemaining}
               progressPercent={roundTimer.progressPercent}
               isJustStarted={roundTimer.isJustStarted}
               syncStatus={roundTimer.syncStatus}
               asset={roundTimer.asset}
               onAssetChange={roundTimer.setAsset}
               onRefresh={roundTimer.refresh}
-            />
+              />
+            </div>
 
             {/* Manual Trading */}
             <ManualTradePanel
