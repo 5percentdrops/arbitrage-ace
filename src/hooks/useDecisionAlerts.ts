@@ -1,7 +1,56 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { apiGet, apiPost } from '@/lib/api';
-import type { DecisionAlert, AlertAsset, AlertAction } from '@/types/decision-alerts';
+import type { DecisionAlert, AlertAsset, AlertAction, AlertSignal } from '@/types/decision-alerts';
+
+// Mock data generator for demo purposes
+function generateMockAlerts(): DecisionAlert[] {
+  const assets: AlertAsset[] = ['BTC', 'ETH', 'SOL', 'XRP'];
+  const now = new Date();
+  
+  return assets.map((asset, index) => {
+    const cycleStart = new Date(now.getTime() - (10 - index) * 60 * 1000);
+    const cycleEnd = new Date(cycleStart.getTime() + 15 * 60 * 1000);
+    const secondsRemaining = Math.max(0, Math.floor((cycleEnd.getTime() - now.getTime()) / 1000));
+    const upPrice = 0.45 + Math.random() * 0.15;
+    const downPrice = 1 - upPrice - 0.02;
+    const isBullish = Math.random() > 0.5;
+    
+    const signals: AlertSignal[] = [
+      { signal_type: 'CVD_DIV', direction: isBullish ? 'BULLISH' : 'BEARISH', timeframe: '1m', notes: 'Strong divergence detected' },
+      { signal_type: 'FR_DIV', direction: isBullish ? 'BULLISH' : 'BEARISH', timeframe: '1m' }
+    ];
+
+    return {
+      id: `demo-${asset}-${index}`,
+      asset,
+      market_id: `polymarket-${asset.toLowerCase()}-15m`,
+      cycle_start: cycleStart.toISOString(),
+      cycle_end: cycleEnd.toISOString(),
+      seconds_remaining: secondsRemaining,
+      majority_side: isBullish ? 'UP' : 'DOWN',
+      majority_pct: 55 + Math.floor(Math.random() * 20),
+      majority_proxy_label: 'Binance Perps',
+      up_price: parseFloat(upPrice.toFixed(3)),
+      down_price: parseFloat(downPrice.toFixed(3)),
+      signals,
+      recommended_side: isBullish ? 'BUY_UP' : 'BUY_DOWN',
+      score: 70 + Math.floor(Math.random() * 25),
+      reason_short: isBullish 
+        ? `${asset} showing bullish CVD divergence with funding rate support` 
+        : `${asset} bearish setup with negative funding divergence`,
+      liquidity: {
+        spread: 0.01 + Math.random() * 0.02,
+        spread_ok: true,
+        best_bid_size_usd: 5000 + Math.random() * 10000,
+        best_ask_size_usd: 5000 + Math.random() * 10000
+      },
+      status: 'READY',
+      created_at: cycleStart.toISOString(),
+      ttl_seconds: secondsRemaining
+    };
+  });
+}
 
 interface UseDecisionAlertsOptions {
   assetFilter: AlertAsset | 'ALL';
@@ -29,6 +78,7 @@ export function useDecisionAlerts({
   const [autoRefresh, setAutoRefresh] = useState(initialAutoRefresh);
   const [isActionInFlight, setIsActionInFlight] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const useMockData = useRef(false);
 
   // Sort alerts: highest score first, then newest
   const sortAlerts = useCallback((alertList: DecisionAlert[]): DecisionAlert[] => {
@@ -40,6 +90,18 @@ export function useDecisionAlerts({
 
   const fetchAlerts = useCallback(async () => {
     try {
+      // If we've already switched to mock data, keep using it
+      if (useMockData.current) {
+        let mockAlerts = generateMockAlerts();
+        if (assetFilter !== 'ALL') {
+          mockAlerts = mockAlerts.filter(a => a.asset === assetFilter);
+        }
+        setAlerts(sortAlerts(mockAlerts));
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
       const params: Record<string, string> = {
         status: 'READY',
         limit: '50'
@@ -55,10 +117,26 @@ export function useDecisionAlerts({
         setAlerts(sortAlerts(response.data));
         setError(null);
       } else {
-        setError(response.error || 'Failed to fetch alerts');
+        // Fall back to mock data on API failure
+        useMockData.current = true;
+        let mockAlerts = generateMockAlerts();
+        if (assetFilter !== 'ALL') {
+          mockAlerts = mockAlerts.filter(a => a.asset === assetFilter);
+        }
+        setAlerts(sortAlerts(mockAlerts));
+        setError(null);
+        toast.info('Using demo data', { description: 'API unavailable, showing sample alerts' });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch alerts');
+      // Fall back to mock data on error
+      useMockData.current = true;
+      let mockAlerts = generateMockAlerts();
+      if (assetFilter !== 'ALL') {
+        mockAlerts = mockAlerts.filter(a => a.asset === assetFilter);
+      }
+      setAlerts(sortAlerts(mockAlerts));
+      setError(null);
+      toast.info('Using demo data', { description: 'API unavailable, showing sample alerts' });
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +179,15 @@ export function useDecisionAlerts({
           alert.id === id ? { ...alert, status: 'EXECUTING' as const } : alert
         )
       );
+    }
+
+    // If using mock data, simulate the action
+    if (useMockData.current) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setAlerts(current => current.filter(alert => alert.id !== id));
+      toast.success(`Action ${action} executed successfully (demo)`);
+      setIsActionInFlight(false);
+      return true;
     }
 
     try {
