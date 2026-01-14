@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Activity, Zap, Shield, Bell, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -34,6 +35,18 @@ import { OpenOrdersTable } from '@/components/trading/OpenOrdersTable';
 import { PositionsPnlCard } from '@/components/trading/PositionsPnlCard';
 
 const Index = () => {
+  // Scroll detection for sticky timer
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Bot state management
   const {
     state,
@@ -199,8 +212,12 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Sticky Time Remaining */}
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+              {/* Sticky Time Remaining - only visible when scrolled */}
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-300 ${
+                isScrolled 
+                  ? 'opacity-100 translate-y-0' 
+                  : 'opacity-0 -translate-y-2 pointer-events-none'
+              } ${
                 roundTimer.secondsRemaining <= 60 
                   ? 'bg-warning/10 border-warning/30 text-warning' 
                   : roundTimer.isJustStarted 
