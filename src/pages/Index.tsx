@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { Activity, Zap, Shield, Bell, Clock } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -224,8 +225,12 @@ const Index = () => {
                     ? 'bg-primary/10 border-primary/30 text-primary'
                     : 'bg-card border-border text-foreground'
               }`}>
-                <Clock className="h-4 w-4" />
-                <span className="font-mono font-bold text-lg">
+              <Clock className="h-5 w-5" />
+                <span className={cn(
+                  "font-mono font-bold tracking-wider text-4xl",
+                  roundTimer.secondsRemaining <= 300 && "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]",
+                  roundTimer.isJustStarted && "text-primary"
+                )}>
                   {Math.floor(roundTimer.secondsRemaining / 60).toString().padStart(2, '0')}:
                   {(roundTimer.secondsRemaining % 60).toString().padStart(2, '0')}
                 </span>
