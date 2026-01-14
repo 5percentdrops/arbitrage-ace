@@ -1,4 +1,4 @@
-import { Activity, Zap, Shield, Bell } from 'lucide-react';
+import { Activity, Zap, Shield, Bell, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -199,6 +199,24 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Sticky Time Remaining */}
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+                roundTimer.secondsRemaining <= 60 
+                  ? 'bg-warning/10 border-warning/30 text-warning' 
+                  : roundTimer.isJustStarted 
+                    ? 'bg-primary/10 border-primary/30 text-primary'
+                    : 'bg-card border-border text-foreground'
+              }`}>
+                <Clock className="h-4 w-4" />
+                <span className="font-mono font-bold text-lg">
+                  {Math.floor(roundTimer.secondsRemaining / 60).toString().padStart(2, '0')}:
+                  {(roundTimer.secondsRemaining % 60).toString().padStart(2, '0')}
+                </span>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {roundTimer.asset}
+                </span>
+              </div>
+
               {/* Decision Alerts Nav Link */}
               <Link 
                 to="/decision-alerts"
