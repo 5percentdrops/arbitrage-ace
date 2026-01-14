@@ -97,7 +97,10 @@ export function RoundTimerCard({
         <div className="space-y-2">
           <Progress 
             value={progressPercent} 
-            className="h-2 bg-muted"
+            className={cn(
+              "h-2 bg-muted",
+              secondsRemaining <= 300 && "[&>div]:bg-destructive"
+            )}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{Math.round(progressPercent)}% elapsed</span>
