@@ -201,7 +201,8 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between relative">
+            {/* Left - Logo */}
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
                 <Zap className="h-6 w-6 text-primary" />
@@ -212,33 +213,31 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Sticky Time Remaining - only visible when scrolled */}
-              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-300 ${
-                isScrolled 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 -translate-y-2 pointer-events-none'
-              } ${
-                roundTimer.secondsRemaining <= 300 
-                  ? 'bg-destructive/10 border-destructive/30 text-destructive animate-pulse' 
-                  : roundTimer.isJustStarted 
-                    ? 'bg-primary/10 border-primary/30 text-primary'
-                    : 'bg-card border-border text-foreground'
-              }`}>
-              <Clock className="h-5 w-5" />
-                <span className={cn(
-                  "font-mono font-bold tracking-wider text-4xl",
-                  roundTimer.secondsRemaining <= 300 && "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]",
-                  roundTimer.isJustStarted && "text-primary"
-                )}>
-                  {Math.floor(roundTimer.secondsRemaining / 60).toString().padStart(2, '0')}:
-                  {(roundTimer.secondsRemaining % 60).toString().padStart(2, '0')}
-                </span>
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  {roundTimer.asset}
-                </span>
-              </div>
+            {/* Center - Sticky Timer (absolutely positioned for true centering) */}
+            <div className={cn(
+              "absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-300",
+              isScrolled 
+                ? 'opacity-100 translate-y-0' 
+                : 'opacity-0 -translate-y-2 pointer-events-none',
+              roundTimer.secondsRemaining <= 300 
+                ? 'bg-destructive/10 border-destructive/30' 
+                : roundTimer.isJustStarted 
+                  ? 'bg-primary/10 border-primary/30'
+                  : 'bg-card border-border'
+            )}>
+              <Clock className="h-5 w-5 text-primary" />
+              <span className={cn(
+                "font-mono font-bold tracking-wider text-4xl",
+                roundTimer.secondsRemaining <= 300 && "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]",
+                roundTimer.isJustStarted && "text-primary"
+              )}>
+                {Math.floor(roundTimer.secondsRemaining / 60).toString().padStart(2, '0')}:
+                {(roundTimer.secondsRemaining % 60).toString().padStart(2, '0')}
+              </span>
+            </div>
 
+            {/* Right - Bell and Connection Status */}
+            <div className="flex items-center gap-4">
               {/* Decision Alerts Bell */}
               <button 
                 onClick={() => setIsAlertVisible(true)}
