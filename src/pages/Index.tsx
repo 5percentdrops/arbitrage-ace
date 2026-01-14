@@ -30,11 +30,11 @@ import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
 import { RoundTimerCard } from '@/components/trading/RoundTimerCard';
 import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
-import { DecisionAlertModal } from '@/components/alerts/DecisionAlertModal';
+import { DecisionAlertNotification } from '@/components/alerts/DecisionAlertNotification';
 
 const Index = () => {
-  // Decision Alerts modal state
-  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  // Decision Alerts notification state
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
   const {
     alerts: decisionAlerts,
     executeAction: executeAlertAction,
@@ -230,7 +230,7 @@ const Index = () => {
 
               {/* Decision Alerts Bell */}
               <button 
-                onClick={() => setIsAlertModalOpen(true)}
+                onClick={() => setIsAlertVisible(true)}
                 className="relative flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Bell className="h-4 w-4" />
@@ -359,11 +359,11 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* Decision Alert Modal */}
-      <DecisionAlertModal
+      {/* Decision Alert Notification */}
+      <DecisionAlertNotification
         alerts={decisionAlerts}
-        isOpen={isAlertModalOpen}
-        onOpenChange={setIsAlertModalOpen}
+        isVisible={isAlertVisible}
+        onVisibilityChange={setIsAlertVisible}
         onAction={executeAlertAction}
         isActionInFlight={isAlertActionInFlight}
       />
