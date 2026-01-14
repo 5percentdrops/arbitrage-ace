@@ -52,7 +52,8 @@ export function DecisionAlertNotification({
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadingAction, setLoadingAction] = useState<AlertAction | null>(null);
-  const previousAlertsLength = useRef(alerts.length);
+  const previousAlertsLength = useRef(0);
+  const hasAutoShown = useRef(false);
 
   // Reset index when alerts change significantly
   useEffect(() => {
@@ -61,15 +62,23 @@ export function DecisionAlertNotification({
     } else if (currentIndex >= alerts.length) {
       setCurrentIndex(Math.max(0, alerts.length - 1));
     }
-    previousAlertsLength.current = alerts.length;
   }, [alerts.length, currentIndex]);
 
-  // Auto-show when alerts exist
+  // Auto-show on initial load when alerts exist
   useEffect(() => {
-    if (alerts.length > 0 && !isVisible) {
+    if (alerts.length > 0 && !hasAutoShown.current) {
+      hasAutoShown.current = true;
       onVisibilityChange(true);
     }
-  }, [alerts.length, isVisible, onVisibilityChange]);
+  }, [alerts.length, onVisibilityChange]);
+
+  // Show when new alerts arrive (after initial load)
+  useEffect(() => {
+    if (alerts.length > previousAlertsLength.current && previousAlertsLength.current > 0) {
+      onVisibilityChange(true);
+    }
+    previousAlertsLength.current = alerts.length;
+  }, [alerts.length, onVisibilityChange]);
 
   const currentAlert = alerts[currentIndex];
   const hasMultiple = alerts.length > 1;
