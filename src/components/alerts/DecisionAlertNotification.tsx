@@ -122,7 +122,7 @@ export function DecisionAlertNotification({
   // Collapsed view
   if (!isExpanded) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 animate-slide-in-right">
+      <div className="fixed bottom-4 right-4 z-[150] animate-slide-in-right">
         <Card 
           className="w-80 cursor-pointer border-primary/50 shadow-lg hover:border-primary transition-colors bg-card/95 backdrop-blur-sm"
           onClick={handleCollapsedClick}
@@ -177,7 +177,7 @@ export function DecisionAlertNotification({
 
   // Expanded view
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-scale-in">
+    <div className="fixed bottom-4 right-4 z-[150] animate-scale-in">
       <Card className="w-[420px] max-h-[70vh] overflow-y-auto shadow-xl border-primary/30 bg-card/98 backdrop-blur-sm">
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border p-3 flex items-center justify-between">
