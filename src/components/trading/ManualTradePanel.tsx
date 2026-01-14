@@ -29,10 +29,6 @@ interface ManualTradePanelProps {
   onAllowManualChange: (allow: boolean) => void;
   
   estimatedShares: number | null;
-  currentAsk: number | null;
-  
-  isTradingDisabled?: boolean;
-  disabledReason?: string | null;
 }
 
 export function ManualTradePanel({
@@ -49,9 +45,6 @@ export function ManualTradePanel({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
-  currentAsk,
-  isTradingDisabled,
-  disabledReason,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
 
@@ -84,15 +77,6 @@ export function ManualTradePanel({
           </Alert>
         )}
 
-        {/* Trading disabled warning */}
-        {isTradingDisabled && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              {disabledReason || 'Trading disabled due to round ambiguity.'}
-            </AlertDescription>
-          </Alert>
-        )}
 
         {/* Asset Selection */}
         <div className="space-y-2">
@@ -257,9 +241,9 @@ export function ManualTradePanel({
             {validationErrors.notionalUsd && (
               <p className="text-xs text-destructive">{validationErrors.notionalUsd}</p>
             )}
-            {estimatedShares !== null && currentAsk !== null && (
+            {estimatedShares !== null && (
               <p className="text-xs text-muted-foreground">
-                Est. ~{estimatedShares.toFixed(1)} shares @ {currentAsk.toFixed(3)} ask
+                Est. ~{estimatedShares.toFixed(1)} shares
               </p>
             )}
           </div>
@@ -291,7 +275,7 @@ export function ManualTradePanel({
         {/* Submit Button */}
         <Button
           onClick={onSubmit}
-          disabled={!canSubmit || isTradingDisabled}
+          disabled={!canSubmit}
           className="w-full h-11"
           variant={formState.action === 'BUY' ? 'default' : 'destructive'}
         >
