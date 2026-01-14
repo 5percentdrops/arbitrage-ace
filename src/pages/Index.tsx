@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Activity, Zap, Shield, Bell, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 
@@ -13,6 +12,7 @@ import { usePositions } from '@/hooks/usePositions';
 import { useDumpHedge } from '@/hooks/useDumpHedge';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useManualTrading } from '@/hooks/useManualTrading';
+import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
 
 
 // Components
@@ -30,8 +30,16 @@ import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
 import { RoundTimerCard } from '@/components/trading/RoundTimerCard';
 import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
+import { DecisionAlertModal } from '@/components/alerts/DecisionAlertModal';
 
 const Index = () => {
+  // Decision Alerts modal state
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const {
+    alerts: decisionAlerts,
+    executeAction: executeAlertAction,
+    isActionInFlight: isAlertActionInFlight
+  } = useDecisionAlerts({ assetFilter: 'ALL', autoRefresh: true });
   // Scroll detection for sticky timer
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -220,14 +228,18 @@ const Index = () => {
                 </span>
               </div>
 
-              {/* Decision Alerts Nav Link */}
-              <Link 
-                to="/decision-alerts"
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              {/* Decision Alerts Bell */}
+              <button 
+                onClick={() => setIsAlertModalOpen(true)}
+                className="relative flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">Decision Alerts</span>
-              </Link>
+                {decisionAlerts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center animate-pulse">
+                    {decisionAlerts.length}
+                  </span>
+                )}
+              </button>
 
               {/* Connection Status Indicators */}
               <div className="hidden sm:flex items-center gap-3 text-xs">
@@ -346,6 +358,15 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Decision Alert Modal */}
+      <DecisionAlertModal
+        alerts={decisionAlerts}
+        isOpen={isAlertModalOpen}
+        onOpenChange={setIsAlertModalOpen}
+        onAction={executeAlertAction}
+        isActionInFlight={isAlertActionInFlight}
+      />
     </div>;
 };
 export default Index;
