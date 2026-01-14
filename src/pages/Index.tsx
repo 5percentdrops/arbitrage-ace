@@ -1,4 +1,5 @@
-import { Activity, Zap, Shield } from 'lucide-react';
+import { Activity, Zap, Shield, Bell } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 
@@ -198,6 +199,15 @@ const Index = () => {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Decision Alerts Nav Link */}
+              <Link 
+                to="/decision-alerts"
+                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Decision Alerts</span>
+              </Link>
+
               {/* Connection Status Indicators */}
               <div className="hidden sm:flex items-center gap-3 text-xs">
                 <div className="flex items-center gap-1.5">
