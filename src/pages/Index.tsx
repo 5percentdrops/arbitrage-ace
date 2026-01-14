@@ -204,8 +204,8 @@ const Index = () => {
                   ? 'opacity-100 translate-y-0' 
                   : 'opacity-0 -translate-y-2 pointer-events-none'
               } ${
-                roundTimer.secondsRemaining <= 60 
-                  ? 'bg-warning/10 border-warning/30 text-warning' 
+                roundTimer.secondsRemaining <= 300 
+                  ? 'bg-destructive/10 border-destructive/30 text-destructive' 
                   : roundTimer.isJustStarted 
                     ? 'bg-primary/10 border-primary/30 text-primary'
                     : 'bg-card border-border text-foreground'
