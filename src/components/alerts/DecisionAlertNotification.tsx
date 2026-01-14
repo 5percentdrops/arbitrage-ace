@@ -80,7 +80,8 @@ export function DecisionAlertNotification({
     previousAlertsLength.current = alerts.length;
   }, [alerts.length, onVisibilityChange]);
 
-  const currentAlert = alerts[currentIndex];
+  const safeIndex = alerts.length === 0 ? 0 : Math.min(currentIndex, alerts.length - 1);
+  const currentAlert = alerts[safeIndex];
   const hasMultiple = alerts.length > 1;
 
   const handleAction = async (action: AlertAction) => {
@@ -122,7 +123,7 @@ export function DecisionAlertNotification({
   // Collapsed view
   if (!isExpanded) {
     return (
-      <div className="fixed bottom-4 right-4 z-[150] animate-slide-in-right">
+      <div className="fixed top-20 right-6 z-[200] animate-slide-in-right">
         <Card 
           className="w-80 cursor-pointer border-primary/50 shadow-lg hover:border-primary transition-colors bg-card/95 backdrop-blur-sm"
           onClick={handleCollapsedClick}
@@ -177,7 +178,7 @@ export function DecisionAlertNotification({
 
   // Expanded view
   return (
-    <div className="fixed bottom-4 right-4 z-[150] animate-scale-in">
+    <div className="fixed top-20 right-6 z-[200] animate-scale-in">
       <Card className="w-[420px] max-h-[70vh] overflow-y-auto shadow-xl border-primary/30 bg-card/98 backdrop-blur-sm">
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border p-3 flex items-center justify-between">
@@ -186,7 +187,7 @@ export function DecisionAlertNotification({
             <span className="font-semibold">Trading Opportunity</span>
             {hasMultiple && (
               <span className="text-sm text-muted-foreground">
-                ({currentIndex + 1} of {alerts.length})
+                ({safeIndex + 1} of {alerts.length})
               </span>
             )}
           </div>
