@@ -109,7 +109,7 @@ export function RoundTimerCard({
         <div className="text-center py-4">
           <div className={cn(
             "text-4xl font-mono font-bold tracking-wider",
-            secondsRemaining <= 300 ? "text-destructive" : "text-foreground",
+            secondsRemaining <= 300 ? "text-destructive animate-pulse" : "text-foreground",
             isJustStarted && "text-primary"
           )}>
             {formatCountdown(secondsRemaining)}
