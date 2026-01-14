@@ -288,7 +288,10 @@ const Index = () => {
 
           {/* Right Column - Data & Performance */}
           <div className="lg:col-span-8 xl:col-span-9 space-y-4">
-            {/* Round Timer - NEW: Priority at top */}
+            {/* Performance Panel */}
+            <PerformancePanel metrics={performance} />
+
+            {/* Round Timer */}
             <RoundTimerCard
               roundStart={roundTimer.roundStart}
               roundEnd={roundTimer.roundEnd}
@@ -300,9 +303,6 @@ const Index = () => {
               onAssetChange={roundTimer.setAsset}
               onRefresh={roundTimer.refresh}
             />
-
-            {/* Performance Panel */}
-            <PerformancePanel metrics={performance} />
 
             {/* Manual Trading */}
             <ManualTradePanel
