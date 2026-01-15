@@ -101,57 +101,41 @@ export function DecisionAlertCard({ alert, onAction, isActionInFlight }: Decisio
           <span>Score: <span className="text-primary font-semibold">{alert.score}/10</span></span>
         </div>
 
-        {/* Line 4: Liquidity: Spread 0.02 OK   Size: $1,250/$1,180 */}
+        {/* Line 4: Spread: 2.0%   Volume: $1,250 */}
         <div className="flex items-center gap-4 text-muted-foreground">
-          <span>
-            Liquidity: Spread {alert.liquidity.spread.toFixed(3)} 
-            <span className={alert.liquidity.spread_ok ? 'text-success ml-1' : 'text-warning ml-1'}>
-              {alert.liquidity.spread_ok ? 'OK' : 'WIDE'}
-            </span>
-          </span>
+          <span>Spread: <span className="text-foreground">{(alert.liquidity.spread * 100).toFixed(1)}%</span></span>
           {alert.liquidity.best_bid_size_usd && (
             <>
               <span className="text-muted-foreground/50">|</span>
-              <span>
-                Volume: ${alert.liquidity.best_bid_size_usd.toLocaleString()}
-              </span>
+              <span>Volume: <span className="text-foreground">${alert.liquidity.best_bid_size_usd.toLocaleString()}</span></span>
             </>
           )}
         </div>
 
-        {/* Line 5: Actions */}
+        {/* Line 5: Actions - Single contrarian button (opposite of crowd) */}
         <div className="flex items-center gap-2 pt-2 flex-wrap">
-          <Button
-            size="sm"
-            variant={alert.recommended_side === 'BUY_UP' ? 'default' : 'outline'}
-            className={alert.recommended_side === 'BUY_UP' ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}
-            disabled={buyDisabled}
-            onClick={() => handleAction('BUY_UP')}
-          >
-            {loadingAction === 'BUY_UP' ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : (
-              <TrendingUp className="h-3 w-3 mr-1" />
-            )}
-            Buy UP
-            {alert.recommended_side === 'BUY_UP' && ' ★'}
-          </Button>
-
-          <Button
-            size="sm"
-            variant={alert.recommended_side === 'BUY_DOWN' ? 'default' : 'outline'}
-            className={alert.recommended_side === 'BUY_DOWN' ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}
-            disabled={buyDisabled}
-            onClick={() => handleAction('BUY_DOWN')}
-          >
-            {loadingAction === 'BUY_DOWN' ? (
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-            ) : (
-              <TrendingDown className="h-3 w-3 mr-1" />
-            )}
-            Buy DOWN
-            {alert.recommended_side === 'BUY_DOWN' && ' ★'}
-          </Button>
+          {(() => {
+            const contrarianAction = alert.majority_side === 'UP' ? 'BUY_DOWN' : 'BUY_UP';
+            const ContrarianIcon = alert.majority_side === 'UP' ? TrendingDown : TrendingUp;
+            const buttonLabel = alert.majority_side === 'UP' ? 'Buy DOWN' : 'Buy UP';
+            
+            return (
+              <Button
+                size="sm"
+                variant="default"
+                className="bg-success hover:bg-success/90 text-success-foreground"
+                disabled={buyDisabled}
+                onClick={() => handleAction(contrarianAction)}
+              >
+                {loadingAction === contrarianAction ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                ) : (
+                  <ContrarianIcon className="h-3 w-3 mr-1" />
+                )}
+                {buttonLabel}
+              </Button>
+            );
+          })()}
 
           <Button
             size="sm"
