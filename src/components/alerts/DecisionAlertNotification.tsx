@@ -272,58 +272,41 @@ export function DecisionAlertNotification({
             <span>Score: <span className="text-primary font-semibold">{currentAlert.score}/10</span></span>
           </div>
 
-          {/* Line 4: Liquidity: Spread 0.02 OK   Size: $1,250/$1,180 */}
+          {/* Line 4: Spread: 2.0%   Volume: $1,250 */}
           <div className="flex items-center gap-4 text-muted-foreground">
-            <span>
-              Liquidity: Spread {currentAlert.liquidity.spread.toFixed(3)} 
-              <span className={currentAlert.liquidity.spread_ok ? 'text-success ml-1' : 'text-warning ml-1'}>
-                {currentAlert.liquidity.spread_ok ? 'OK' : 'WIDE'}
-              </span>
-            </span>
-            {(currentAlert.liquidity.best_bid_size_usd || currentAlert.liquidity.best_ask_size_usd) && (
+            <span>Spread: <span className="text-foreground">{(currentAlert.liquidity.spread * 100).toFixed(1)}%</span></span>
+            {currentAlert.liquidity.best_bid_size_usd && (
               <>
                 <span className="text-muted-foreground/50">|</span>
-                <span>
-                  Size: ${currentAlert.liquidity.best_bid_size_usd?.toLocaleString() ?? '-'}/
-                  ${currentAlert.liquidity.best_ask_size_usd?.toLocaleString() ?? '-'}
-                </span>
+                <span>Volume: <span className="text-foreground">${currentAlert.liquidity.best_bid_size_usd.toLocaleString()}</span></span>
               </>
             )}
           </div>
 
-          {/* Line 5: Actions */}
+          {/* Line 5: Actions - Single contrarian button (opposite of crowd) */}
           <div className="flex items-center gap-2 pt-3 flex-wrap border-t border-border mt-3">
-            <Button
-              size="sm"
-              variant={currentAlert.recommended_side === 'BUY_UP' ? 'default' : 'outline'}
-              className={currentAlert.recommended_side === 'BUY_UP' ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}
-              disabled={buyDisabled}
-              onClick={() => handleAction('BUY_UP')}
-            >
-              {loadingAction === 'BUY_UP' ? (
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              ) : (
-                <TrendingUp className="h-3 w-3 mr-1" />
-              )}
-              Buy UP
-              {currentAlert.recommended_side === 'BUY_UP' && ' ★'}
-            </Button>
-
-            <Button
-              size="sm"
-              variant={currentAlert.recommended_side === 'BUY_DOWN' ? 'default' : 'outline'}
-              className={currentAlert.recommended_side === 'BUY_DOWN' ? 'bg-success hover:bg-success/90 text-success-foreground' : ''}
-              disabled={buyDisabled}
-              onClick={() => handleAction('BUY_DOWN')}
-            >
-              {loadingAction === 'BUY_DOWN' ? (
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              ) : (
-                <TrendingDown className="h-3 w-3 mr-1" />
-              )}
-              Buy DOWN
-              {currentAlert.recommended_side === 'BUY_DOWN' && ' ★'}
-            </Button>
+            {(() => {
+              const contrarianAction = currentAlert.majority_side === 'UP' ? 'BUY_DOWN' : 'BUY_UP';
+              const ContrarianIcon = currentAlert.majority_side === 'UP' ? TrendingDown : TrendingUp;
+              const buttonLabel = currentAlert.majority_side === 'UP' ? 'Buy DOWN' : 'Buy UP';
+              
+              return (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="bg-success hover:bg-success/90 text-success-foreground"
+                  disabled={buyDisabled}
+                  onClick={() => handleAction(contrarianAction)}
+                >
+                  {loadingAction === contrarianAction ? (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  ) : (
+                    <ContrarianIcon className="h-3 w-3 mr-1" />
+                  )}
+                  {buttonLabel}
+                </Button>
+              );
+            })()}
 
             <Button
               size="sm"
