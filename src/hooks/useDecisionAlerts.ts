@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { apiGet, apiPost } from '@/lib/api';
+import { useAlertSound } from './useAlertSound';
 import type { DecisionAlert, AlertAsset, AlertAction, AlertSignal } from '@/types/decision-alerts';
 
 // Mock data generator for demo purposes
@@ -57,6 +58,7 @@ function generateMockAlerts(): DecisionAlert[] {
 interface UseDecisionAlertsOptions {
   assetFilter: AlertAsset | 'ALL';
   autoRefresh: boolean;
+  soundEnabled?: boolean;
 }
 
 interface UseDecisionAlertsReturn {
@@ -72,7 +74,8 @@ interface UseDecisionAlertsReturn {
 
 export function useDecisionAlerts({ 
   assetFilter, 
-  autoRefresh: initialAutoRefresh = true 
+  autoRefresh: initialAutoRefresh = true,
+  soundEnabled = true
 }: UseDecisionAlertsOptions): UseDecisionAlertsReturn {
   const [alerts, setAlerts] = useState<DecisionAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +84,9 @@ export function useDecisionAlerts({
   const [isActionInFlight, setIsActionInFlight] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const useMockData = useRef(false);
+  const previousAlertIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
+  const { playAlertSound } = useAlertSound();
 
   // Sort alerts: highest score first, then newest
   const sortAlerts = useCallback((alertList: DecisionAlert[]): DecisionAlert[] => {
@@ -90,6 +96,25 @@ export function useDecisionAlerts({
     });
   }, []);
 
+  // Check for new alerts and play sound
+  const checkForNewAlerts = useCallback((newAlerts: DecisionAlert[]) => {
+    if (isInitialLoad.current) {
+      // On initial load, just track the IDs without playing sound
+      previousAlertIds.current = new Set(newAlerts.map(a => a.id));
+      isInitialLoad.current = false;
+      return;
+    }
+
+    const currentIds = new Set(newAlerts.map(a => a.id));
+    const hasNewAlert = newAlerts.some(alert => !previousAlertIds.current.has(alert.id));
+    
+    if (hasNewAlert && soundEnabled) {
+      playAlertSound();
+    }
+    
+    previousAlertIds.current = currentIds;
+  }, [soundEnabled, playAlertSound]);
+
   const fetchAlerts = useCallback(async () => {
     try {
       // If we've already switched to mock data, keep using it
@@ -98,7 +123,9 @@ export function useDecisionAlerts({
         if (assetFilter !== 'ALL') {
           mockAlerts = mockAlerts.filter(a => a.asset === assetFilter);
         }
-        setAlerts(sortAlerts(mockAlerts));
+        const sorted = sortAlerts(mockAlerts);
+        checkForNewAlerts(sorted);
+        setAlerts(sorted);
         setError(null);
         setIsLoading(false);
         return;
@@ -116,7 +143,9 @@ export function useDecisionAlerts({
       const response = await apiGet<DecisionAlert[]>('/api/v1/decision-alerts', params);
       
       if (response.success && response.data) {
-        setAlerts(sortAlerts(response.data));
+        const sorted = sortAlerts(response.data);
+        checkForNewAlerts(sorted);
+        setAlerts(sorted);
         setError(null);
       } else {
         // Fall back to mock data on API failure
@@ -125,7 +154,9 @@ export function useDecisionAlerts({
         if (assetFilter !== 'ALL') {
           mockAlerts = mockAlerts.filter(a => a.asset === assetFilter);
         }
-        setAlerts(sortAlerts(mockAlerts));
+        const sorted = sortAlerts(mockAlerts);
+        checkForNewAlerts(sorted);
+        setAlerts(sorted);
         setError(null);
         toast.info('Using demo data', { description: 'API unavailable, showing sample alerts' });
       }
@@ -136,13 +167,15 @@ export function useDecisionAlerts({
       if (assetFilter !== 'ALL') {
         mockAlerts = mockAlerts.filter(a => a.asset === assetFilter);
       }
-      setAlerts(sortAlerts(mockAlerts));
+      const sorted = sortAlerts(mockAlerts);
+      checkForNewAlerts(sorted);
+      setAlerts(sorted);
       setError(null);
       toast.info('Using demo data', { description: 'API unavailable, showing sample alerts' });
     } finally {
       setIsLoading(false);
     }
-  }, [assetFilter, sortAlerts]);
+  }, [assetFilter, sortAlerts, checkForNewAlerts]);
 
   // Initial fetch
   useEffect(() => {
