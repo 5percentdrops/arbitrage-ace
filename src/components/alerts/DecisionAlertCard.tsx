@@ -109,12 +109,11 @@ export function DecisionAlertCard({ alert, onAction, isActionInFlight }: Decisio
               {alert.liquidity.spread_ok ? 'OK' : 'WIDE'}
             </span>
           </span>
-          {(alert.liquidity.best_bid_size_usd || alert.liquidity.best_ask_size_usd) && (
+          {alert.liquidity.best_bid_size_usd && (
             <>
               <span className="text-muted-foreground/50">|</span>
               <span>
-                Size: ${alert.liquidity.best_bid_size_usd?.toLocaleString() ?? '-'}/
-                ${alert.liquidity.best_ask_size_usd?.toLocaleString() ?? '-'}
+                Volume: ${alert.liquidity.best_bid_size_usd.toLocaleString()}
               </span>
             </>
           )}
