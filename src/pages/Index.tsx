@@ -143,6 +143,7 @@ const Index = () => {
     manualTrading.updateField('asset', asset as TokenSymbol);
     manualTrading.updateField('outcome', outcome);
     manualTrading.updateField('action', action);
+    manualTrading.updateField('orderType', 'MARKET');
   }, [manualTrading]);
 
   // Handlers
