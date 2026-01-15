@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { TokenSymbol } from '@/types/trading';
 import { cn } from '@/lib/utils';
 import { Activity, Zap, Shield, Bell, Clock } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
@@ -137,6 +138,12 @@ const Index = () => {
     isBotRunning: state.status === 'running'
   });
 
+  // Handler to pre-fill manual trade from alert
+  const handlePreFillManualTrade = useCallback((asset: string, outcome: 'YES' | 'NO', action: 'BUY' | 'SELL') => {
+    manualTrading.updateField('asset', asset as TokenSymbol);
+    manualTrading.updateField('outcome', outcome);
+    manualTrading.updateField('action', action);
+  }, [manualTrading]);
 
   // Handlers
   const handleStart = () => {
@@ -386,6 +393,7 @@ const Index = () => {
         onVisibilityChange={setIsAlertVisible}
         onAction={executeAlertAction}
         isActionInFlight={isAlertActionInFlight}
+        onPreFillManualTrade={handlePreFillManualTrade}
       />
     </div>;
 };

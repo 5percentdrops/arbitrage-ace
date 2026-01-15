@@ -12,6 +12,7 @@ interface DecisionAlertNotificationProps {
   onVisibilityChange: (visible: boolean) => void;
   onAction: (id: string, action: AlertAction) => Promise<boolean>;
   isActionInFlight: boolean;
+  onPreFillManualTrade?: (asset: string, outcome: 'YES' | 'NO', action: 'BUY' | 'SELL') => void;
 }
 
 function formatTime(seconds: number): string {
@@ -61,7 +62,8 @@ export function DecisionAlertNotification({
   isVisible,
   onVisibilityChange,
   onAction,
-  isActionInFlight
+  isActionInFlight,
+  onPreFillManualTrade
 }: DecisionAlertNotificationProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -286,23 +288,27 @@ export function DecisionAlertNotification({
             <span>Score: <span className="text-primary font-semibold">{currentAlert.score}/10</span></span>
           </div>
 
-          {/* Line 4: Spread: 2.0%   Volume: $1,250 */}
+          {/* Line 4: Spread: 2.0% */}
           <div className="flex items-center gap-4 text-muted-foreground">
             <span>Spread: <span className="text-foreground">{(currentAlert.liquidity.spread * 100).toFixed(1)}%</span></span>
-            {currentAlert.liquidity.best_bid_size_usd && (
-              <>
-                <span className="text-muted-foreground/50">|</span>
-                <span>Volume: <span className="text-foreground">${currentAlert.liquidity.best_bid_size_usd.toLocaleString()}</span></span>
-              </>
-            )}
           </div>
 
-          {/* Line 5: Actions - Single contrarian button (opposite of crowd) */}
+          {/* Line 5: Liquidity - Bid/Ask sizes */}
+          <div className="flex items-center gap-4 text-muted-foreground">
+            <span>Liquidity:</span>
+            <span>Bid: <span className="text-foreground">${currentAlert.liquidity.best_bid_size_usd?.toLocaleString() ?? '-'}</span></span>
+            <span className="text-muted-foreground/50">|</span>
+            <span>Ask: <span className="text-foreground">${currentAlert.liquidity.best_ask_size_usd?.toLocaleString() ?? '-'}</span></span>
+          </div>
+
+          {/* Line 6: Actions - Single contrarian button (opposite of crowd) */}
           <div className="flex items-center gap-2 pt-3 flex-wrap border-t border-border mt-3">
             {(() => {
               const contrarianAction = currentAlert.majority_side === 'UP' ? 'BUY_DOWN' : 'BUY_UP';
               const ContrarianIcon = currentAlert.majority_side === 'UP' ? TrendingDown : TrendingUp;
               const buttonLabel = currentAlert.majority_side === 'UP' ? 'Buy DOWN' : 'Buy UP';
+              // Contrarian: crowd UP → bet DOWN (NO), crowd DOWN → bet UP (YES)
+              const outcome = currentAlert.majority_side === 'UP' ? 'NO' : 'YES';
               
               return (
                 <Button
@@ -310,7 +316,11 @@ export function DecisionAlertNotification({
                   variant="default"
                   className="bg-success hover:bg-success/90 text-success-foreground"
                   disabled={buyDisabled}
-                  onClick={() => handleAction(contrarianAction)}
+                  onClick={() => {
+                    // Pre-fill manual trade panel with contrarian selection
+                    onPreFillManualTrade?.(currentAlert.asset, outcome, 'BUY');
+                    handleAction(contrarianAction);
+                  }}
                 >
                   {loadingAction === contrarianAction ? (
                     <Loader2 className="h-3 w-3 animate-spin mr-1" />
