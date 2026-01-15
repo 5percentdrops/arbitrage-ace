@@ -17,15 +17,29 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-function formatSignal(signal: AlertSignal): string {
+function SignalBadge({ signal }: { signal: AlertSignal }) {
   const prefix = signal.signal_type === 'CVD_DIV' ? 'CVD' : 'FR';
   const arrow = signal.direction === 'BULLISH' ? '↑' : '↓';
-  return `${prefix}${arrow} (${signal.timeframe})`;
+  const colorClass = signal.direction === 'BULLISH' ? 'text-success' : 'text-destructive';
+  return (
+    <span>
+      {prefix}<span className={colorClass}>{arrow}</span> ({signal.timeframe})
+    </span>
+  );
 }
 
-function getSignalSummary(signals: AlertSignal[]): string {
-  if (signals.length === 0) return 'None';
-  return signals.map(formatSignal).join(' + ');
+function SignalSummary({ signals }: { signals: AlertSignal[] }) {
+  if (signals.length === 0) return <span>None</span>;
+  return (
+    <>
+      {signals.map((signal, idx) => (
+        <span key={idx}>
+          {idx > 0 && ' + '}
+          <SignalBadge signal={signal} />
+        </span>
+      ))}
+    </>
+  );
 }
 
 function getStatusColor(status: DecisionAlert['status']): string {
@@ -96,7 +110,7 @@ export function DecisionAlertCard({ alert, onAction, isActionInFlight }: Decisio
 
         {/* Line 3: Signals: CVD↓ (1m) + FR↓ (1m)   Score: 8/10 */}
         <div className="flex items-center gap-4 text-muted-foreground">
-          <span>Signals: <span className="text-foreground">{getSignalSummary(alert.signals)}</span></span>
+          <span>Signals: <span className="text-foreground"><SignalSummary signals={alert.signals} /></span></span>
           <span className="text-muted-foreground/50">|</span>
           <span>Score: <span className="text-primary font-semibold">{alert.score}/10</span></span>
         </div>
