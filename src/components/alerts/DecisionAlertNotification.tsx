@@ -96,6 +96,18 @@ export function DecisionAlertNotification({
     previousAlertsLength.current = alerts.length;
   }, [alerts.length, onVisibilityChange]);
 
+  // Auto-dismiss after 60 seconds unless manually closed
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    const timer = setTimeout(() => {
+      onVisibilityChange(false);
+      setIsExpanded(false);
+    }, 60000); // 60 seconds
+    
+    return () => clearTimeout(timer);
+  }, [isVisible, onVisibilityChange, alerts]);
+
   const safeIndex = alerts.length === 0 ? 0 : Math.min(currentIndex, alerts.length - 1);
   const currentAlert = alerts[safeIndex];
   const hasMultiple = alerts.length > 1;
