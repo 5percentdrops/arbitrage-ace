@@ -86,7 +86,11 @@ export function useDecisionAlerts({
   const useMockData = useRef(false);
   const previousAlertIds = useRef<Set<string>>(new Set());
   const isInitialLoad = useRef(true);
+  const soundEnabledRef = useRef(soundEnabled);
   const { playAlertSound } = useAlertSound();
+  
+  // Keep soundEnabled ref in sync
+  soundEnabledRef.current = soundEnabled;
 
   // Sort alerts: highest score first, then newest
   const sortAlerts = useCallback((alertList: DecisionAlert[]): DecisionAlert[] => {
@@ -96,7 +100,7 @@ export function useDecisionAlerts({
     });
   }, []);
 
-  // Check for new alerts and play sound
+  // Check for new alerts and play sound - use refs to avoid dependency issues
   const checkForNewAlerts = useCallback((newAlerts: DecisionAlert[]) => {
     if (isInitialLoad.current) {
       // On initial load, just track the IDs without playing sound
@@ -105,15 +109,14 @@ export function useDecisionAlerts({
       return;
     }
 
-    const currentIds = new Set(newAlerts.map(a => a.id));
     const hasNewAlert = newAlerts.some(alert => !previousAlertIds.current.has(alert.id));
     
-    if (hasNewAlert && soundEnabled) {
+    if (hasNewAlert && soundEnabledRef.current) {
       playAlertSound();
     }
     
-    previousAlertIds.current = currentIds;
-  }, [soundEnabled, playAlertSound]);
+    previousAlertIds.current = new Set(newAlerts.map(a => a.id));
+  }, [playAlertSound]);
 
   const fetchAlerts = useCallback(async () => {
     try {

@@ -1,9 +1,19 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 
 // Web Audio API-based notification sound
 export function useAlertSound() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastPlayedRef = useRef<number>(0);
+  
+  // Create AudioContext once on mount
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, []);
 
   const playAlertSound = useCallback(() => {
     // Debounce: don't play more than once per second
