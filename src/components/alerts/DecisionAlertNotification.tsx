@@ -288,17 +288,22 @@ export function DecisionAlertNotification({
             <span>Score: <span className="text-primary font-semibold">{currentAlert.score}/10</span></span>
           </div>
 
-          {/* Line 4: Spread: 2.0% */}
+          {/* Line 4: Spread: 2.0% | Volume: $X */}
           <div className="flex items-center gap-4 text-muted-foreground">
             <span>Spread: <span className="text-foreground">{(currentAlert.liquidity.spread * 100).toFixed(1)}%</span></span>
+            {currentAlert.liquidity.best_bid_size_usd && (
+              <>
+                <span className="text-muted-foreground/50">|</span>
+                <span>Volume: <span className="text-foreground">${currentAlert.liquidity.best_bid_size_usd.toLocaleString()}</span></span>
+              </>
+            )}
           </div>
 
-          {/* Line 5: Liquidity - Bid/Ask sizes */}
+          {/* Line 5: Liquidity - Combined value */}
           <div className="flex items-center gap-4 text-muted-foreground">
-            <span>Liquidity:</span>
-            <span>Bid: <span className="text-foreground">${currentAlert.liquidity.best_bid_size_usd?.toLocaleString() ?? '-'}</span></span>
-            <span className="text-muted-foreground/50">|</span>
-            <span>Ask: <span className="text-foreground">${currentAlert.liquidity.best_ask_size_usd?.toLocaleString() ?? '-'}</span></span>
+            <span>Liquidity: <span className="text-foreground">
+              ${((currentAlert.liquidity.best_bid_size_usd ?? 0) + (currentAlert.liquidity.best_ask_size_usd ?? 0)).toLocaleString()}
+            </span></span>
           </div>
 
           {/* Line 6: Actions - Single contrarian button (opposite of crowd) */}
