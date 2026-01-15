@@ -14,11 +14,13 @@ function generateMockAlerts(): DecisionAlert[] {
     const secondsRemaining = Math.max(0, Math.floor((cycleEnd.getTime() - now.getTime()) / 1000));
     const upPrice = 0.45 + Math.random() * 0.15;
     const downPrice = 1 - upPrice - 0.02;
-    const isBullish = Math.random() > 0.5;
+    // Crowd sentiment (what the majority is betting)
+    const crowdIsUp = Math.random() > 0.5;
     
+    // Signals point OPPOSITE to crowd (contrarian divergence strategy)
     const signals: AlertSignal[] = [
-      { signal_type: 'CVD_DIV', direction: isBullish ? 'BULLISH' : 'BEARISH', timeframe: '1m', notes: 'Strong divergence detected' },
-      { signal_type: 'FR_DIV', direction: isBullish ? 'BULLISH' : 'BEARISH', timeframe: '1m' }
+      { signal_type: 'CVD_DIV', direction: crowdIsUp ? 'BEARISH' : 'BULLISH', timeframe: '1m', notes: 'Strong divergence detected' },
+      { signal_type: 'FR_DIV', direction: crowdIsUp ? 'BEARISH' : 'BULLISH', timeframe: '1m' }
     ];
 
     return {
@@ -28,17 +30,17 @@ function generateMockAlerts(): DecisionAlert[] {
       cycle_start: cycleStart.toISOString(),
       cycle_end: cycleEnd.toISOString(),
       seconds_remaining: secondsRemaining,
-      majority_side: isBullish ? 'UP' : 'DOWN',
+      majority_side: crowdIsUp ? 'UP' : 'DOWN',
       majority_pct: 55 + Math.floor(Math.random() * 20),
       majority_proxy_label: 'Binance Perps',
       up_price: parseFloat(upPrice.toFixed(3)),
       down_price: parseFloat(downPrice.toFixed(3)),
       signals,
-      recommended_side: isBullish ? 'BUY_UP' : 'BUY_DOWN',
+      recommended_side: crowdIsUp ? 'BUY_DOWN' : 'BUY_UP',
       score: 70 + Math.floor(Math.random() * 25),
-      reason_short: isBullish 
-        ? `${asset} showing bullish CVD divergence with funding rate support` 
-        : `${asset} bearish setup with negative funding divergence`,
+      reason_short: crowdIsUp 
+        ? `${asset} bearish divergence vs crowd bullish sentiment` 
+        : `${asset} bullish divergence vs crowd bearish sentiment`,
       liquidity: {
         spread: 0.01 + Math.random() * 0.02,
         spread_ok: true,
