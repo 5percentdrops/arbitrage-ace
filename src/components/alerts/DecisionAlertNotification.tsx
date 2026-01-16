@@ -96,17 +96,28 @@ export function DecisionAlertNotification({
     previousAlertsLength.current = alerts.length;
   }, [alerts.length, onVisibilityChange]);
 
-  // Auto-dismiss after 60 seconds unless manually closed
+  // Auto-dismiss after 30 seconds, reappear after 1 minute if alerts still exist
   useEffect(() => {
     if (!isVisible) return;
     
-    const timer = setTimeout(() => {
+    const dismissTimer = setTimeout(() => {
       onVisibilityChange(false);
       setIsExpanded(false);
+    }, 30000); // 30 seconds
+    
+    return () => clearTimeout(dismissTimer);
+  }, [isVisible, onVisibilityChange, alerts]);
+
+  // Reappear after 1 minute if there are still alerts
+  useEffect(() => {
+    if (isVisible || alerts.length === 0) return;
+    
+    const reappearTimer = setTimeout(() => {
+      onVisibilityChange(true);
     }, 60000); // 60 seconds
     
-    return () => clearTimeout(timer);
-  }, [isVisible, onVisibilityChange, alerts]);
+    return () => clearTimeout(reappearTimer);
+  }, [isVisible, alerts.length, onVisibilityChange]);
 
   const safeIndex = alerts.length === 0 ? 0 : Math.min(currentIndex, alerts.length - 1);
   const currentAlert = alerts[safeIndex];
