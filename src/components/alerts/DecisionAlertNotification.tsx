@@ -197,7 +197,37 @@ export function DecisionAlertNotification({
               )}
             </div>
             
-            <div className="text-xs text-primary mt-2">Click to view options</div>
+            {/* Buy button in collapsed view */}
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
+              {(() => {
+                const contrarianAction = currentAlert.majority_side === 'UP' ? 'BUY_DOWN' : 'BUY_UP';
+                const ContrarianIcon = currentAlert.majority_side === 'UP' ? TrendingDown : TrendingUp;
+                const buttonLabel = currentAlert.majority_side === 'UP' ? 'Buy DOWN' : 'Buy UP';
+                const outcome = currentAlert.majority_side === 'UP' ? 'NO' : 'YES';
+                
+                return (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="bg-success hover:bg-success/90 text-success-foreground flex-1"
+                    disabled={buyDisabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreFillManualTrade?.(currentAlert.asset, outcome, 'BUY');
+                      handleAction(contrarianAction);
+                    }}
+                  >
+                    {loadingAction === contrarianAction ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <ContrarianIcon className="h-3 w-3 mr-1" />
+                    )}
+                    {buttonLabel}
+                  </Button>
+                );
+              })()}
+              <span className="text-xs text-muted-foreground">or click to expand</span>
+            </div>
           </CardContent>
         </Card>
       </div>
