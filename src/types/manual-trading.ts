@@ -107,6 +107,6 @@ export const INITIAL_FORM_STATE: ManualTradeFormState = {
   orderType: 'LIMIT',
   shares: '',
   limitPrice: '',
-  useNotional: false,
+  useNotional: true,
   notionalUsd: '',
 };
