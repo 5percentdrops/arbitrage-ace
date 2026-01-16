@@ -51,9 +51,22 @@ export function ManualTradePanel({
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <ArrowUpDown className="h-5 w-5 text-primary" />
-          <CardTitle className="text-base font-semibold">Manual Trading</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base font-semibold">Manual Trading</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="auto-toggle" className="text-xs text-muted-foreground cursor-pointer">
+              Automated
+            </Label>
+            <Switch
+              id="auto-toggle"
+              checked={isBotRunning}
+              disabled
+              className="data-[state=checked]:bg-success"
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
