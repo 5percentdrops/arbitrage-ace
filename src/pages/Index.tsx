@@ -356,6 +356,7 @@ const Index = () => {
               submitSuccess={manualTrading.submitSuccess}
               onSubmit={manualTrading.submitOrder}
               isBotRunning={state.status === 'running'}
+              onToggleBot={(enabled) => enabled ? startBot() : stopBot()}
               allowManualWhileAuto={manualTrading.allowManualWhileAuto}
               onAllowManualChange={manualTrading.setAllowManualWhileAuto}
               estimatedShares={manualTrading.estimatedShares}

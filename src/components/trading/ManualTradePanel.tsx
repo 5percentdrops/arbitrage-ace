@@ -25,6 +25,7 @@ interface ManualTradePanelProps {
   onSubmit: () => void;
   
   isBotRunning: boolean;
+  onToggleBot: (enabled: boolean) => void;
   allowManualWhileAuto: boolean;
   onAllowManualChange: (allow: boolean) => void;
   
@@ -42,6 +43,7 @@ export function ManualTradePanel({
   submitSuccess,
   onSubmit,
   isBotRunning,
+  onToggleBot,
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
@@ -63,7 +65,7 @@ export function ManualTradePanel({
             <Switch
               id="auto-toggle"
               checked={isBotRunning}
-              disabled
+              onCheckedChange={onToggleBot}
               className="data-[state=checked]:bg-success"
             />
           </div>
