@@ -27,7 +27,7 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     orderType: 'LIMIT',
     shares: '',
     limitPrice: '',
-    useNotional: false,
+    useNotional: true,
     notionalUsd: '',
   });
 
