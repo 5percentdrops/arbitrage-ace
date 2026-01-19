@@ -11,7 +11,7 @@ export type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error
 export type ExitMode = 'hold_to_settlement' | 'sell_at_threshold';
 
 // Market timeframe categories
-export type MarketTimeframe = '15m' | '1h' | '4h' | 'daily';
+export type MarketTimeframe = '15m';
 
 // Opportunity status
 export type OpportunityStatus = 'detected' | 'executing' | 'open' | 'settled' | 'missed';

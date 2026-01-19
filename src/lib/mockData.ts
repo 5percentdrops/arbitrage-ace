@@ -16,19 +16,16 @@ const randomAsset = (): TokenSymbol => {
   return TOKENS[Math.floor(Math.random() * TOKENS.length)];
 };
 
-const TIMEFRAMES: MarketTimeframe[] = ['15m', '1h', '4h', 'daily'];
+const TIMEFRAMES: MarketTimeframe[] = ['15m'];
 
 const randomTimeframe = (): MarketTimeframe => {
-  return TIMEFRAMES[Math.floor(Math.random() * TIMEFRAMES.length)];
+  return '15m';
 };
 
 // Market name formats for crypto markets
 const getMarketName = (asset: TokenSymbol, timeframe: MarketTimeframe): string => {
   const timeLabels: Record<MarketTimeframe, string> = {
     '15m': '15 Min',
-    '1h': 'Hourly',
-    '4h': '4 Hour',
-    'daily': 'Daily'
   };
   return `${asset} ${timeLabels[timeframe]} UP/DOWN`;
 };
@@ -51,9 +48,6 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
     // Derive timeToSettlement from timeframe
     const timeRanges: Record<MarketTimeframe, [number, number]> = {
       '15m': [5, 15],
-      '1h': [15, 60],
-      '4h': [60, 240],
-      'daily': [240, 1440]
     };
     const [minTime, maxTime] = timeRanges[timeframe];
 
