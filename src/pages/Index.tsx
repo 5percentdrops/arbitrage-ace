@@ -25,7 +25,7 @@ import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
 import { CompoundingControls } from '@/components/settings/CompoundingControls';
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
-import { PositionSizePanel } from '@/components/settings/PositionSizePanel';
+
 
 import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
@@ -288,8 +288,6 @@ const Index = () => {
           {/* Left Column - Controls & Configuration (Priority at top) */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-4">
 
-            {/* Position Size - Priority #2 */}
-            <PositionSizePanel settings={state.positionSizeSettings} onUpdate={updatePositionSizeSettings} disabled={state.status === 'running'} />
 
             {/* Compounding Controls - Priority #3 */}
             <CompoundingControls settings={state.compounding} onUpdate={updateCompounding} disabled={state.status === 'running'} />
