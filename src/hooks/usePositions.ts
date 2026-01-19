@@ -49,20 +49,12 @@ export function usePositions({
           setPositions(prev => [...prev, newPos].slice(-8)); // Max 8 positions
         }
         
-        // Occasionally update filled status
+        // Occasionally update PnL
         if (Math.random() < 0.2) {
-          setPositions(prev => prev.map(pos => {
-            if (!pos.leg1Filled && Math.random() < 0.3) {
-              return { ...pos, leg1Filled: true };
-            }
-            if (pos.leg1Filled && pos.leg2Filled === 'no' && Math.random() < 0.3) {
-              return { ...pos, leg2Filled: 'pending' };
-            }
-            if (pos.leg1Filled && pos.leg2Filled === 'pending' && Math.random() < 0.3) {
-              return { ...pos, leg2Filled: 'yes' };
-            }
-            return pos;
-          }));
+          setPositions(prev => prev.map(pos => ({
+            ...pos,
+            pnl: pos.pnl + (Math.random() - 0.4) * 5
+          })));
         }
       }, refreshInterval);
     } else {

@@ -1,35 +1,25 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { OrderHistory, TokenSymbol } from '@/types/trading';
+import { OrderHistory, TokenSymbol, MarketTimeframe } from '@/types/trading';
 
 const TICKERS = ['BTC-UP-15M', 'BTC-DOWN-15M', 'ETH-UP-15M', 'ETH-DOWN-15M', 'SOL-UP-15M', 'SOL-DOWN-15M', 'XRP-UP-15M', 'XRP-DOWN-15M'];
 const TOKENS: TokenSymbol[] = ['BTC', 'ETH', 'SOL', 'XRP'];
 
 function generateMockOrderHistory(count: number): OrderHistory[] {
   const orders: OrderHistory[] = [];
-  const statuses: OrderHistory['status'][] = ['filled', 'partial', 'pending', 'cancelled'];
   
   for (let i = 0; i < count; i++) {
     const token = TOKENS[Math.floor(Math.random() * TOKENS.length)];
-    const ticker = TICKERS.filter(t => t.startsWith(token))[Math.floor(Math.random() * 2)] || `${token}-UP-1H`;
-    const leg1Shares = Math.floor(Math.random() * 50) + 5;
-    const leg2Shares = Math.floor(Math.random() * 50) + 5;
-    const leg1Locked = leg1Shares * (Math.random() * 0.5 + 0.4);
-    const leg1Filled = Math.random() > 0.3;
-    const leg2Filled = leg1Filled && Math.random() > 0.4;
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const pnl = status === 'filled' ? (Math.random() - 0.3) * 50 : 0;
+    const ticker = TICKERS.filter(t => t.startsWith(token))[Math.floor(Math.random() * 2)] || `${token}-UP-15M`;
+    const entryPrice = Math.random() * 0.3 + 0.4; // 0.40 - 0.70
+    const pnl = (Math.random() - 0.3) * 50;
     
     orders.push({
       id: `order-${Date.now()}-${i}`,
       token,
       ticker,
-      leg1Shares,
-      leg2Shares,
-      leg1Locked,
-      leg1Filled,
-      leg2Filled,
+      timeframe: '15m' as MarketTimeframe,
+      entryPrice: Number(entryPrice.toFixed(3)),
       pnl: Number(pnl.toFixed(2)),
-      status,
       createdAt: new Date(Date.now() - Math.random() * 86400000),
     });
   }
@@ -77,15 +67,14 @@ export function useOrderHistory({
             return [newOrder, ...prev].slice(0, 12);
           }
           
-          // Occasionally update existing order status
+          // Occasionally update existing order PnL
           if (Math.random() < 0.2 && prev.length > 0) {
             const idx = Math.floor(Math.random() * prev.length);
             const updated = [...prev];
-            if (updated[idx].status === 'pending') {
-              updated[idx] = { ...updated[idx], leg1Filled: true, status: 'partial' };
-            } else if (updated[idx].status === 'partial') {
-              updated[idx] = { ...updated[idx], leg2Filled: true, status: 'filled' };
-            }
+            updated[idx] = { 
+              ...updated[idx], 
+              pnl: updated[idx].pnl + (Math.random() - 0.4) * 5 
+            };
             return updated;
           }
           

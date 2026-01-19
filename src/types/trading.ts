@@ -88,13 +88,9 @@ export interface OrderHistory {
   id: string;
   token: TokenSymbol;
   ticker: string;
-  leg1Shares: number;
-  leg2Shares: number;
-  leg1Locked: number;
-  leg1Filled: boolean;
-  leg2Filled: boolean;
+  timeframe: MarketTimeframe;
+  entryPrice: number;
   pnl: number;
-  status: 'filled' | 'partial' | 'pending' | 'cancelled';
   createdAt: Date;
 }
 
@@ -104,16 +100,10 @@ export type Leg2FillStatus = 'yes' | 'no' | 'pending';
 // Open position
 export interface OpenPosition {
   id: string;
-  marketId: string;
-  marketName: string;
-  token: TokenSymbol;
+  ticker: string;
   timeframe: MarketTimeframe;
-  leg1Shares: number;
-  leg2Shares: number;
-  leg1Locked: number;
-  leg1Filled: boolean;
-  leg2Filled: Leg2FillStatus;
-  exitMode: ExitMode;
+  entryPrice: number;
+  pnl: number;
   openedAt: Date;
 }
 

@@ -74,34 +74,17 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
 export const generateMockPositions = (count: number = 3): OpenPosition[] => {
   return Array.from({ length: count }, (_, i) => {
     const asset = TOKENS[i % TOKENS.length];
-    const timeframe = randomTimeframe();
-    const marketName = getMarketName(asset, timeframe);
-    
-    const leg1Shares = Math.floor(randomInRange(10, 50));
-    const leg2Shares = Math.floor(randomInRange(10, 50));
-    const leg1Locked = leg1Shares * randomInRange(0.4, 0.6);
-    const leg1Filled = Math.random() > 0.3;
-    
-    // Tri-state for leg2Filled: 'yes', 'no', 'pending'
-    let leg2Filled: 'yes' | 'no' | 'pending' = 'no';
-    if (leg1Filled) {
-      const rand = Math.random();
-      if (rand < 0.4) leg2Filled = 'yes';
-      else if (rand < 0.7) leg2Filled = 'pending';
-    }
+    const direction = Math.random() > 0.5 ? 'UP' : 'DOWN';
+    const ticker = `${asset}-${direction}-15M`;
+    const entryPrice = Math.random() * 0.3 + 0.4; // 0.40 - 0.70
+    const pnl = (Math.random() - 0.3) * 50;
 
     return {
       id: `pos-${Date.now()}-${i}`,
-      marketId: `market-pos-${i}`,
-      marketName,
-      token: asset,
-      timeframe,
-      leg1Shares,
-      leg2Shares,
-      leg1Locked: Number(leg1Locked.toFixed(2)),
-      leg1Filled,
-      leg2Filled,
-      exitMode: Math.random() > 0.5 ? 'hold_to_settlement' : 'sell_at_threshold',
+      ticker,
+      timeframe: '15m' as MarketTimeframe,
+      entryPrice: Number(entryPrice.toFixed(3)),
+      pnl: Number(pnl.toFixed(2)),
       openedAt: new Date(Date.now() - Math.floor(randomInRange(3600000, 86400000))),
     };
   });
