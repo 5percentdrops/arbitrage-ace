@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { OrderHistory, TokenSymbol } from '@/types/trading';
 
-const TICKERS = ['BTC-UP-15M', 'BTC-DOWN-1H', 'ETH-UP-4H', 'ETH-DOWN-DAILY', 'SOL-UP-1H', 'SOL-DOWN-15M', 'XRP-UP-4H', 'XRP-DOWN-1H'];
+const TICKERS = ['BTC-UP-15M', 'BTC-DOWN-15M', 'ETH-UP-15M', 'ETH-DOWN-15M', 'SOL-UP-15M', 'SOL-DOWN-15M', 'XRP-UP-15M', 'XRP-DOWN-15M'];
 const TOKENS: TokenSymbol[] = ['BTC', 'ETH', 'SOL', 'XRP'];
 
 function generateMockOrderHistory(count: number): OrderHistory[] {

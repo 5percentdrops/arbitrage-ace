@@ -11,7 +11,7 @@ import { useApiConnection } from '@/hooks/useApiConnection';
 import { useRpcConnection } from '@/hooks/useRpcConnection';
 import { useOrderHistory } from '@/hooks/useOrderHistory';
 import { usePositions } from '@/hooks/usePositions';
-import { useDumpHedge } from '@/hooks/useDumpHedge';
+
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useManualTrading } from '@/hooks/useManualTrading';
 import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
@@ -26,7 +26,7 @@ import { FiltersPanel } from '@/components/settings/FiltersPanel';
 import { CompoundingControls } from '@/components/settings/CompoundingControls';
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
 import { PositionSizePanel } from '@/components/settings/PositionSizePanel';
-import { DumpHedgePanel } from '@/components/trading/DumpHedgePanel';
+
 import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
@@ -122,13 +122,6 @@ const Index = () => {
     isRunning: state.status === 'running'
   });
 
-  // Dump & Hedge strategy (independent of main bot)
-  const {
-    state: dumpHedgeState,
-    toggleAutoMode: toggleDumpHedgeAutoMode,
-    updateParams: updateDumpHedgeParams,
-    getWarnings: getDumpHedgeWarnings
-  } = useDumpHedge();
 
   // Round Timer
   const roundTimer = useRoundTimer('BTC');
@@ -308,8 +301,6 @@ const Index = () => {
             {/* Exit Logic - Priority #3 */}
             <ExitLogicPanel settings={state.exitSettings} onUpdate={updateExitSettings} disabled={state.status === 'running'} />
 
-            {/* Dump & Hedge Strategy (Optional) */}
-            <DumpHedgePanel state={dumpHedgeState} onToggleAutoMode={toggleDumpHedgeAutoMode} onUpdateParams={updateDumpHedgeParams} warnings={getDumpHedgeWarnings()} />
 
             {/* Token Selection */}
             <TokenSelector selectedTokens={state.selectedTokens} onToggle={toggleToken} />

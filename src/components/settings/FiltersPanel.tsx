@@ -12,9 +12,6 @@ interface FiltersPanelProps {
 
 const TIME_INTERVALS = [
   { label: '15m', minutes: 15 },
-  { label: '1h', minutes: 60 },
-  { label: '4h', minutes: 240 },
-  { label: 'Daily', minutes: 1440 },
 ];
 
 export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {

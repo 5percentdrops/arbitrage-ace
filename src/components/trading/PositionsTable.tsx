@@ -28,15 +28,9 @@ export function PositionsTable({
   const getTimeframeBadge = (timeframe: MarketTimeframe) => {
     const labels: Record<MarketTimeframe, string> = {
       '15m': '15M',
-      '1h': '1H',
-      '4h': '4H',
-      'daily': '1D',
     };
     const styles: Record<MarketTimeframe, string> = {
       '15m': 'bg-warning/20 text-warning',
-      '1h': 'bg-primary/20 text-primary',
-      '4h': 'bg-secondary text-foreground',
-      'daily': 'bg-success/20 text-success',
     };
     return (
       <Badge className={cn('text-xs', styles[timeframe])}>
