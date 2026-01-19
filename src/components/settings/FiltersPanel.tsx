@@ -22,18 +22,6 @@ export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {
     });
   };
 
-  const handleMinSpreadChange = (value: number) => {
-    const nextMin = value;
-    const nextMax = Math.max(filters.maxSpread, nextMin);
-    onUpdate({ minSpread: nextMin, maxSpread: nextMax });
-  };
-
-  const handleMaxSpreadChange = (value: number) => {
-    const nextMax = value;
-    const nextMin = Math.min(filters.minSpread, nextMax);
-    onUpdate({ minSpread: nextMin, maxSpread: nextMax });
-  };
-
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-3">
@@ -98,26 +86,6 @@ export function FiltersPanel({ filters, onUpdate }: FiltersPanelProps) {
               type="number"
               value={filters.maxVolume}
               onChange={(e) => onUpdate({ maxVolume: Number(e.target.value) })}
-              className="font-mono text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Min Spread</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={filters.minSpread}
-              onChange={(e) => handleMinSpreadChange(Number(e.target.value))}
-              className="font-mono text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Max Spread</Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={filters.maxSpread}
-              onChange={(e) => handleMaxSpreadChange(Number(e.target.value))}
               className="font-mono text-sm"
             />
           </div>

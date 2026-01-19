@@ -50,8 +50,6 @@ export interface FilterParams {
   maxVolume: number;
   minTimeToSettlement: number;
   maxTimeToSettlement: number;
-  minSpread: number; // e.g., 0.90 means YES + NO >= 0.90
-  maxSpread: number; // e.g., 0.98 means YES + NO <= 0.98
 }
 
 // Auto compounding settings
@@ -169,8 +167,6 @@ export const DEFAULT_FILTERS: FilterParams = {
   maxVolume: 5000000,
   minTimeToSettlement: 5,
   maxTimeToSettlement: 1440, // 24 hours
-  minSpread: 0.90,
-  maxSpread: 0.98,
 };
 
 export const DEFAULT_COMPOUNDING: CompoundingSettings = {
