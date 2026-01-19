@@ -20,7 +20,7 @@ import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
 // Components
 import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
 import { RpcConfigPanel } from '@/components/config/RpcConfigPanel';
-import { BotControlPanel } from '@/components/bot/BotControlPanel';
+
 import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
 import { CompoundingControls } from '@/components/settings/CompoundingControls';
@@ -287,10 +287,6 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column - Controls & Configuration (Priority at top) */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-4">
-            {/* Bot Control - Priority #1 */}
-            <BotControlPanel status={state.status} availableCapital={state.availableCapital} lockedCapital={state.lockedCapital} activeMarkets={positions.length} lastTradeAt={state.lastTradeAt} compoundingEnabled={state.compounding.enabled} preflightChecks={preflightChecks} canStart={allChecksPass} onStart={handleStart} onStop={handleStop} onEmergencyStop={handleEmergencyStop} onToggleCompounding={enabled => updateCompounding({
-            enabled
-          })} />
 
             {/* Position Size - Priority #2 */}
             <PositionSizePanel settings={state.positionSizeSettings} onUpdate={updatePositionSizeSettings} disabled={state.status === 'running'} />
