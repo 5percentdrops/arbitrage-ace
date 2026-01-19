@@ -233,9 +233,9 @@ export function useBotState() {
       {
         id: 'params',
         label: 'Parameters Valid',
-        passed: state.filters.minSpread < state.filters.maxSpread,
-        message: state.filters.minSpread >= state.filters.maxSpread 
-          ? 'Invalid spread parameters' 
+        passed: state.filters.minLiquidity < state.filters.maxLiquidity,
+        message: state.filters.minLiquidity >= state.filters.maxLiquidity 
+          ? 'Invalid liquidity parameters' 
           : undefined,
       },
     ];
