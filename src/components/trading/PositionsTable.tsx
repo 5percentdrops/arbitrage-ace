@@ -24,10 +24,12 @@ export function PositionsTable({
   onClosePosition,
   isLoading = false,
 }: PositionsTableProps) {
-  const formatDateTime = (date: Date) => {
-    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    return `${dateStr} ${timeStr}`;
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
   return (
@@ -57,13 +59,15 @@ export function PositionsTable({
                 <TableHead className="text-xs text-muted-foreground font-medium">Timeframe</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Entry Price</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">PnL</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Date/Time</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Date</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Time</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Exit</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {positions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     No open positions
                   </TableCell>
                 </TableRow>
@@ -74,9 +78,7 @@ export function PositionsTable({
                     className="border-border/20 hover:bg-muted/30"
                   >
                     <TableCell className="font-medium text-xs">
-                      <Badge variant="outline" className="text-xs font-mono">
-                        {position.ticker}
-                      </Badge>
+                      <span className="font-mono">{position.ticker}</span>
                     </TableCell>
                     <TableCell>
                       <Badge className="text-xs bg-warning/20 text-warning">
@@ -93,7 +95,15 @@ export function PositionsTable({
                       {position.pnl >= 0 ? '+' : ''}{formatCurrency(position.pnl)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDateTime(position.openedAt)}
+                      {formatDate(position.openedAt)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatTime(position.openedAt)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <Badge variant={position.exitStrategy === 'threshold' ? 'default' : 'secondary'} className="text-xs">
+                        {position.exitStrategy === 'threshold' ? 'Sell @ Threshold' : 'Hold to Settlement'}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))

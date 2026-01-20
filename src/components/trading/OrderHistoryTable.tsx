@@ -68,10 +68,12 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
     </TableHead>
   );
 
-  const formatDateTime = (date: Date) => {
-    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    return `${dateStr} ${timeStr}`;
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
   return (
@@ -93,17 +95,19 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
           <Table>
             <TableHeader>
               <TableRow className="text-xs">
-                <SortableHeader field="ticker" className="w-28">Ticker</SortableHeader>
+                <SortableHeader field="ticker" className="w-20">Ticker</SortableHeader>
                 <TableHead className="text-xs text-muted-foreground font-medium">Timeframe</TableHead>
                 <SortableHeader field="entryPrice" className="text-right">Entry Price</SortableHeader>
                 <SortableHeader field="pnl" className="text-right">PnL</SortableHeader>
-                <SortableHeader field="createdAt">Date/Time</SortableHeader>
+                <SortableHeader field="createdAt">Date</SortableHeader>
+                <TableHead className="text-xs text-muted-foreground font-medium">Time</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Exit</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No order history available
                   </TableCell>
                 </TableRow>
@@ -127,7 +131,15 @@ export function OrderHistoryTable({ orders, isLoading, lastRefresh }: OrderHisto
                       {order.pnl >= 0 ? '+' : ''}{formatCurrency(order.pnl)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDateTime(order.createdAt)}
+                      {formatDate(order.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatTime(order.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <Badge variant={order.exitStrategy === 'threshold' ? 'default' : 'secondary'} className="text-xs">
+                        {order.exitStrategy === 'threshold' ? 'Sell @ Threshold' : 'Hold to Settlement'}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 ))
