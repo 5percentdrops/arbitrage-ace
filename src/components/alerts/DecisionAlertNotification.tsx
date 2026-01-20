@@ -27,7 +27,7 @@ function SignalBadge({ signal }: { signal: AlertSignal }) {
   const colorClass = signal.direction === 'BULLISH' ? 'text-success' : 'text-destructive';
   return (
     <span>
-      {prefix}<span className={colorClass}>{arrow}</span> ({signal.timeframe})
+      {prefix}<span className={colorClass}>{arrow}</span>
     </span>
   );
 }
