@@ -84,6 +84,8 @@ export interface ArbitrageOpportunity {
 }
 
 // Order history entry
+export type ExitStrategy = 'threshold' | 'settlement';
+
 export interface OrderHistory {
   id: string;
   token: TokenSymbol;
@@ -91,11 +93,11 @@ export interface OrderHistory {
   timeframe: MarketTimeframe;
   entryPrice: number;
   pnl: number;
+  exitStrategy: ExitStrategy;
   createdAt: Date;
 }
 
-// Leg 2 fill status (tri-state)
-export type Leg2FillStatus = 'yes' | 'no' | 'pending';
+
 
 // Open position
 export interface OpenPosition {
@@ -104,6 +106,7 @@ export interface OpenPosition {
   timeframe: MarketTimeframe;
   entryPrice: number;
   pnl: number;
+  exitStrategy: ExitStrategy;
   openedAt: Date;
 }
 

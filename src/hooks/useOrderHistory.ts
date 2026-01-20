@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { OrderHistory, TokenSymbol, MarketTimeframe } from '@/types/trading';
 
-const TICKERS = ['BTC-UP-15M', 'BTC-DOWN-15M', 'ETH-UP-15M', 'ETH-DOWN-15M', 'SOL-UP-15M', 'SOL-DOWN-15M', 'XRP-UP-15M', 'XRP-DOWN-15M'];
 const TOKENS: TokenSymbol[] = ['BTC', 'ETH', 'SOL', 'XRP'];
 
 function generateMockOrderHistory(count: number): OrderHistory[] {
@@ -9,17 +8,18 @@ function generateMockOrderHistory(count: number): OrderHistory[] {
   
   for (let i = 0; i < count; i++) {
     const token = TOKENS[Math.floor(Math.random() * TOKENS.length)];
-    const ticker = TICKERS.filter(t => t.startsWith(token))[Math.floor(Math.random() * 2)] || `${token}-UP-15M`;
     const entryPrice = Math.random() * 0.3 + 0.4; // 0.40 - 0.70
     const pnl = (Math.random() - 0.3) * 50;
+    const exitStrategy = Math.random() > 0.5 ? 'threshold' : 'settlement';
     
     orders.push({
       id: `order-${Date.now()}-${i}`,
       token,
-      ticker,
+      ticker: token,
       timeframe: '15m' as MarketTimeframe,
       entryPrice: Number(entryPrice.toFixed(3)),
       pnl: Number(pnl.toFixed(2)),
+      exitStrategy: exitStrategy as 'threshold' | 'settlement',
       createdAt: new Date(Date.now() - Math.random() * 86400000),
     });
   }

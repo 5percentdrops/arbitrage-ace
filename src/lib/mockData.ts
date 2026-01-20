@@ -74,17 +74,17 @@ export const generateMockOpportunities = (count: number = 15): ArbitrageOpportun
 export const generateMockPositions = (count: number = 3): OpenPosition[] => {
   return Array.from({ length: count }, (_, i) => {
     const asset = TOKENS[i % TOKENS.length];
-    const direction = Math.random() > 0.5 ? 'UP' : 'DOWN';
-    const ticker = `${asset}-${direction}-15M`;
     const entryPrice = Math.random() * 0.3 + 0.4; // 0.40 - 0.70
     const pnl = (Math.random() - 0.3) * 50;
+    const exitStrategy = Math.random() > 0.5 ? 'threshold' : 'settlement';
 
     return {
       id: `pos-${Date.now()}-${i}`,
-      ticker,
+      ticker: asset,
       timeframe: '15m' as MarketTimeframe,
       entryPrice: Number(entryPrice.toFixed(3)),
       pnl: Number(pnl.toFixed(2)),
+      exitStrategy: exitStrategy as 'threshold' | 'settlement',
       openedAt: new Date(Date.now() - Math.floor(randomInRange(3600000, 86400000))),
     };
   });
