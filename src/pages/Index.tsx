@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 // Hooks
 import { useBotState } from '@/hooks/useBotState';
 import { useApiConnection } from '@/hooks/useApiConnection';
-import { useRpcConnection } from '@/hooks/useRpcConnection';
+
 import { useOrderHistory } from '@/hooks/useOrderHistory';
 import { usePositions } from '@/hooks/usePositions';
 
@@ -19,7 +19,7 @@ import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
 
 // Components
 import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
-import { RpcConfigPanel } from '@/components/config/RpcConfigPanel';
+
 
 import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
@@ -92,16 +92,6 @@ const Index = () => {
     disconnect: disconnectApi
   } = useApiConnection();
 
-  // RPC connection
-  const {
-    rpcConfig,
-    walletConfig,
-    isTesting: isTestingRpc,
-    updateRpcUrl,
-    updatePrivateKey,
-    testRpcConnection,
-    disconnectRpc
-  } = useRpcConnection();
 
   // Order history tracking
   const {
@@ -173,18 +163,6 @@ const Index = () => {
     } else {
       toast.error('API connection failed', {
         description: 'Check your credentials and try again.'
-      });
-    }
-  };
-  const handleRpcTest = async () => {
-    const success = await testRpcConnection();
-    if (success) {
-      toast.success('RPC connected', {
-        description: `Connected to Polygon network.`
-      });
-    } else {
-      toast.error('RPC connection failed', {
-        description: 'Check your RPC URL and try again.'
       });
     }
   };
@@ -266,10 +244,6 @@ const Index = () => {
                   <div className={`h-2 w-2 rounded-full ${apiConfig.status === 'connected' ? 'bg-success glow-success' : apiConfig.status === 'connecting' ? 'bg-warning animate-pulse' : 'bg-muted-foreground'}`} />
                   <span className="text-muted-foreground">API</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <div className={`h-2 w-2 rounded-full ${rpcConfig.status === 'connected' ? 'bg-success glow-success' : rpcConfig.status === 'connecting' ? 'bg-warning animate-pulse' : 'bg-muted-foreground'}`} />
-                  
-                </div>
               </div>
 
               {/* Bot Status */}
@@ -304,9 +278,6 @@ const Index = () => {
 
             {/* API Configuration */}
             <ApiConfigPanel apiKey={apiConfig.apiKey} apiSecret={apiConfig.apiSecret} status={apiConfig.status} lastConnected={apiConfig.lastConnected} error={apiConfig.error} isTesting={isTestingApi} onCredentialsChange={updateCredentials} onTestConnection={handleApiTest} onDisconnect={disconnectApi} />
-
-            {/* RPC Configuration */}
-            <RpcConfigPanel rpcUrl={rpcConfig.rpcUrl} chainId={rpcConfig.chainId} rpcStatus={rpcConfig.status} blockNumber={rpcConfig.blockNumber} rpcError={rpcConfig.error} privateKey={walletConfig.privateKey} walletAddress={walletConfig.address} maticBalance={walletConfig.maticBalance} usdcBalance={walletConfig.usdcBalance} isTesting={isTestingRpc} onRpcUrlChange={updateRpcUrl} onPrivateKeyChange={updatePrivateKey} onTestConnection={handleRpcTest} onDisconnect={disconnectRpc} />
           </div>
 
           {/* Right Column - Data & Performance */}
