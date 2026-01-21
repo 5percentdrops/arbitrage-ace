@@ -23,7 +23,7 @@ import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
 
 import { TokenSelector } from '@/components/settings/TokenSelector';
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
-import { CompoundingControls } from '@/components/settings/CompoundingControls';
+
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
 
 
@@ -76,7 +76,7 @@ const Index = () => {
     emergencyStop,
     toggleToken,
     updateFilters,
-    updateCompounding,
+    
     updateExitSettings,
     updatePositionSizeSettings,
     getPreflightChecks,
@@ -263,10 +263,7 @@ const Index = () => {
           <div className="lg:col-span-4 xl:col-span-3 space-y-4">
 
 
-            {/* Compounding Controls - Priority #3 */}
-            <CompoundingControls settings={state.compounding} onUpdate={updateCompounding} disabled={state.status === 'running'} />
-
-            {/* Exit Logic - Priority #3 */}
+            {/* Exit Logic */}
             <ExitLogicPanel settings={state.exitSettings} onUpdate={updateExitSettings} disabled={state.status === 'running'} />
 
 
