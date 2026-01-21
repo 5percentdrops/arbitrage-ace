@@ -21,7 +21,7 @@ import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
 import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
 
 
-import { TokenSelector } from '@/components/settings/TokenSelector';
+
 import { FiltersPanel } from '@/components/settings/FiltersPanel';
 
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
@@ -74,7 +74,7 @@ const Index = () => {
     startBot,
     stopBot,
     emergencyStop,
-    toggleToken,
+    
     updateFilters,
     
     updateExitSettings,
@@ -266,9 +266,6 @@ const Index = () => {
             {/* Exit Logic */}
             <ExitLogicPanel settings={state.exitSettings} onUpdate={updateExitSettings} disabled={state.status === 'running'} />
 
-
-            {/* Token Selection */}
-            <TokenSelector selectedTokens={state.selectedTokens} onToggle={toggleToken} />
 
             {/* Filters with Time Intervals */}
             <FiltersPanel filters={state.filters} onUpdate={updateFilters} />
