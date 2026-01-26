@@ -3,7 +3,8 @@ import type {
   OrderBookData, 
   LadderSelection, 
   ArbitrageEdge,
-  ActiveLadderOrder 
+  ActiveLadderOrder,
+  LevelEdgeInfo 
 } from '@/types/auto-trading';
 import { generateMockOrderBook } from '@/services/autoApi';
 
@@ -33,6 +34,7 @@ interface UseAutoOrderBookReturn {
   // Edge calculations
   currentEdge: ArbitrageEdge | null;
   profitableLevels: Set<number>; // prices that meet threshold
+  levelEdges: Map<number, LevelEdgeInfo>; // per-level edge info
   
   // Range state
   isOutOfRange: boolean;
@@ -72,23 +74,31 @@ export function useAutoOrderBook({
     orderBook.best.noAsk > rangeMax
   ) : false;
   
-  // Calculate profitable levels
+  // Calculate profitable levels and level edges
   const profitableLevels = new Set<number>();
+  const levelEdges = new Map<number, LevelEdgeInfo>();
+  
   if (orderBook) {
     orderBook.levels.forEach(level => {
-      // Find best ask for each side at this level
-      const yesAsk = level.yesAsk > 0 ? level.price : null;
-      const noAsk = level.noAsk > 0 ? (1 - level.price) : null;
+      const yesAsk = level.price;
+      const noAsk = 1 - level.price;
+      const totalCost = yesAsk + noAsk;
+      const grossEdge = 1.0 - totalCost;
+      const grossEdgePct = grossEdge * 100;
+      const fee = orderBook.fee.takerPct / 100;
+      const netEdge = grossEdge - (fee * 2); // Fee on both sides
+      const netEdgePct = netEdge * 100;
+      const isProfitable = netEdgePct >= minNetEdgePct;
       
-      if (yesAsk !== null && noAsk !== null) {
-        const grossEdge = 1.0 - (yesAsk + noAsk);
-        const fee = orderBook.fee.takerPct / 100;
-        const netEdge = grossEdge - (fee * 2); // Fee on both sides
-        const netEdgePct = netEdge * 100;
-        
-        if (netEdgePct >= minNetEdgePct) {
-          profitableLevels.add(level.price);
-        }
+      levelEdges.set(level.price, {
+        totalCost,
+        grossEdgePct,
+        netEdgePct,
+        isProfitable,
+      });
+      
+      if (isProfitable) {
+        profitableLevels.add(level.price);
       }
     });
   }
@@ -197,6 +207,7 @@ export function useAutoOrderBook({
     suggestedCounterpart,
     currentEdge,
     profitableLevels,
+    levelEdges,
     isOutOfRange,
     rangeMin,
     rangeMax,

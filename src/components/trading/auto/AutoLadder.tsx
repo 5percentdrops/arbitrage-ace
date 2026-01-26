@@ -36,6 +36,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     suggestedCounterpart,
     currentEdge,
     profitableLevels,
+    levelEdges,
     isOutOfRange,
     rangeMin,
     rangeMax,
@@ -192,7 +193,10 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               <div className="py-2 px-2 text-center">Bid Size</div>
               <div className="py-2 px-2 text-center text-success">YES</div>
               <div className="py-2 px-2 text-center">Ask Size</div>
-              <div className="col-span-3 py-2 px-2 text-center">Edge</div>
+              <div className="col-span-3 py-2 px-2 text-center">
+                <span className="mr-2">Cost</span>
+                <span>Net Edge</span>
+              </div>
               <div className="py-2 px-2 text-center">Bid Size</div>
               <div className="py-2 px-2 text-center text-destructive">NO</div>
               <div className="py-2 px-2 text-center">Ask Size</div>
@@ -215,6 +219,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                   <LadderRow
                     key={level.price}
                     level={level}
+                    edgeInfo={levelEdges.get(level.price) ?? null}
                     isSelected={isSelected}
                     isProfitable={isProfitable}
                     isSuggested={isSuggested}

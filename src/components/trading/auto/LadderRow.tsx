@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils';
-import type { OrderBookLevel, LadderSelection, ActiveLadderOrder } from '@/types/auto-trading';
+import type { OrderBookLevel, LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 
 interface LadderRowProps {
   level: OrderBookLevel;
+  edgeInfo: LevelEdgeInfo | null;
   isSelected: boolean;
   isProfitable: boolean;
   isSuggested: boolean;
@@ -15,6 +16,7 @@ interface LadderRowProps {
 
 export function LadderRow({
   level,
+  edgeInfo,
   isSelected,
   isProfitable,
   isSuggested,
@@ -53,16 +55,30 @@ export function LadderRow({
         value={level.yesAsk}
         type="ask"
         side="YES"
+        isProfitable={isProfitable}
         onClick={() => onYesClick('ask')}
         orders={[]}
       />
 
-      {/* Separator with edge indicator */}
-      <div className="col-span-3 flex items-center justify-center bg-muted/20 px-1">
-        {isProfitable && (
-          <span className="text-[10px] text-success font-bold px-1 py-0.5 bg-success/20 rounded">
-            EDGE
-          </span>
+      {/* Middle Column - Spread/Edge Info */}
+      <div className="col-span-3 flex items-center justify-center gap-2 bg-muted/20 px-2">
+        {edgeInfo && (
+          <>
+            <span className={cn(
+              "text-[10px] font-mono",
+              edgeInfo.isProfitable ? "text-success" : "text-muted-foreground"
+            )}>
+              {edgeInfo.totalCost.toFixed(3)}
+            </span>
+            <span className={cn(
+              "text-[10px] font-bold px-1.5 py-0.5 rounded",
+              edgeInfo.isProfitable 
+                ? "bg-success/20 text-success" 
+                : "text-muted-foreground"
+            )}>
+              {edgeInfo.netEdgePct >= 0 ? '+' : ''}{edgeInfo.netEdgePct.toFixed(2)}%
+            </span>
+          </>
         )}
       </div>
 
@@ -83,6 +99,7 @@ export function LadderRow({
         value={level.noAsk}
         type="ask"
         side="NO"
+        isProfitable={isProfitable}
         onClick={() => onNoClick('ask')}
         orders={[]}
       />
@@ -95,12 +112,13 @@ interface CellProps {
   type?: 'bid' | 'ask';
   side?: 'YES' | 'NO';
   isPrice?: boolean;
+  isProfitable?: boolean;
   className?: string;
   onClick?: () => void;
   orders?: ActiveLadderOrder[];
 }
 
-function Cell({ value, type, side, isPrice, className, onClick, orders = [] }: CellProps) {
+function Cell({ value, type, side, isPrice, isProfitable, className, onClick, orders = [] }: CellProps) {
   const hasOrders = orders.length > 0;
   
   if (isPrice) {
@@ -115,6 +133,7 @@ function Cell({ value, type, side, isPrice, className, onClick, orders = [] }: C
   }
 
   const isBid = type === 'bid';
+  const isAsk = type === 'ask';
   
   return (
     <div
@@ -126,6 +145,7 @@ function Cell({ value, type, side, isPrice, className, onClick, orders = [] }: C
           ? side === 'YES' ? "text-success/80" : "text-destructive/80"
           : side === 'YES' ? "text-success/60" : "text-destructive/60",
         hasOrders && "ring-1 ring-inset ring-primary/50",
+        isProfitable && isAsk && "ring-2 ring-success bg-success/10",
         className
       )}
     >
