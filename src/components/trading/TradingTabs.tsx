@@ -1,11 +1,11 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
-import { AutoLadder } from '@/components/trading/auto/AutoLadder';
-import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType } from '@/types/manual-trading';
-import type { TokenSymbol } from '@/types/trading';
+import type { ManualTradeFormState, ValidationErrors } from '@/types/manual-trading';
 
 interface TradingTabsProps {
-  // Manual trading props
   formState: ManualTradeFormState;
   onFieldChange: <K extends keyof ManualTradeFormState>(
     field: K,
@@ -23,10 +23,6 @@ interface TradingTabsProps {
   allowManualWhileAuto: boolean;
   onAllowManualChange: (allow: boolean) => void;
   estimatedShares: number | null;
-  
-  // Auto trading props
-  asset: TokenSymbol;
-  marketId: string;
 }
 
 export function TradingTabs({
@@ -44,42 +40,46 @@ export function TradingTabs({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
-  asset,
-  marketId,
 }: TradingTabsProps) {
   return (
-    <Tabs defaultValue="manual" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger value="manual" className="text-sm">
-          Manual
-        </TabsTrigger>
-        <TabsTrigger value="auto" className="text-sm">
-          Auto
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="manual" className="mt-0">
-        <ManualTradePanel
-          formState={formState}
-          onFieldChange={onFieldChange}
-          validationErrors={validationErrors}
-          isValid={isValid}
-          canSubmit={canSubmit}
-          isSubmitting={isSubmitting}
-          submitError={submitError}
-          submitSuccess={submitSuccess}
-          onSubmit={onSubmit}
-          isBotRunning={isBotRunning}
-          onToggleBot={onToggleBot}
-          allowManualWhileAuto={allowManualWhileAuto}
-          onAllowManualChange={onAllowManualChange}
-          estimatedShares={estimatedShares}
-        />
-      </TabsContent>
-      
-      <TabsContent value="auto" className="mt-0">
-        <AutoLadder asset={asset} marketId={marketId} />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-4">
+      {/* Manual Trading Panel */}
+      <ManualTradePanel
+        formState={formState}
+        onFieldChange={onFieldChange}
+        validationErrors={validationErrors}
+        isValid={isValid}
+        canSubmit={canSubmit}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
+        submitSuccess={submitSuccess}
+        onSubmit={onSubmit}
+        isBotRunning={isBotRunning}
+        onToggleBot={onToggleBot}
+        allowManualWhileAuto={allowManualWhileAuto}
+        onAllowManualChange={onAllowManualChange}
+        estimatedShares={estimatedShares}
+      />
+
+      {/* Link to Auto Trading */}
+      <Card className="border-border bg-card/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center justify-between">
+            <span>Auto Trading Ladder</span>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/auto-trading">
+                Open Auto Trading
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Link>
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-xs text-muted-foreground">
+            Access the side-by-side YES/NO order book ladder with spread calculator and automated order deployment.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
