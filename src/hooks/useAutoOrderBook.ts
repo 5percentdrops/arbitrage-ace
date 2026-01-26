@@ -74,24 +74,17 @@ export function useAutoOrderBook({
     orderBook.best.noAsk > rangeMax
   ) : false;
   
-  // Calculate profitable levels and level edges
-  // Only specific levels have arbitrage opportunities (simulating real market inefficiencies)
+  // Calculate profitable levels and level edges from order book data
   const profitableLevels = new Set<number>();
   const levelEdges = new Map<number, LevelEdgeInfo>();
   
-  // Define which levels have arb opportunities (sparse distribution)
-  const arbPrices = new Set([0.48, 0.49, 0.51, 0.46]);
-  const arbEdges: Record<number, number> = {
-    0.48: 0.012, // 1.2% gross edge
-    0.49: 0.018, // 1.8% gross edge  
-    0.51: 0.015, // 1.5% gross edge
-    0.46: 0.022, // 2.2% gross edge
-  };
-  
   if (orderBook) {
+    // Get arb edges from mock data (or calculate from real data)
+    const arbEdges = (orderBook as OrderBookData & { _arbEdges?: Record<number, number> })._arbEdges || {};
+    
     orderBook.levels.forEach(level => {
-      const hasArb = arbPrices.has(level.price);
-      const grossEdge = hasArb ? (arbEdges[level.price] || 0) : 0;
+      const hasArb = level.price in arbEdges;
+      const grossEdge = hasArb ? arbEdges[level.price] : 0;
       const grossEdgePct = grossEdge * 100;
       const fee = orderBook.fee.takerPct / 100;
       const netEdge = grossEdge - (fee * 2); // Fee on both sides
