@@ -52,7 +52,7 @@ export function generateMockOrderBook(): OrderBookData {
   const tick = 0.01;
   const levels: OrderBookData['levels'] = [];
   
-  // Generate ±10 levels around reference price
+  // Generate ±20 levels around reference price
   for (let i = -20; i <= 20; i++) {
     const price = Math.round((refPrice + i * tick) * 100) / 100;
     if (price <= 0 || price >= 1) continue;
@@ -69,6 +69,23 @@ export function generateMockOrderBook(): OrderBookData {
   
   // Sort by price descending (highest at top)
   levels.sort((a, b) => b.price - a.price);
+  
+  // Inject some profitable arbitrage opportunities
+  // Create levels where YES price + NO price < 1.0 (after accounting for the spread)
+  const arbLevels = [
+    { price: 0.48, yesBid: 200, yesAsk: 350, noBid: 180, noAsk: 400 }, // 0.48 + 0.51 = 0.99 (1% edge)
+    { price: 0.49, yesBid: 250, yesAsk: 420, noBid: 220, noAsk: 380 }, // 0.49 + 0.50 = 0.99 (1% edge)
+    { price: 0.47, yesBid: 180, yesAsk: 280, noBid: 150, noAsk: 320 }, // 0.47 + 0.52 = 0.99 (1% edge)
+    { price: 0.46, yesBid: 300, yesAsk: 500, noBid: 280, noAsk: 450 }, // 0.46 + 0.52 = 0.98 (2% edge)
+  ];
+  
+  // Replace matching levels with arb opportunities
+  arbLevels.forEach(arb => {
+    const idx = levels.findIndex(l => Math.abs(l.price - arb.price) < 0.001);
+    if (idx !== -1) {
+      levels[idx] = arb;
+    }
+  });
   
   return {
     tick,
