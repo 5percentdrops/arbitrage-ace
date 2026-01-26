@@ -53,7 +53,7 @@ export function generateMockOrderBook(): OrderBookData {
   const levels: OrderBookData['levels'] = [];
   
   // Generate ±10 levels around reference price
-  for (let i = -10; i <= 10; i++) {
+  for (let i = -20; i <= 20; i++) {
     const price = Math.round((refPrice + i * tick) * 100) / 100;
     if (price <= 0 || price >= 1) continue;
     
