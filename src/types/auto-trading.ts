@@ -74,3 +74,10 @@ export interface DeployLadderResponse {
 }
 
 export type AutoTradeMode = 'off' | 'manual' | 'auto';
+
+export interface LevelEdgeInfo {
+  totalCost: number;
+  grossEdgePct: number;
+  netEdgePct: number;
+  isProfitable: boolean;
+}
