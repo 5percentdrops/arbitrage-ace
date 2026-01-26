@@ -294,7 +294,7 @@ const Index = () => {
               />
             </div>
 
-            {/* Trading Tabs (Manual + Auto) */}
+            {/* Trading Panel (Manual + Link to Auto) */}
             <TradingTabs
               formState={manualTrading.formState}
               onFieldChange={manualTrading.updateField}
@@ -310,8 +310,6 @@ const Index = () => {
               allowManualWhileAuto={manualTrading.allowManualWhileAuto}
               onAllowManualChange={manualTrading.setAllowManualWhileAuto}
               estimatedShares={manualTrading.estimatedShares}
-              asset={roundTimer.asset}
-              marketId={`market-${roundTimer.asset.toLowerCase()}-15m`}
             />
 
             {/* Positions Table */}
