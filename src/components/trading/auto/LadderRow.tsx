@@ -12,6 +12,7 @@ interface LadderRowProps {
   noOrders: ActiveLadderOrder[];
   onYesClick: (type: 'bid' | 'ask') => void;
   onNoClick: (type: 'bid' | 'ask') => void;
+  onArbClick?: () => void;
 }
 
 export function LadderRow({
@@ -25,6 +26,7 @@ export function LadderRow({
   noOrders,
   onYesClick,
   onNoClick,
+  onArbClick,
 }: LadderRowProps) {
   const noPrice = 1 - level.price;
 
@@ -61,7 +63,13 @@ export function LadderRow({
       />
 
       {/* Middle Column - Spread/Edge Info */}
-      <div className="col-span-3 flex items-center justify-center gap-2 bg-muted/20 px-2">
+      <div 
+        onClick={isProfitable && onArbClick ? onArbClick : undefined}
+        className={cn(
+          "col-span-3 flex items-center justify-center gap-2 bg-muted/20 px-2 transition-colors",
+          isProfitable && onArbClick && "cursor-pointer hover:bg-success/20 hover:ring-1 hover:ring-success/50"
+        )}
+      >
         {edgeInfo && (
           <>
             <span className={cn(
@@ -78,6 +86,9 @@ export function LadderRow({
             )}>
               {edgeInfo.netEdgePct >= 0 ? '+' : ''}{edgeInfo.netEdgePct.toFixed(2)}%
             </span>
+            {isProfitable && onArbClick && (
+              <span className="text-[9px] text-success/70 ml-1">click to deploy</span>
+            )}
           </>
         )}
       </div>

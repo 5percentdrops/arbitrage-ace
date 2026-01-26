@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -131,6 +132,61 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   }, [levelEdges]);
 
   const hasSelection = yesSelection !== null || noSelection !== null;
+
+  // Handle click on profitable arbitrage level - auto deploy ladder
+  const handleArbLevelClick = useCallback(async (clickedPrice: number) => {
+    // Only proceed if this level is profitable
+    const clickedEdge = levelEdges.get(clickedPrice);
+    if (!clickedEdge?.isProfitable) return;
+    
+    setIsDeploying(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Get all profitable levels, sorted by edge (best first)
+      const profitableLevelsSorted = Array.from(levelEdges.entries())
+        .filter(([_, edge]) => edge.isProfitable)
+        .sort((a, b) => b[1].netEdgePct - a[1].netEdgePct)
+        .slice(0, 7); // Max 7 levels
+      
+      if (profitableLevelsSorted.length === 0) return;
+      
+      const sharesPerLevel = Math.floor(size / profitableLevelsSorted.length);
+      
+      // Generate paired orders for each profitable level
+      const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price, edge], index) => ([
+        {
+          id: `order-${Date.now()}-yes-${index}`,
+          ladderIndex: index + 1,
+          side: 'YES' as const,
+          price: price,
+          shares: sharesPerLevel,
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+        },
+        {
+          id: `order-${Date.now()}-no-${index}`,
+          ladderIndex: index + 1,
+          side: 'NO' as const,
+          price: 1 - price,
+          shares: sharesPerLevel,
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+        },
+      ]));
+      
+      setDeployedOrders(prev => [...prev, ...newOrders]);
+      
+      toast({
+        title: "Ladder Deployed",
+        description: `Deployed ${newOrders.length} orders across ${profitableLevelsSorted.length} arb levels`,
+      });
+    } finally {
+      setIsDeploying(false);
+    }
+  }, [levelEdges, size]);
 
   // Quick deploy best arb
   const handleQuickDeploy = useCallback(async () => {
@@ -361,6 +417,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                     noOrders={deployedOrders.filter(o => o.side === 'NO')}
                     onYesClick={(type) => handleYesClick(level.price, type)}
                     onNoClick={(type) => handleNoClick(level.price, type)}
+                    onArbClick={() => handleArbLevelClick(level.price)}
                   />
                 );
               })}
