@@ -1,96 +1,211 @@
 
-# Fix Plan: Spread Calculator and Order Book Rows
 
-## Issues Identified
+# Enhanced Order Book Ladder: Spreads and Arbitrage Highlighting
 
-### Issue 1: Only 3 rows showing in the order book
-The `±3% range` filter is too restrictive. With `refPrice = 0.50`:
-- `rangeMin = 0.50 * 0.97 = 0.485`
-- `rangeMax = 0.50 * 1.03 = 0.515`
+## Overview
 
-Only prices 0.49, 0.50, and 0.51 pass this filter, resulting in just 3 rows.
+This plan enhances the Auto Trading order book ladder to:
+1. Display spread information (gross edge, net edge, total cost) in the middle column for each price level
+2. Highlight both YES and NO cells in green when an arbitrage opportunity exists at that level
 
-### Issue 2: Spread Calculator not appearing
-The console shows a React warning about `forwardRef`. The component structure is correct, but the responsive grid layout (`lg:grid-cols-4`) may cause the right panel to collapse or not display properly on certain screen sizes.
+## Current State
 
----
+The middle column currently shows only a simple "EDGE" badge when a level is profitable. The entire row gets a light green background, but individual YES/NO cells are not distinctly highlighted.
 
-## Solution
+## Changes
 
-### 1. Increase the visible price range
-Change `RANGE_PCT` from `0.03` (3%) to `0.15` (15%) in `useAutoOrderBook.ts` to show more levels:
-- New range: 0.425 to 0.575 (approximately 15 rows)
+### 1. Update LadderRow Component
 
-### 2. Generate more mock order book levels
-Update `generateMockOrderBook()` in `autoApi.ts` to create more levels (e.g., ±20 instead of ±10) for a richer display.
+Modify the middle separator section to display detailed spread information:
+- **Spread** (YES Ask + NO Ask): Shows total cost to enter the arbitrage
+- **Gross Edge**: Raw profit margin (1.0 - total cost)
+- **Net Edge**: After fees (displayed as percentage)
 
-### 3. Fix the layout for Spread Calculator visibility
-Update `AutoLadder.tsx` to ensure the right panel (containing SpreadCalculator and AutoOrdersPanel) is always visible:
-- Change layout from `lg:grid-cols-4` to a more flexible approach
-- Ensure the panel renders above or below the ladder on smaller screens
+Color-code based on profitability:
+- Green text/background when net edge meets threshold
+- Muted/neutral when not profitable
 
-### 4. Add `forwardRef` wrapper to components (optional cleanup)
-Wrap `SpreadCalculator` and `AutoOrdersPanel` with `React.forwardRef` to eliminate the console warning.
+### 2. Enhanced Cell Highlighting
+
+When a level is profitable (arbitrage exists):
+- Apply green ring/border to both the YES Ask cell and NO Ask cell
+- Add subtle green glow effect to make it visually prominent
+- Keep the green background on the entire row for context
+
+### 3. Pass Edge Data to Each Row
+
+Calculate and pass spread/edge data for each level from AutoLadder to LadderRow so the middle column can display accurate numbers.
+
+## Visual Design
+
+```text
++----------+------+----------+-------------------------+----------+------+----------+
+| Bid Size | YES  | Ask Size |         SPREAD          | Bid Size |  NO  | Ask Size |
++----------+------+----------+-------------------------+----------+------+----------+
+|   150    | 0.52 |   [200]  |  Cost: 0.98 | Edge: +2% |   [180]  | 0.46 |   120    |
++----------+------+----------+-------------------------+----------+------+----------+
+                     ^^^^                                  ^^^^
+                  Green ring                            Green ring
+                  (arb found)                           (arb found)
+```
+
+The middle column will show:
+- Total cost (YES + NO price)
+- Net edge percentage (positive = profitable)
+- Green highlight when above threshold
 
 ---
 
 ## Technical Details
 
-### File: `src/hooks/useAutoOrderBook.ts`
+### File: `src/types/auto-trading.ts`
+
+Add a new interface for level-specific edge data:
+
 ```typescript
-// Line 11: Change from 0.03 to 0.15
-const RANGE_PCT = 0.15; // ±15% range around reference
+export interface LevelEdgeInfo {
+  totalCost: number;
+  grossEdgePct: number;
+  netEdgePct: number;
+  isProfitable: boolean;
+}
 ```
 
-### File: `src/services/autoApi.ts`
+### File: `src/hooks/useAutoOrderBook.ts`
+
+Add a new return value `levelEdges` - a Map from price to edge info:
+
 ```typescript
-// Line 56: Generate ±20 levels instead of ±10
-for (let i = -20; i <= 20; i++) {
+// Add to return interface
+levelEdges: Map<number, LevelEdgeInfo>;
+
+// Calculate in the hook
+const levelEdges = new Map<number, LevelEdgeInfo>();
+if (orderBook) {
+  orderBook.levels.forEach(level => {
+    const yesAsk = level.price;
+    const noAsk = 1 - level.price;
+    const totalCost = yesAsk + noAsk;
+    const grossEdge = 1.0 - totalCost;
+    const grossEdgePct = grossEdge * 100;
+    const fee = orderBook.fee.takerPct / 100;
+    const netEdge = grossEdge - (fee * 2);
+    const netEdgePct = netEdge * 100;
+    
+    levelEdges.set(level.price, {
+      totalCost,
+      grossEdgePct,
+      netEdgePct,
+      isProfitable: netEdgePct >= minNetEdgePct,
+    });
+  });
+}
+```
+
+### File: `src/components/trading/auto/LadderRow.tsx`
+
+Update props to receive edge info and enhance the UI:
+
+```typescript
+interface LadderRowProps {
+  level: OrderBookLevel;
+  edgeInfo: LevelEdgeInfo | null;  // NEW
+  isSelected: boolean;
+  isProfitable: boolean;
+  // ... rest
+}
+```
+
+Update the middle column to show spread details:
+
+```tsx
+{/* Middle Column - Spread/Edge Info */}
+<div className="col-span-3 flex items-center justify-center gap-2 bg-muted/20 px-2">
+  {edgeInfo && (
+    <>
+      <span className={cn(
+        "text-[10px] font-mono",
+        edgeInfo.isProfitable ? "text-success" : "text-muted-foreground"
+      )}>
+        {edgeInfo.totalCost.toFixed(3)}
+      </span>
+      <span className={cn(
+        "text-[10px] font-bold px-1.5 py-0.5 rounded",
+        edgeInfo.isProfitable 
+          ? "bg-success/20 text-success" 
+          : "text-muted-foreground"
+      )}>
+        {edgeInfo.netEdgePct >= 0 ? '+' : ''}{edgeInfo.netEdgePct.toFixed(2)}%
+      </span>
+    </>
+  )}
+</div>
+```
+
+Update the Ask cells to have green highlighting when profitable:
+
+```tsx
+<Cell
+  value={level.yesAsk}
+  type="ask"
+  side="YES"
+  isProfitable={isProfitable}  // NEW prop
+  onClick={() => onYesClick('ask')}
+  orders={[]}
+/>
+```
+
+Update Cell component to show green ring/glow when profitable:
+
+```tsx
+function Cell({ value, type, side, isPrice, isProfitable, className, onClick, orders = [] }) {
+  // ... existing logic
+  
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "py-1.5 px-2 text-center tabular-nums cursor-pointer relative",
+        // ... existing classes
+        isProfitable && type === 'ask' && "ring-2 ring-success bg-success/10",
+        className
+      )}
+    >
+      {/* ... existing content */}
+    </div>
+  );
+}
 ```
 
 ### File: `src/components/trading/auto/AutoLadder.tsx`
-```typescript
-// Line 154: Adjust grid layout for better visibility
-<div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-  {/* Main Ladder - takes 3 columns on xl */}
-  <Card className="xl:col-span-3 ...">
 
-  {/* Right Side Panel - always visible */}
-  <div className="xl:col-span-1 space-y-4">
+Pass levelEdges to each LadderRow:
+
+```tsx
+const { levelEdges, /* ...other */ } = useAutoOrderBook({ marketId, minNetEdgePct });
+
+// In the map:
+<LadderRow
+  key={level.price}
+  level={level}
+  edgeInfo={levelEdges.get(level.price) ?? null}
+  // ... rest of props
+/>
 ```
 
-Also reorder components so SpreadCalculator appears before the ladder on mobile.
+Update the header row to reflect new middle column:
 
-### File: `src/components/trading/auto/SpreadCalculator.tsx`
-```typescript
-// Wrap with forwardRef to fix the console warning
-import { forwardRef } from 'react';
-
-export const SpreadCalculator = forwardRef<HTMLDivElement, SpreadCalculatorProps>(
-  function SpreadCalculator(props, ref) {
-    // ... existing implementation with ref applied to Card
-  }
-);
+```tsx
+<div className="col-span-3 py-2 px-2 text-center">
+  <span className="mr-2">Cost</span>
+  <span>Net Edge</span>
+</div>
 ```
 
-### File: `src/components/trading/auto/AutoOrdersPanel.tsx`
-```typescript
-// Same forwardRef treatment
-import { forwardRef } from 'react';
+## Summary of Files to Modify
 
-export const AutoOrdersPanel = forwardRef<HTMLDivElement, AutoOrdersPanelProps>(
-  function AutoOrdersPanel(props, ref) {
-    // ... existing implementation
-  }
-);
-```
+1. **`src/types/auto-trading.ts`** - Add `LevelEdgeInfo` interface
+2. **`src/hooks/useAutoOrderBook.ts`** - Calculate and return `levelEdges` Map
+3. **`src/components/trading/auto/LadderRow.tsx`** - Display spread in middle, highlight Ask cells
+4. **`src/components/trading/auto/AutoLadder.tsx`** - Pass edge info to rows, update header
 
----
-
-## Expected Result
-
-After these changes:
-1. The order book ladder will display approximately 15+ price levels (instead of 3)
-2. The Spread Calculator panel will be clearly visible on all screen sizes
-3. Console warnings about refs will be eliminated
-4. The layout will be responsive - panels stack on mobile, side-by-side on desktop
