@@ -14,6 +14,7 @@ const RANGE_PCT = 0.15; // ±15% range around reference
 interface UseAutoOrderBookOptions {
   marketId: string;
   minNetEdgePct: number;
+  isPaused?: boolean;
 }
 
 interface UseAutoOrderBookReturn {
@@ -50,7 +51,8 @@ interface UseAutoOrderBookReturn {
 
 export function useAutoOrderBook({ 
   marketId, 
-  minNetEdgePct 
+  minNetEdgePct,
+  isPaused = false 
 }: UseAutoOrderBookOptions): UseAutoOrderBookReturn {
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,8 +180,17 @@ export function useAutoOrderBook({
     }
   }, [marketId]);
   
-  // Start polling
+  // Start polling (skip if paused)
   useEffect(() => {
+    if (isPaused) {
+      // Clear existing interval when paused
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+    
     fetchData();
     intervalRef.current = setInterval(fetchData, POLL_INTERVAL);
     
@@ -188,7 +199,7 @@ export function useAutoOrderBook({
         clearInterval(intervalRef.current);
       }
     };
-  }, [fetchData]);
+  }, [fetchData, isPaused]);
   
   // Clear selections
   const clearSelections = useCallback(() => {

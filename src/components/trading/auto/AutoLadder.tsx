@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -26,6 +26,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [deployedOrders, setDeployedOrders] = useState<ActiveLadderOrder[]>([]);
   const [showProfitableOnly, setShowProfitableOnly] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const {
     orderBook,
@@ -44,7 +45,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     rangeMin,
     rangeMax,
     refresh,
-  } = useAutoOrderBook({ marketId, minNetEdgePct });
+  } = useAutoOrderBook({ marketId, minNetEdgePct, isPaused });
 
   // Handle YES cell click
   const handleYesClick = useCallback((price: number, type: 'bid' | 'ask') => {
@@ -258,12 +259,34 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 </Label>
               </div>
               <Button
+                variant={isPaused ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setIsPaused(!isPaused)}
+                className={cn(
+                  "h-8 gap-1.5",
+                  isPaused && "bg-warning text-warning-foreground hover:bg-warning/90"
+                )}
+              >
+                {isPaused ? (
+                  <>
+                    <Play className="h-3.5 w-3.5" />
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-3.5 w-3.5" />
+                    Pause
+                  </>
+                )}
+              </Button>
+              <Button
                 variant="ghost"
                 size="icon"
                 onClick={refresh}
                 className="h-8 w-8"
+                disabled={isPaused}
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={cn("h-4 w-4", !isPaused && "animate-none")} />
               </Button>
             </div>
           </CardHeader>
