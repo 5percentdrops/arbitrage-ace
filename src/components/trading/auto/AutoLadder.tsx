@@ -1,8 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
@@ -23,6 +25,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [deployedOrders, setDeployedOrders] = useState<ActiveLadderOrder[]>([]);
+  const [showProfitableOnly, setShowProfitableOnly] = useState(false);
 
   const {
     orderBook,
@@ -95,13 +98,18 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     }
   }, [clearSelections]);
 
-  // Filter levels within range
+  // Filter levels within range and optionally by profitability
   const visibleLevels = useMemo(() => {
     if (!orderBook) return [];
-    return orderBook.levels.filter(
-      level => level.price >= rangeMin && level.price <= rangeMax
-    );
-  }, [orderBook, rangeMin, rangeMax]);
+    return orderBook.levels.filter(level => {
+      const inRange = level.price >= rangeMin && level.price <= rangeMax;
+      if (!inRange) return false;
+      if (showProfitableOnly) {
+        return profitableLevels.has(level.price);
+      }
+      return true;
+    });
+  }, [orderBook, rangeMin, rangeMax, showProfitableOnly, profitableLevels]);
 
   // Find midpoint level
   const midpointPrice = orderBook?.refPrice ?? 0.5;
@@ -233,14 +241,31 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 Tick: {orderBook?.tick ?? 0.01} | Range: {(rangeMin).toFixed(2)} - {(rangeMax).toFixed(2)}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={refresh}
-              className="h-8 w-8"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="profitable-filter"
+                  checked={showProfitableOnly}
+                  onCheckedChange={setShowProfitableOnly}
+                  className="data-[state=checked]:bg-success"
+                />
+                <Label 
+                  htmlFor="profitable-filter" 
+                  className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5"
+                >
+                  <Filter className="h-3 w-3" />
+                  Arb Only
+                </Label>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={refresh}
+                className="h-8 w-8"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {/* Best Arb Indicator */}
