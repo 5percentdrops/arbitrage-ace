@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,7 +8,7 @@ import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
 import { AutoOrdersPanel } from './AutoOrdersPanel';
 import { LadderRow } from './LadderRow';
-import type { LadderSelection, ActiveLadderOrder } from '@/types/auto-trading';
+import type { LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 import type { TokenSymbol } from '@/types/trading';
 
 interface AutoLadderProps {
@@ -106,7 +106,62 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   // Find midpoint level
   const midpointPrice = orderBook?.refPrice ?? 0.5;
 
+  // Find best arbitrage opportunity
+  const bestArb = useMemo(() => {
+    if (levelEdges.size === 0) return null;
+    
+    let best: { price: number; edge: LevelEdgeInfo } | null = null;
+    levelEdges.forEach((edge, price) => {
+      if (edge.isProfitable) {
+        if (!best || edge.netEdgePct > best.edge.netEdgePct) {
+          best = { price, edge };
+        }
+      }
+    });
+    return best;
+  }, [levelEdges]);
+
   const hasSelection = yesSelection !== null || noSelection !== null;
+
+  // Quick deploy best arb
+  const handleQuickDeploy = useCallback(async () => {
+    if (!bestArb) return;
+    
+    setIsDeploying(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const yesPrice = bestArb.price;
+      const noPrice = 1 - bestArb.price;
+      
+      const mockOrders: ActiveLadderOrder[] = [
+        {
+          id: `order-${Date.now()}-yes`,
+          ladderIndex: 1,
+          side: 'YES',
+          price: yesPrice,
+          shares: size,
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending',
+        },
+        {
+          id: `order-${Date.now()}-no`,
+          ladderIndex: 2,
+          side: 'NO',
+          price: noPrice,
+          shares: size,
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending',
+        },
+      ];
+      
+      setDeployedOrders(prev => [...prev, ...mockOrders]);
+    } finally {
+      setIsDeploying(false);
+    }
+  }, [bestArb, size]);
 
   if (isLoading) {
     return (
@@ -188,6 +243,36 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             </Button>
           </CardHeader>
           <CardContent className="p-0">
+            {/* Best Arb Indicator */}
+            {bestArb && (
+              <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-md bg-success/20">
+                    <TrendingUp className="h-4 w-4 text-success" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-success">Best Arbitrage Found</div>
+                    <div className="flex items-center gap-3 text-xs font-mono text-muted-foreground">
+                      <span>YES @ {bestArb.price.toFixed(2)}</span>
+                      <span>+</span>
+                      <span>NO @ {(1 - bestArb.price).toFixed(2)}</span>
+                      <span>=</span>
+                      <span className="text-success font-bold">+{bestArb.edge.netEdgePct.toFixed(2)}% edge</span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleQuickDeploy}
+                  disabled={isDeploying}
+                  className="bg-success hover:bg-success/90 text-success-foreground gap-1.5"
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  {isDeploying ? 'Deploying...' : 'Quick Deploy'}
+                </Button>
+              </div>
+            )}
+
             {/* Header Row */}
             <div className="grid grid-cols-9 text-[10px] font-medium text-muted-foreground uppercase tracking-wider bg-muted/50 border-b border-border">
               <div className="py-2 px-2 text-center">Bid Size</div>
