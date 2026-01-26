@@ -31,7 +31,7 @@ import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
 import { PositionsTable } from '@/components/trading/PositionsTable';
 import { RoundTimerCard } from '@/components/trading/RoundTimerCard';
-import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
+import { TradingTabs } from '@/components/trading/TradingTabs';
 import { DecisionAlertNotification } from '@/components/alerts/DecisionAlertNotification';
 
 const Index = () => {
@@ -294,8 +294,8 @@ const Index = () => {
               />
             </div>
 
-            {/* Manual Trading */}
-            <ManualTradePanel
+            {/* Trading Tabs (Manual + Auto) */}
+            <TradingTabs
               formState={manualTrading.formState}
               onFieldChange={manualTrading.updateField}
               validationErrors={manualTrading.validationErrors}
@@ -310,6 +310,8 @@ const Index = () => {
               allowManualWhileAuto={manualTrading.allowManualWhileAuto}
               onAllowManualChange={manualTrading.setAllowManualWhileAuto}
               estimatedShares={manualTrading.estimatedShares}
+              asset={roundTimer.asset}
+              marketId={`market-${roundTimer.asset.toLowerCase()}-15m`}
             />
 
             {/* Positions Table */}
