@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ManualTradePanel } from './ManualTradePanel';
-import { AutoLadder } from './auto/AutoLadder';
+import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
+import { AutoLadder } from '@/components/trading/auto/AutoLadder';
 import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType } from '@/types/manual-trading';
 import type { TokenSymbol } from '@/types/trading';
 
