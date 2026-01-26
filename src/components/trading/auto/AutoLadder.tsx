@@ -151,9 +151,25 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        {/* Right Side Panel - shown first on mobile for visibility */}
+        <div className="xl:hidden space-y-4">
+          <SpreadCalculator
+            edge={currentEdge}
+            size={size}
+            onSizeChange={setSize}
+            minNetEdgePct={minNetEdgePct}
+            onMinEdgeChange={setMinNetEdgePct}
+            autoTradeEnabled={autoTradeEnabled}
+            onAutoTradeToggle={setAutoTradeEnabled}
+            onDeployLadder={handleDeployLadder}
+            isDeploying={isDeploying}
+            hasSelection={hasSelection}
+          />
+        </div>
+
         {/* Main Ladder */}
-        <Card className="lg:col-span-3 border-border bg-card overflow-hidden">
+        <Card className="xl:col-span-3 border-border bg-card overflow-hidden">
           <CardHeader className="pb-2 flex-row items-center justify-between">
             <div className="flex items-center gap-3">
               <CardTitle className="text-base font-semibold">{asset} Order Book Ladder</CardTitle>
@@ -214,8 +230,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           </CardContent>
         </Card>
 
-        {/* Right Side Panel */}
-        <div className="space-y-4">
+        {/* Right Side Panel - hidden on mobile since shown above */}
+        <div className="hidden xl:block space-y-4">
           <SpreadCalculator
             edge={currentEdge}
             size={size}
