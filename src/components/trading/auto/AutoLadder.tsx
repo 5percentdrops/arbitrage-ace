@@ -204,31 +204,33 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     }
   }, [clearSelections]);
 
-  // Filter levels within range, by profitability, and only show prices BELOW best ask
+  // Filter levels to show 10% order book view below best ask prices
   // (for limit orders, we only place orders at prices lower than current market)
   const visibleLevels = useMemo(() => {
     if (!orderBook) return [];
     
-    // Best ask prices are the "main" prices - only show levels below these
+    // Best ask prices are the "main" prices
     const bestYesAsk = orderBook.best.yesAsk;
     const bestNoAsk = orderBook.best.noAsk;
     
+    // Show 10% range below best ask for each side
+    const yesLowerBound = bestYesAsk * 0.90; // 10% below best YES ask
+    const noLowerBound = bestNoAsk * 0.90;   // 10% below best NO ask
+    
     return orderBook.levels.filter(level => {
-      const inRange = level.price >= rangeMin && level.price <= rangeMax;
-      if (!inRange) return false;
+      // YES ask must be within 10% range below best (exclusive of best)
+      const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
+      // NO ask must be within 10% range below best (exclusive of best)
+      const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
       
-      // Only show levels where BOTH YES and NO ask prices are below their respective best asks
-      // This ensures we're only showing limit order opportunities
-      const yesAskBelowBest = level.yesAskPrice < bestYesAsk;
-      const noAskBelowBest = level.noAskPrice < bestNoAsk;
-      if (!yesAskBelowBest || !noAskBelowBest) return false;
+      if (!yesInRange || !noInRange) return false;
       
       if (showProfitableOnly) {
         return profitableLevels.has(level.price);
       }
       return true;
     });
-  }, [orderBook, rangeMin, rangeMax, showProfitableOnly, profitableLevels]);
+  }, [orderBook, showProfitableOnly, profitableLevels]);
 
   // Find midpoint level (LTP)
   const midpointPrice = orderBook?.refPrice ?? 0.5;
