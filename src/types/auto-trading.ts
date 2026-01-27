@@ -83,3 +83,13 @@ export interface LevelEdgeInfo {
   netEdgePct: number;
   isProfitable: boolean;
 }
+
+export interface PairedArbSelection {
+  levelPrice: number;    // The reference price level clicked
+  yesPrice: number;      // Actual YES ask price
+  noPrice: number;       // Actual NO ask price
+  totalCost: number;     // yesPrice + noPrice (must be < 1.0)
+  edgePct: number;       // Net edge percentage
+  yesAllocation: number; // USD allocated to YES leg
+  noAllocation: number;  // USD allocated to NO leg
+}
