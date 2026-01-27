@@ -83,13 +83,10 @@ export function useAutoOrderBook({
   
   if (orderBook) {
     orderBook.levels.forEach(level => {
-      // For arbitrage, we need to buy YES at yesAsk and NO at noAsk
-      // The YES price is the level price, NO price comes from the noAsk at this level
-      const yesPrice = level.price;
-      // Find the complementary NO price - in a real order book, we'd look up 
-      // the NO ask at the corresponding price level (1 - yesPrice)
-      // For now, use the noAsk value directly from this level
-      const noPrice = 1 - level.price;
+      // Use actual ask prices for arbitrage calculation
+      // These are independent prices that may sum to less than $1.00
+      const yesPrice = level.yesAskPrice;
+      const noPrice = level.noAskPrice;
       
       // Total cost to buy both YES and NO
       const totalCost = yesPrice + noPrice;

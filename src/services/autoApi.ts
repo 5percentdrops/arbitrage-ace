@@ -53,6 +53,13 @@ export function generateMockOrderBook(): OrderBookData {
   const tick = 0.01;
   const levels: OrderBookData['levels'] = [];
   
+  // Randomly select 4-7 price levels that will have arbitrage opportunities
+  const arbLevelCount = Math.floor(Math.random() * 4) + 4; // 4-7 levels
+  const arbLevelIndices = new Set<number>();
+  while (arbLevelIndices.size < arbLevelCount) {
+    arbLevelIndices.add(Math.floor(Math.random() * 41) - 20); // -20 to +20
+  }
+  
   // Generate ±20 levels around reference price
   for (let i = -20; i <= 20; i++) {
     const price = Math.round((refPrice + i * tick) * 100) / 100;
@@ -65,7 +72,45 @@ export function generateMockOrderBook(): OrderBookData {
     const noBid = Math.floor(baseSize * (0.8 + Math.random() * 0.4));
     const noAsk = Math.floor(baseSize * (0.8 + Math.random() * 0.4));
     
-    levels.push({ price, yesBid, yesAsk, noBid, noAsk });
+    // Calculate actual ask prices
+    // For arb levels, create a discount so YES + NO < 1.0
+    const isArbLevel = arbLevelIndices.has(i);
+    let yesAskPrice = price;
+    let noAskPrice = 1 - price;
+    
+    if (isArbLevel) {
+      // Create 1-3% gross edge for arbitrage opportunities
+      const discount = 0.01 + Math.random() * 0.02; // 1-3% discount
+      // Randomly apply discount to YES, NO, or split between both
+      const discountSplit = Math.random();
+      if (discountSplit < 0.33) {
+        yesAskPrice = price - discount;
+      } else if (discountSplit < 0.66) {
+        noAskPrice = (1 - price) - discount;
+      } else {
+        yesAskPrice = price - discount / 2;
+        noAskPrice = (1 - price) - discount / 2;
+      }
+    } else {
+      // For non-arb levels, add slight premium so YES + NO >= 1.0
+      const premium = Math.random() * 0.01; // 0-1% premium
+      yesAskPrice = price + premium / 2;
+      noAskPrice = (1 - price) + premium / 2;
+    }
+    
+    // Ensure prices stay within valid bounds
+    yesAskPrice = Math.max(0.01, Math.min(0.99, yesAskPrice));
+    noAskPrice = Math.max(0.01, Math.min(0.99, noAskPrice));
+    
+    levels.push({ 
+      price, 
+      yesBid, 
+      yesAsk, 
+      yesAskPrice: Math.round(yesAskPrice * 100) / 100,
+      noBid, 
+      noAsk,
+      noAskPrice: Math.round(noAskPrice * 100) / 100,
+    });
   }
   
   // Sort by price descending (highest at top)
