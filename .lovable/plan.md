@@ -1,111 +1,106 @@
 
-# Fix Arbitrage Profitability Logic
+# Fix Arbitrage Logic - Make YES + NO Prices Independent
 
 ## Problem
-The current profitability logic relies on mock `_arbEdges` data instead of the **correct arbitrage rule**:
-
-**An arbitrage opportunity is profitable when: YES_price + NO_price < $1.00 (minus fees)**
-
-The correct formula should be:
-- `totalCost = yesAskPrice + noAskPrice` (where noAskPrice = 1 - level.price for the corresponding NO side)
-- `grossEdge = 1.0 - totalCost`
-- `netEdge = grossEdge - (fee * 2)` (paying taker fee on both sides)
-- `isProfitable = netEdge >= minNetEdgePct`
-
-## Current (Incorrect) Logic
-In `useAutoOrderBook.ts`, lines 83-106:
+The current arbitrage calculation always produces `totalCost = 1.0` because:
 ```typescript
-// Get arb edges from mock data (or calculate from real data)
-const arbEdges = (orderBook as OrderBookData & { _arbEdges?: Record<number, number> })._arbEdges || {};
-
-orderBook.levels.forEach(level => {
-  const hasArb = level.price in arbEdges;
-  const grossEdge = hasArb ? arbEdges[level.price] : 0;  // ❌ Wrong - using fake mock data
-  // ...
-});
+const yesPrice = level.price;
+const noPrice = 1 - level.price;
+// totalCost = price + (1 - price) = 1.0 always!
 ```
 
-## Correct Logic
-For each price level, we need to calculate the **actual arbitrage edge** by pairing:
-- YES ask at `level.price`
-- NO ask at the corresponding level (where NO price = `1 - level.price`)
+This means **no levels will ever show as profitable**, breaking all the tiered selection and preview features.
 
-```typescript
-orderBook.levels.forEach(level => {
-  const yesPrice = level.price;
-  const noPrice = 1 - level.price;
-  
-  // Total cost to buy both YES and NO at this level
-  const totalCost = yesPrice + noPrice;  // Should be < 1.0 for arb
-  
-  const grossEdge = 1.0 - totalCost;
-  const grossEdgePct = grossEdge * 100;
-  const fee = orderBook.fee.takerPct / 100;
-  const netEdge = grossEdge - (fee * 2);
-  const netEdgePct = netEdge * 100;
-  const isProfitable = netEdgePct >= minNetEdgePct;
-  
-  levelEdges.set(level.price, {
-    totalCost,
-    grossEdgePct,
-    netEdgePct,
-    isProfitable,
-  });
-});
-```
-
-## Implementation Steps
-
-### 1. Update useAutoOrderBook Hook
-**File:** `src/hooks/useAutoOrderBook.ts`
-
-Replace the mock `_arbEdges` logic with the correct calculation:
-
-- Remove: the check for `_arbEdges` and the mock-based edge calculation
-- Add: calculate `totalCost = yesPrice + noPrice` directly from level prices
-- Keep: the net edge calculation (subtracting fees from both sides)
-
-### 2. Update Mock Data Generator
-**File:** `src/services/autoApi.ts`
-
-- Remove the `_arbEdges` mock field
-- The mock should generate realistic price levels where some naturally have YES + NO < 1.0
-
-The mock data currently generates levels at the same price for both YES and NO sides, which means `price + (1 - price) = 1.0` exactly (no edge). To simulate real arb opportunities, we should generate independent YES and NO ask prices.
-
-### 3. Update Type Definition (if needed)
-**File:** `src/types/auto-trading.ts`
-
-Ensure `LevelEdgeInfo.totalCost` represents the actual sum of YES + NO prices.
+## Solution
+Generate **independent YES and NO ask prices** that can sum to less than $1.00. In real markets, arbitrage exists when market inefficiencies cause the combined ask prices to be below $1.00.
 
 ---
 
-## Technical Details
+## Implementation Steps
 
-### Arbitrage Math
-```text
-Example profitable level:
-  YES ask = $0.48
-  NO ask = $0.51 (at the complementary price level)
-  
-  Total Cost = $0.48 + $0.51 = $0.99
-  Gross Edge = $1.00 - $0.99 = $0.01 (1%)
-  Fees = 0.4% × 2 = 0.8%
-  Net Edge = 1% - 0.8% = 0.2%
-  
-If minNetEdgePct = 0.5%, this would NOT be profitable.
-If minNetEdgePct = 0.1%, this WOULD be profitable.
+### 1. Update Mock Data Generator
+**File:** `src/services/autoApi.ts`
+
+Generate levels with independent YES/NO ask prices that sometimes sum to less than $1.00:
+
+```typescript
+// For each price level, generate a slight discount on combined asks
+// to create arbitrage opportunities
+const yesAskPrice = level.price; // YES asks at the level price
+const noAskPrice = 1 - level.price - randomDiscount; // NO asks slightly below complement
+
+// Some levels will have discounts creating arb opportunities
 ```
 
-### Example NOT profitable:
-```text
-  YES ask = $0.50
-  NO ask = $0.52
+**Changes:**
+- Add a `yesAskPrice` and `noAskPrice` field to each level (or use existing yesAsk/noAsk as price values)
+- Randomly create 3-7 levels where `yesAskPrice + noAskPrice < 1.0`
+- The discount should be 1-4% gross edge to create realistic arb scenarios
+
+### 2. Update Type Definition
+**File:** `src/types/auto-trading.ts`
+
+Add explicit ask price fields to `OrderBookLevel`:
+```typescript
+export interface OrderBookLevel {
+  price: number;      // Reference price for this row
+  yesBid: number;     // Size available at YES bid
+  yesAsk: number;     // Size available at YES ask  
+  yesAskPrice: number; // Actual YES ask price (may differ from level.price)
+  noBid: number;      // Size available at NO bid
+  noAsk: number;      // Size available at NO ask
+  noAskPrice: number;  // Actual NO ask price (may differ from 1-price)
+}
+```
+
+### 3. Update Hook Edge Calculation
+**File:** `src/hooks/useAutoOrderBook.ts`
+
+Use the actual ask prices instead of computed prices:
+```typescript
+orderBook.levels.forEach(level => {
+  // Use actual ask prices, not computed from level.price
+  const yesPrice = level.yesAskPrice ?? level.price;
+  const noPrice = level.noAskPrice ?? (1 - level.price);
   
-  Total Cost = $0.50 + $0.52 = $1.02
-  Gross Edge = -$0.02 (-2%)
-  
-  NOT profitable (cost exceeds $1.00)
+  const totalCost = yesPrice + noPrice;
+  const grossEdge = 1.0 - totalCost;
+  // ... rest of calculation
+});
+```
+
+### 4. Update LadderRow Display
+**File:** `src/components/trading/auto/LadderRow.tsx`
+
+Display the actual ask prices instead of computed prices:
+- YES price column shows `level.yesAskPrice`
+- NO price column shows `level.noAskPrice`
+
+---
+
+## Mock Data Example
+
+After the fix, levels will look like:
+```typescript
+{
+  price: 0.50,           // Reference row
+  yesBid: 150,
+  yesAsk: 200,
+  yesAskPrice: 0.49,     // Actual YES ask price
+  noBid: 180,
+  noAsk: 220,
+  noAskPrice: 0.50,      // Actual NO ask price
+  // totalCost = 0.49 + 0.50 = 0.99 → 1% gross edge!
+}
+```
+
+For non-arb levels:
+```typescript
+{
+  price: 0.55,
+  yesAskPrice: 0.55,
+  noAskPrice: 0.46,      // 0.55 + 0.46 = 1.01 → no arb
+}
 ```
 
 ---
@@ -114,5 +109,17 @@ If minNetEdgePct = 0.1%, this WOULD be profitable.
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useAutoOrderBook.ts` | Replace mock arbEdges logic with real YES + NO < 1 calculation |
-| `src/services/autoApi.ts` | Update mock generator to create realistic arb scenarios with independent YES/NO ask prices |
+| `src/types/auto-trading.ts` | Add `yesAskPrice` and `noAskPrice` to `OrderBookLevel` |
+| `src/services/autoApi.ts` | Generate independent ask prices with some arb opportunities |
+| `src/hooks/useAutoOrderBook.ts` | Use actual ask prices for edge calculation |
+| `src/components/trading/auto/LadderRow.tsx` | Display actual ask prices in price columns |
+
+---
+
+## Expected Result
+
+After this fix:
+- 3-7 levels will show as profitable (green glow)
+- Hovering a profitable row will preview all 7 top arb levels with tier labels
+- Clicking deploys tiered orders across the best opportunities
+- Position size input distributes funds according to tier weights
