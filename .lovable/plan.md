@@ -1,92 +1,198 @@
 
-# Restore Pause Button Visibility + Add Cancel (X) Button for Selections
 
-## Issues Identified
+# BetAngel-Style Trading Ladder Redesign
 
-### 1. Pause Button May Be Hidden
-The Pause button exists in the code but may not be visible due to:
-- The header has many controls (Position Size input, Arb Only toggle, Pause, Refresh) that may overflow on smaller screens
-- The `flex items-center gap-4` layout may cause wrapping or overflow issues
+## Current vs BetAngel Style Comparison
 
-### 2. No Cancel Button for Selections
-When rows are selected/previewed (showing tier labels like "L1: $250"), there's no quick way to cancel/clear the selection. The user wants an (X) button to dismiss the preview.
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CURRENT LAYOUT                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  YES Bid │ YES Price │ YES Ask │  Spread/Edge  │ NO Bid │ NO Price │ NO Ask │
+│   150    │   0.48    │   200   │ 0.99 +1.2%    │  180   │   0.51   │   220  │
+│   120    │   0.49    │   180   │ 0.98 +0.8%    │  150   │   0.50   │   190  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  BETANGEL STYLE                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│              YES LADDER              │             NO LADDER                │
+│  Back   │  PRICE  │   Lay            │   Back   │  PRICE  │   Lay          │
+│ (Blue)  │         │  (Pink)          │  (Blue)  │         │  (Pink)        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  ████   │  0.52   │   42             │   ████   │  0.48   │   38           │
+│  ████   │  0.51   │   65             │   ████   │  0.49   │   52           │
+│  ████   │ ►0.50◄  │   89             │   ████   │ ►0.50◄  │   71           │  ← LTP (yellow)
+│  ████   │  0.49   │  112             │   ████   │  0.51   │   95           │
+│  ████   │  0.48   │  145             │   ████   │  0.52   │  128           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Blue/Pink depth bars | Centered on LTP | Auto-scroll option                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Key BetAngel Features to Implement
+
+### 1. Color Scheme Overhaul
+| Element | Current | BetAngel Style |
+|---------|---------|----------------|
+| Back/Buy cells | Green tints | **Blue** (`#6BBBFC` or similar) |
+| Lay/Sell cells | Green/Red tints | **Pink** (`#F9A8C8` or similar) |
+| Price column | Green/Red text | **White/Yellow on dark** |
+| LTP indicator | Border only | **Yellow highlight + arrow** |
+| Depth bars | None | **Gradient fill proportional to volume** |
+
+### 2. Layout Changes
+- **Separate YES and NO ladders** side-by-side (instead of interleaved)
+- **Vertical price column** in the center of each ladder
+- **Depth visualization bars** behind bid/ask values
+- **Compact row height** (more rows visible)
+- **Auto-center toggle** to keep LTP in the middle
+
+### 3. Visual Enhancements
+- **Depth gradient bars**: Show volume as colored bars behind numbers
+- **LTP momentum colors**: Green (up), Red (down), Yellow (same)
+- **P/L projection column**: Show potential profit at each price level
+- **Quick stake buttons**: Row of preset amounts at the top
+
+### 4. Interaction Improvements
+- **One-click trading**: Click Back/Lay cell to place order immediately
+- **Drag-and-drop orders**: Move pending orders to different prices
+- **Hover P/L preview**: Show projected P/L when hovering any row
 
 ---
 
 ## Implementation Plan
 
-### 1. Fix Header Layout for Pause Button Visibility
+### Phase 1: New Color Variables (index.css)
 
-**File:** `src/components/trading/auto/AutoLadder.tsx`
+Add BetAngel-specific trading colors:
 
-Reorganize the header controls to ensure Pause button is always visible:
-- Move Pause and Refresh buttons to a prominent position
-- Use `flex-wrap` to handle smaller screens gracefully
-- Consider grouping related controls together
+```css
+/* BetAngel Trading Colors */
+--betangel-back: 207 90% 70%;      /* Blue for Back/Buy */
+--betangel-lay: 340 80% 80%;       /* Pink for Lay/Sell */
+--betangel-ltp-up: 142 70% 45%;    /* Green - price rising */
+--betangel-ltp-down: 0 70% 55%;    /* Red - price falling */
+--betangel-ltp-same: 45 95% 55%;   /* Yellow - no change */
+--betangel-depth-back: 207 90% 70%;
+--betangel-depth-lay: 340 80% 80%;
+```
+
+### Phase 2: New LadderCell Component
+
+Create a BetAngel-style cell with depth bars:
 
 ```tsx
-<CardHeader className="pb-2 flex-row flex-wrap items-center justify-between gap-2">
-  <div className="flex items-center gap-3">
-    <CardTitle>...</CardTitle>
-    {/* Pause/Refresh buttons immediately after title for visibility */}
-    <div className="flex items-center gap-1">
-      <Button variant={isPaused ? "default" : "ghost"} size="sm" ...>
-        {isPaused ? <><Play /> Resume</> : <><Pause /> Pause</>}
-      </Button>
-      <Button variant="ghost" size="icon" ...>
-        <RefreshCw />
-      </Button>
+interface BetAngelCellProps {
+  value: number;           // Volume/size
+  maxDepth: number;        // Max volume for scaling
+  type: 'back' | 'lay';    // Blue or Pink
+  onClick?: () => void;
+  hasOrder?: boolean;
+}
+
+function BetAngelCell({ value, maxDepth, type, onClick, hasOrder }: BetAngelCellProps) {
+  const depthPercent = Math.min((value / maxDepth) * 100, 100);
+  
+  return (
+    <div 
+      onClick={onClick}
+      className={cn(
+        "relative h-7 flex items-center justify-center cursor-pointer",
+        "font-mono text-xs font-semibold",
+        type === 'back' ? "text-blue-900" : "text-pink-900"
+      )}
+    >
+      {/* Depth bar background */}
+      <div 
+        className={cn(
+          "absolute inset-y-0 right-0",
+          type === 'back' 
+            ? "bg-[hsl(var(--betangel-back))]" 
+            : "bg-[hsl(var(--betangel-lay))]"
+        )}
+        style={{ width: `${depthPercent}%` }}
+      />
+      {/* Value text */}
+      <span className="relative z-10">{value}</span>
     </div>
-  </div>
-  <div className="flex items-center gap-3 flex-wrap">
-    {/* Position Size, Arb Only toggle */}
-  </div>
-</CardHeader>
+  );
+}
 ```
 
-### 2. Add Cancel (X) Button When Rows Are Previewed
+### Phase 3: New BetAngelLadder Layout
 
-**File:** `src/components/trading/auto/AutoLadder.tsx`
-
-Add a floating cancel button that appears when `previewPrices.size > 0` (rows are highlighted):
+Restructure to show two separate vertical ladders:
 
 ```tsx
-{previewPrices.size > 0 && (
-  <div className="absolute top-2 right-2 z-20">
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setPreviewPrices(new Map())}
-      className="h-6 w-6 bg-background/80 hover:bg-destructive/20"
-    >
-      <X className="h-4 w-4" />
-    </Button>
+<div className="grid grid-cols-2 gap-4">
+  {/* YES Ladder */}
+  <div className="flex flex-col">
+    <div className="text-center font-bold text-success mb-2">YES</div>
+    <div className="grid grid-cols-3 text-[10px] border-b">
+      <span className="text-center bg-[hsl(var(--betangel-back))]/30">BACK</span>
+      <span className="text-center">PRICE</span>
+      <span className="text-center bg-[hsl(var(--betangel-lay))]/30">LAY</span>
+    </div>
+    {levels.map(level => (
+      <div key={level.price} className="grid grid-cols-3 h-7 border-b border-border/30">
+        <BetAngelCell value={level.yesBid} type="back" maxDepth={maxYesDepth} />
+        <PriceCell price={level.yesAskPrice} isLTP={isLTP} momentum={momentum} />
+        <BetAngelCell value={level.yesAsk} type="lay" maxDepth={maxYesDepth} />
+      </div>
+    ))}
   </div>
-)}
+
+  {/* NO Ladder */}
+  <div className="flex flex-col">
+    <div className="text-center font-bold text-destructive mb-2">NO</div>
+    {/* Mirror layout */}
+  </div>
+</div>
 ```
 
-### 3. Add Cancel Button When Orders Are Deployed
+### Phase 4: LTP (Last Traded Price) Indicator
 
-Show a prominent "Cancel All" button when `deployedOrders.length > 0`:
+Add momentum-colored price highlighting:
 
 ```tsx
-{deployedOrders.length > 0 && (
-  <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border-b border-warning/30">
-    <span className="text-xs text-warning font-medium">
-      {deployedOrders.length} orders deployed
-    </span>
-    <Button
-      variant="ghost"
+function PriceCell({ price, isLTP, momentum }: PriceCellProps) {
+  return (
+    <div className={cn(
+      "h-7 flex items-center justify-center font-mono text-xs font-bold",
+      isLTP && momentum === 'up' && "bg-[hsl(var(--betangel-ltp-up))]/30 text-success",
+      isLTP && momentum === 'down' && "bg-[hsl(var(--betangel-ltp-down))]/30 text-destructive",
+      isLTP && momentum === 'same' && "bg-[hsl(var(--betangel-ltp-same))]/30 text-yellow-500"
+    )}>
+      {isLTP && <span className="mr-1">►</span>}
+      {price.toFixed(2)}
+      {isLTP && <span className="ml-1">◄</span>}
+    </div>
+  );
+}
+```
+
+### Phase 5: Quick Stake Buttons
+
+Add preset amount buttons at the top:
+
+```tsx
+<div className="flex items-center gap-2 p-2 border-b">
+  {[50, 100, 250, 500, 1000].map(stake => (
+    <Button 
+      key={stake}
+      variant="outline" 
       size="sm"
-      onClick={handleCancelAll}
-      disabled={isCancelling}
-      className="h-6 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+      onClick={() => setPositionSize(stake)}
+      className={cn(
+        "h-7 px-3 font-mono text-xs",
+        positionSize === stake && "bg-primary text-primary-foreground"
+      )}
     >
-      <X className="h-3.5 w-3.5" />
-      Cancel All
+      ${stake}
     </Button>
-  </div>
-)}
+  ))}
+</div>
 ```
 
 ---
@@ -95,45 +201,39 @@ Show a prominent "Cancel All" button when `deployedOrders.length > 0`:
 
 | File | Changes |
 |------|---------|
-| `src/components/trading/auto/AutoLadder.tsx` | Reorganize header layout, add X icon import, add cancel buttons for preview and deployed orders |
+| `src/index.css` | Add BetAngel color variables |
+| `src/components/trading/auto/LadderRow.tsx` | Complete rewrite to BetAngel cell style with depth bars |
+| `src/components/trading/auto/AutoLadder.tsx` | Restructure to side-by-side YES/NO ladders, add quick stakes, add LTP tracking |
+| `src/hooks/useAutoOrderBook.ts` | Add LTP momentum tracking (up/down/same) |
 
 ---
 
-## Visual Layout After Changes
+## Visual Preview After Changes
 
 ```text
-+-------------------------------------------------------------------------+
-| BTC Order Book Ladder [Pause] [⟳]    | Position Size: $___  ☑ Arb Only |
-| Tick: 0.01 | Range: 0.40-0.60                                           |
-+-------------------------------------------------------------------------+
-| [!] 14 orders deployed                                    [X Cancel All]|
-+-------------------------------------------------------------------------+
-| Best Arbitrage Found: YES @ 0.48 + NO @ 0.51 = +1.2%    [Quick Deploy] |
-+-------------------------------------------------------------------------+
-|                          [ Header Row ]                                 |
-|  L1: $250  | 0.48 | ... +2.1% ... |  click [X]  | 0.52 |                |
-|  L2: $180  | 0.49 | ... +1.8% ...               | 0.51 |                |
-+-------------------------------------------------------------------------+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ BTC Order Book                    [Pause] [⟳]     $50  $100  $250  $500  $1K │
+│ Tick: 0.01 | Range: 0.40-0.60                              ☑ Arb Only        │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│           ═══════ YES ═══════          │         ═══════ NO ═══════          │
+│    BACK     │  PRICE  │    LAY         │    BACK    │  PRICE  │    LAY       │
+│ ▓▓▓▓▓  150  │  0.52   │  42   ░        │ ░░░░   38  │  0.48   │  95  ▓▓▓▓    │
+│ ▓▓▓▓   120  │  0.51   │  65   ░░       │ ░░     52  │  0.49   │ 112  ▓▓▓▓▓   │
+│ ▓▓▓    89   │ ►0.50◄  │  89   ░░░      │ ░░░    71  │ ►0.50◄  │  89  ▓▓▓     │  ← LTP (yellow)
+│ ▓▓     65   │  0.49   │ 112   ░░░░     │ ░░░░   95  │  0.51   │  65  ▓▓      │
+│ ▓      42   │  0.48   │ 145   ░░░░░    │ ░░░░░ 128  │  0.52   │  42  ▓       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  ▓ = Blue (Back depth)    ░ = Pink (Lay depth)    ►◄ = Last Trade Price     │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Technical Details
+## Technical Considerations
 
-### New Import
-Add `X` icon from lucide-react:
-```typescript
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, DollarSign, X } from 'lucide-react';
-```
+1. **Performance**: Depth bars use CSS percentage widths (no JS animation)
+2. **Responsiveness**: Side-by-side ladders stack on mobile
+3. **Accessibility**: Maintain keyboard navigation and ARIA labels
+4. **Theme compatibility**: Colors work in both light and dark modes
 
-### Clear Preview Function
-The preview is already using a Map, so clearing is simple:
-```typescript
-setPreviewPrices(new Map());
-```
-
-### Cancel All Behavior
-The existing `handleCancelAll` function already:
-- Clears `deployedOrders`
-- Calls `clearSelections()`
-- Shows loading state with `isCancelling`
