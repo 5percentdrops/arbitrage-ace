@@ -1,239 +1,345 @@
 
 
-# BetAngel-Style Trading Ladder Redesign
+# Polymarket + BetAngel Hybrid Trading Ladder
 
-## Current vs BetAngel Style Comparison
+## Design Philosophy Comparison
+
+| Aspect | Current BetAngel | Polymarket Style | Hybrid Approach |
+|--------|------------------|------------------|-----------------|
+| **Color scheme** | Blue (Back) / Pink (Lay) | Green (Bid) / Red (Ask) | Keep BetAngel blue/pink with Polymarket's clean contrast |
+| **Layout** | Separate YES/NO ladders | Single shared order book | Keep side-by-side but add shared book visualization |
+| **Price display** | Decimal (0.48, 0.52) | Percentage with cents (48c, 52%) | Show both: "48c" with "48%" subtext |
+| **Visual style** | Dense trading terminal | Clean, minimal, lots of whitespace | Clean cards with compact rows |
+| **Spread indicator** | Implicit in ladder | Explicit "0.3c spread" callout | Add prominent spread pill |
+
+---
+
+## Visual Comparison
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  CURRENT LAYOUT                                                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  YES Bid │ YES Price │ YES Ask │  Spread/Edge  │ NO Bid │ NO Price │ NO Ask │
-│   150    │   0.48    │   200   │ 0.99 +1.2%    │  180   │   0.51   │   220  │
-│   120    │   0.49    │   180   │ 0.98 +0.8%    │  150   │   0.50   │   190  │
-└─────────────────────────────────────────────────────────────────────────────┘
+CURRENT BETANGEL STYLE:
+┌─────────────────────────────────────────┐
+│         YES          │         NO       │
+│  BACK │ PRICE │ LAY  │ BACK │ PRICE │ LAY │
+│ ████  │ 0.52  │  42  │ ████ │ 0.48  │  38 │
+└─────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  BETANGEL STYLE                                                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│              YES LADDER              │             NO LADDER                │
-│  Back   │  PRICE  │   Lay            │   Back   │  PRICE  │   Lay          │
-│ (Blue)  │         │  (Pink)          │  (Blue)  │         │  (Pink)        │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ████   │  0.52   │   42             │   ████   │  0.48   │   38           │
-│  ████   │  0.51   │   65             │   ████   │  0.49   │   52           │
-│  ████   │ ►0.50◄  │   89             │   ████   │ ►0.50◄  │   71           │  ← LTP (yellow)
-│  ████   │  0.49   │  112             │   ████   │  0.51   │   95           │
-│  ████   │  0.48   │  145             │   ████   │  0.52   │  128           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Blue/Pink depth bars | Centered on LTP | Auto-scroll option                │
-└─────────────────────────────────────────────────────────────────────────────┘
+POLYMARKET + BETANGEL HYBRID:
+┌─────────────────────────────────────────────────────────┐
+│  ┌─────────────────┐    SPREAD: 2¢    ┌─────────────────┐│
+│  │      YES        │                  │       NO        ││
+│  │   52% chance    │                  │    48% chance   ││
+│  └─────────────────┘                  └─────────────────┘│
+├─────────────────────────────────────────────────────────┤
+│    BUY     │   52¢   │ SELL  ║  BUY   │   48¢   │  SELL │
+│  ▓▓▓  150  │   52%   │  42 ░ ║ ░  38  │   48%   │ 95 ▓▓▓│
+│  ▓▓   120  │  ►51¢◄  │  65 ░░║ ░░ 52  │  ►49¢◄  │112 ▓▓▓│
+└─────────────────────────────────────────────────────────┘
 ```
-
-## Key BetAngel Features to Implement
-
-### 1. Color Scheme Overhaul
-| Element | Current | BetAngel Style |
-|---------|---------|----------------|
-| Back/Buy cells | Green tints | **Blue** (`#6BBBFC` or similar) |
-| Lay/Sell cells | Green/Red tints | **Pink** (`#F9A8C8` or similar) |
-| Price column | Green/Red text | **White/Yellow on dark** |
-| LTP indicator | Border only | **Yellow highlight + arrow** |
-| Depth bars | None | **Gradient fill proportional to volume** |
-
-### 2. Layout Changes
-- **Separate YES and NO ladders** side-by-side (instead of interleaved)
-- **Vertical price column** in the center of each ladder
-- **Depth visualization bars** behind bid/ask values
-- **Compact row height** (more rows visible)
-- **Auto-center toggle** to keep LTP in the middle
-
-### 3. Visual Enhancements
-- **Depth gradient bars**: Show volume as colored bars behind numbers
-- **LTP momentum colors**: Green (up), Red (down), Yellow (same)
-- **P/L projection column**: Show potential profit at each price level
-- **Quick stake buttons**: Row of preset amounts at the top
-
-### 4. Interaction Improvements
-- **One-click trading**: Click Back/Lay cell to place order immediately
-- **Drag-and-drop orders**: Move pending orders to different prices
-- **Hover P/L preview**: Show projected P/L when hovering any row
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: New Color Variables (index.css)
+### 1. Add Polymarket Color Variables
 
-Add BetAngel-specific trading colors:
+**File:** `src/index.css`
+
+Add Polymarket-inspired colors alongside BetAngel colors:
 
 ```css
-/* BetAngel Trading Colors */
---betangel-back: 207 90% 70%;      /* Blue for Back/Buy */
---betangel-lay: 340 80% 80%;       /* Pink for Lay/Sell */
---betangel-ltp-up: 142 70% 45%;    /* Green - price rising */
---betangel-ltp-down: 0 70% 55%;    /* Red - price falling */
---betangel-ltp-same: 45 95% 55%;   /* Yellow - no change */
---betangel-depth-back: 207 90% 70%;
---betangel-depth-lay: 340 80% 80%;
+/* Polymarket-inspired colors */
+--poly-yes: 142 70% 45%;        /* Green for YES outcome */
+--poly-no: 0 70% 55%;           /* Red for NO outcome */
+--poly-bid: 142 60% 50%;        /* Green for bids */
+--poly-ask: 0 60% 55%;          /* Red for asks */
+--poly-spread: 45 90% 50%;      /* Yellow for spread highlight */
+--poly-probability: 210 100% 60%; /* Blue for probability display */
 ```
 
-### Phase 2: New LadderCell Component
+### 2. Create Probability Header Component
 
-Create a BetAngel-style cell with depth bars:
+**New File:** `src/components/trading/auto/ProbabilityHeader.tsx`
+
+A Polymarket-style probability display above each ladder:
 
 ```tsx
-interface BetAngelCellProps {
-  value: number;           // Volume/size
-  maxDepth: number;        // Max volume for scaling
-  type: 'back' | 'lay';    // Blue or Pink
-  onClick?: () => void;
-  hasOrder?: boolean;
+interface ProbabilityHeaderProps {
+  side: 'YES' | 'NO';
+  probability: number;  // 0.52 → "52%"
+  price: number;        // 0.52 → "52¢"
+  change24h?: number;   // +2.3%
 }
 
-function BetAngelCell({ value, maxDepth, type, onClick, hasOrder }: BetAngelCellProps) {
-  const depthPercent = Math.min((value / maxDepth) * 100, 100);
+function ProbabilityHeader({ side, probability, price, change24h }: ProbabilityHeaderProps) {
+  return (
+    <div className={cn(
+      "rounded-lg p-4 text-center",
+      side === 'YES' 
+        ? "bg-[hsl(var(--poly-yes))]/10 border border-[hsl(var(--poly-yes))]/30" 
+        : "bg-[hsl(var(--poly-no))]/10 border border-[hsl(var(--poly-no))]/30"
+    )}>
+      <div className="text-2xl font-bold">
+        {side === 'YES' ? '✓' : '✗'} {side}
+      </div>
+      <div className="text-3xl font-mono font-bold mt-1">
+        {Math.round(probability * 100)}%
+      </div>
+      <div className="text-sm text-muted-foreground mt-1">
+        Buy at {Math.round(price * 100)}¢
+      </div>
+      {change24h && (
+        <div className={cn(
+          "text-xs mt-2 font-medium",
+          change24h > 0 ? "text-success" : "text-destructive"
+        )}>
+          {change24h > 0 ? '↑' : '↓'} {Math.abs(change24h).toFixed(1)}% (24h)
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### 3. Add Spread Indicator Component
+
+**New File:** `src/components/trading/auto/SpreadIndicator.tsx`
+
+A prominent spread display between the two ladders:
+
+```tsx
+interface SpreadIndicatorProps {
+  yesBestAsk: number;
+  noBestAsk: number;
+  spreadCents: number;
+}
+
+function SpreadIndicator({ yesBestAsk, noBestAsk, spreadCents }: SpreadIndicatorProps) {
+  const totalCost = yesBestAsk + noBestAsk;
+  const hasArb = totalCost < 1.0;
+  
+  return (
+    <div className="flex flex-col items-center justify-center py-4">
+      <div className={cn(
+        "px-4 py-2 rounded-full font-mono text-sm font-bold",
+        hasArb 
+          ? "bg-success/20 text-success border border-success/50"
+          : "bg-muted text-muted-foreground"
+      )}>
+        {hasArb ? (
+          <>Arb: {((1 - totalCost) * 100).toFixed(1)}%</>
+        ) : (
+          <>Spread: {spreadCents}¢</>
+        )}
+      </div>
+      <div className="text-xs text-muted-foreground mt-2">
+        YES {Math.round(yesBestAsk * 100)}¢ + NO {Math.round(noBestAsk * 100)}¢
+      </div>
+    </div>
+  );
+}
+```
+
+### 4. Update BetAngelLadder Header Styling
+
+**File:** `src/components/trading/auto/BetAngelLadder.tsx`
+
+Replace the simple header with Polymarket-style probability display:
+
+```tsx
+{/* Header - Polymarket style */}
+<div className={cn(
+  "p-4 text-center",
+  side === 'YES' 
+    ? "bg-gradient-to-b from-[hsl(var(--poly-yes))]/20 to-transparent" 
+    : "bg-gradient-to-b from-[hsl(var(--poly-no))]/20 to-transparent"
+)}>
+  <div className={cn(
+    "text-lg font-bold",
+    side === 'YES' ? "text-[hsl(var(--poly-yes))]" : "text-[hsl(var(--poly-no))]"
+  )}>
+    {side}
+  </div>
+  <div className="text-2xl font-mono font-bold text-foreground">
+    {Math.round(ltpPrice * 100)}¢
+  </div>
+  <div className="text-xs text-muted-foreground">
+    {Math.round(ltpPrice * 100)}% chance
+  </div>
+</div>
+```
+
+### 5. Update Column Headers with Polymarket Language
+
+**File:** `src/components/trading/auto/BetAngelLadder.tsx`
+
+Change "BACK/LAY" to "BUY/SELL" for Polymarket familiarity:
+
+```tsx
+<div className="grid grid-cols-3 text-[10px] font-medium uppercase tracking-wider border-b border-border">
+  <div className="py-1.5 px-2 text-center bg-[hsl(var(--betangel-back))]/30 text-muted-foreground">
+    Buy
+  </div>
+  <div className="py-1.5 px-2 text-center bg-muted/30 text-muted-foreground">
+    Price
+  </div>
+  <div className="py-1.5 px-2 text-center bg-[hsl(var(--betangel-lay))]/30 text-muted-foreground">
+    Sell
+  </div>
+</div>
+```
+
+### 6. Update Price Display Format
+
+**File:** `src/components/trading/auto/BetAngelPriceCell.tsx`
+
+Show prices in cents (Polymarket style) with percentage subtext:
+
+```tsx
+function BetAngelPriceCell({ price, isLTP, momentum, isProfitable, onClick }: BetAngelPriceCellProps) {
+  const cents = Math.round(price * 100);
   
   return (
     <div 
       onClick={onClick}
       className={cn(
-        "relative h-7 flex items-center justify-center cursor-pointer",
-        "font-mono text-xs font-semibold",
-        type === 'back' ? "text-blue-900" : "text-pink-900"
+        "h-8 flex flex-col items-center justify-center font-mono cursor-pointer",
+        // ... existing styling
       )}
     >
-      {/* Depth bar background */}
-      <div 
-        className={cn(
-          "absolute inset-y-0 right-0",
-          type === 'back' 
-            ? "bg-[hsl(var(--betangel-back))]" 
-            : "bg-[hsl(var(--betangel-lay))]"
-        )}
-        style={{ width: `${depthPercent}%` }}
-      />
-      {/* Value text */}
-      <span className="relative z-10">{value}</span>
-    </div>
-  );
-}
-```
-
-### Phase 3: New BetAngelLadder Layout
-
-Restructure to show two separate vertical ladders:
-
-```tsx
-<div className="grid grid-cols-2 gap-4">
-  {/* YES Ladder */}
-  <div className="flex flex-col">
-    <div className="text-center font-bold text-success mb-2">YES</div>
-    <div className="grid grid-cols-3 text-[10px] border-b">
-      <span className="text-center bg-[hsl(var(--betangel-back))]/30">BACK</span>
-      <span className="text-center">PRICE</span>
-      <span className="text-center bg-[hsl(var(--betangel-lay))]/30">LAY</span>
-    </div>
-    {levels.map(level => (
-      <div key={level.price} className="grid grid-cols-3 h-7 border-b border-border/30">
-        <BetAngelCell value={level.yesBid} type="back" maxDepth={maxYesDepth} />
-        <PriceCell price={level.yesAskPrice} isLTP={isLTP} momentum={momentum} />
-        <BetAngelCell value={level.yesAsk} type="lay" maxDepth={maxYesDepth} />
+      <div className="flex items-center text-sm font-bold">
+        {isLTP && <span className="mr-0.5 text-[10px]">►</span>}
+        {cents}¢
+        {isLTP && <span className="ml-0.5 text-[10px]">◄</span>}
       </div>
-    ))}
-  </div>
-
-  {/* NO Ladder */}
-  <div className="flex flex-col">
-    <div className="text-center font-bold text-destructive mb-2">NO</div>
-    {/* Mirror layout */}
-  </div>
-</div>
-```
-
-### Phase 4: LTP (Last Traded Price) Indicator
-
-Add momentum-colored price highlighting:
-
-```tsx
-function PriceCell({ price, isLTP, momentum }: PriceCellProps) {
-  return (
-    <div className={cn(
-      "h-7 flex items-center justify-center font-mono text-xs font-bold",
-      isLTP && momentum === 'up' && "bg-[hsl(var(--betangel-ltp-up))]/30 text-success",
-      isLTP && momentum === 'down' && "bg-[hsl(var(--betangel-ltp-down))]/30 text-destructive",
-      isLTP && momentum === 'same' && "bg-[hsl(var(--betangel-ltp-same))]/30 text-yellow-500"
-    )}>
-      {isLTP && <span className="mr-1">►</span>}
-      {price.toFixed(2)}
-      {isLTP && <span className="ml-1">◄</span>}
+      <div className="text-[9px] text-muted-foreground">
+        {cents}%
+      </div>
     </div>
   );
 }
 ```
 
-### Phase 5: Quick Stake Buttons
+### 7. Update AutoLadder Layout
 
-Add preset amount buttons at the top:
+**File:** `src/components/trading/auto/AutoLadder.tsx`
+
+Add the spread indicator between the two ladders:
 
 ```tsx
-<div className="flex items-center gap-2 p-2 border-b">
-  {[50, 100, 250, 500, 1000].map(stake => (
-    <Button 
-      key={stake}
-      variant="outline" 
-      size="sm"
-      onClick={() => setPositionSize(stake)}
-      className={cn(
-        "h-7 px-3 font-mono text-xs",
-        positionSize === stake && "bg-primary text-primary-foreground"
-      )}
-    >
-      ${stake}
-    </Button>
-  ))}
+<div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-2 p-4">
+  {/* YES Ladder */}
+  <BetAngelLadder
+    side="YES"
+    // ... props
+  />
+  
+  {/* Center Spread Indicator */}
+  <div className="hidden md:flex">
+    <SpreadIndicator
+      yesBestAsk={orderBook?.refPrice ?? 0.5}
+      noBestAsk={1 - (orderBook?.refPrice ?? 0.5)}
+      spreadCents={2}
+    />
+  </div>
+  
+  {/* NO Ladder */}
+  <BetAngelLadder
+    side="NO"
+    // ... props
+  />
 </div>
+```
+
+### 8. Add Quick Trade Buttons (Polymarket Style)
+
+**New File:** `src/components/trading/auto/QuickTradeButtons.tsx`
+
+Polymarket-style "Buy Yes" / "Buy No" buttons:
+
+```tsx
+interface QuickTradeButtonsProps {
+  yesPrice: number;
+  noPrice: number;
+  stake: number;
+  onBuyYes: () => void;
+  onBuyNo: () => void;
+}
+
+function QuickTradeButtons({ yesPrice, noPrice, stake, onBuyYes, onBuyNo }: QuickTradeButtonsProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3 p-4 border-t border-border">
+      <Button 
+        onClick={onBuyYes}
+        className="h-12 bg-[hsl(var(--poly-yes))] hover:bg-[hsl(var(--poly-yes))]/90 text-white"
+      >
+        <div className="flex flex-col items-center">
+          <span className="font-bold">Buy Yes</span>
+          <span className="text-xs opacity-80">{Math.round(yesPrice * 100)}¢ → ${stake}</span>
+        </div>
+      </Button>
+      <Button 
+        onClick={onBuyNo}
+        className="h-12 bg-[hsl(var(--poly-no))] hover:bg-[hsl(var(--poly-no))]/90 text-white"
+      >
+        <div className="flex flex-col items-center">
+          <span className="font-bold">Buy No</span>
+          <span className="text-xs opacity-80">{Math.round(noPrice * 100)}¢ → ${stake}</span>
+        </div>
+      </Button>
+    </div>
+  );
+}
 ```
 
 ---
 
-## Files to Modify
+## Files to Modify/Create
 
-| File | Changes |
-|------|---------|
-| `src/index.css` | Add BetAngel color variables |
-| `src/components/trading/auto/LadderRow.tsx` | Complete rewrite to BetAngel cell style with depth bars |
-| `src/components/trading/auto/AutoLadder.tsx` | Restructure to side-by-side YES/NO ladders, add quick stakes, add LTP tracking |
-| `src/hooks/useAutoOrderBook.ts` | Add LTP momentum tracking (up/down/same) |
+| File | Action | Changes |
+|------|--------|---------|
+| `src/index.css` | Modify | Add Polymarket color variables |
+| `src/components/trading/auto/SpreadIndicator.tsx` | Create | Spread display between ladders |
+| `src/components/trading/auto/QuickTradeButtons.tsx` | Create | Buy Yes/Buy No action buttons |
+| `src/components/trading/auto/BetAngelLadder.tsx` | Modify | Update header to show probability %, change BACK/LAY to BUY/SELL |
+| `src/components/trading/auto/BetAngelPriceCell.tsx` | Modify | Show prices as cents (52¢) with % subtext |
+| `src/components/trading/auto/AutoLadder.tsx` | Modify | Add SpreadIndicator, add QuickTradeButtons |
 
 ---
 
-## Visual Preview After Changes
+## Visual Result After Changes
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ BTC Order Book                    [Pause] [⟳]     $50  $100  $250  $500  $1K │
-│ Tick: 0.01 | Range: 0.40-0.60                              ☑ Arb Only        │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│           ═══════ YES ═══════          │         ═══════ NO ═══════          │
-│    BACK     │  PRICE  │    LAY         │    BACK    │  PRICE  │    LAY       │
-│ ▓▓▓▓▓  150  │  0.52   │  42   ░        │ ░░░░   38  │  0.48   │  95  ▓▓▓▓    │
-│ ▓▓▓▓   120  │  0.51   │  65   ░░       │ ░░     52  │  0.49   │ 112  ▓▓▓▓▓   │
-│ ▓▓▓    89   │ ►0.50◄  │  89   ░░░      │ ░░░    71  │ ►0.50◄  │  89  ▓▓▓     │  ← LTP (yellow)
-│ ▓▓     65   │  0.49   │ 112   ░░░░     │ ░░░░   95  │  0.51   │  65  ▓▓      │
-│ ▓      42   │  0.48   │ 145   ░░░░░    │ ░░░░░ 128  │  0.52   │  42  ▓       │
-├──────────────────────────────────────────────────────────────────────────────┤
-│  ▓ = Blue (Back depth)    ░ = Pink (Lay depth)    ►◄ = Last Trade Price     │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│ BTC Order Book  [Pause] [⟳]    $50  $100  $250  $500  $1K      │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌─────────────────┐   ┌──────────┐   ┌─────────────────┐     │
+│  │      YES        │   │ SPREAD   │   │       NO        │     │
+│  │    52% chance   │   │   2¢     │   │   48% chance    │     │
+│  │   Buy at 52¢    │   │ ────────│   │   Buy at 48¢    │     │
+│  └─────────────────┘   │ Arb: 1%  │   └─────────────────┘     │
+│                        └──────────┘                            │
+│   BUY    │   52¢   │  SELL ║  BUY   │   48¢   │  SELL        │
+│          │   52%   │       ║        │   48%   │              │
+│ ▓▓▓ 150  │   52¢   │  42 ░ ║ ░  38  │   48¢   │  95 ▓▓▓     │
+│ ▓▓  120  │  ►51¢◄  │  65 ░░║ ░░ 52  │  ►49¢◄  │ 112 ▓▓▓     │
+│ ▓   89   │   50¢   │  89 ░░║ ░░░71  │   50¢   │  89 ▓▓      │
+│          │   49¢   │ 112 ░░║ ░░░░95 │   51¢   │  65 ▓       │
+│          │   48¢   │ 145 ░░║ ░░░128 │   52¢   │  42         │
+├────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐   ┌─────────────────────┐            │
+│  │     Buy Yes         │   │      Buy No         │            │
+│  │   52¢ → $250        │   │    48¢ → $250       │            │
+│  └─────────────────────┘   └─────────────────────┘            │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Technical Considerations
+## Key Hybrid Elements
 
-1. **Performance**: Depth bars use CSS percentage widths (no JS animation)
-2. **Responsiveness**: Side-by-side ladders stack on mobile
-3. **Accessibility**: Maintain keyboard navigation and ARIA labels
-4. **Theme compatibility**: Colors work in both light and dark modes
+1. **BetAngel kept**: Blue/Pink depth bars, ladder structure, LTP indicators, tier labels
+2. **Polymarket added**: Probability headers, cent pricing, spread indicator, Buy Yes/No buttons, cleaner card styling
+3. **Best of both**: Professional trading depth visualization + intuitive prediction market UX
 
