@@ -160,16 +160,18 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   // Auto-deploy effect: deploy orders when autoTradeEnabled and profitable levels change
   useEffect(() => {
     // Only run when auto-trade is enabled and not paused
-    if (!autoTradeEnabled || isPaused || isDeploying) return;
+    if (!autoTradeEnabled || isPaused || isDeploying || !orderBook) return;
     
-    // Get current top 7 profitable levels
-    const top7 = getTop7Profitable();
+    // Get current top 7 profitable levels directly from levelEdges
+    const top7 = Array.from(levelEdges.entries())
+      .filter(([_, edge]) => edge.isProfitable)
+      .sort((a, b) => b[1].netEdgePct - a[1].netEdgePct)
+      .slice(0, 7);
+      
     if (top7.length === 0) {
       // Clear orders if no profitable levels
-      if (deployedOrders.length > 0) {
-        setDeployedOrders([]);
-        prevProfitableLevelsRef.current = '';
-      }
+      prevProfitableLevelsRef.current = '';
+      setDeployedOrders([]);
       return;
     }
     
@@ -184,7 +186,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     const tierShares = calculateTieredShares(positionSize, top7.length);
     
     const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
-      const level = orderBook?.levels.find(l => l.price === price);
+      const level = orderBook.levels.find(l => l.price === price);
       if (!level) return [];
       
       return [
@@ -214,7 +216,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     // Replace all orders with new ones (simulates cancel + redeploy)
     setDeployedOrders(newOrders);
     
-  }, [autoTradeEnabled, isPaused, isDeploying, getTop7Profitable, positionSize, orderBook, deployedOrders.length]);
+  }, [autoTradeEnabled, isPaused, isDeploying, levelEdges, positionSize, orderBook]);
 
   // Clear ref when auto-trade is disabled
   useEffect(() => {
