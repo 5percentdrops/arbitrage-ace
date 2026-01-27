@@ -17,7 +17,7 @@ import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
 // Components
 import { TradingLayout } from '@/components/layout/TradingLayout';
 import { ApiConfigPanel } from '@/components/config/ApiConfigPanel';
-import { FiltersPanel } from '@/components/settings/FiltersPanel';
+
 import { ExitLogicPanel } from '@/components/settings/ExitLogicPanel';
 import { OrderHistoryTable } from '@/components/trading/OrderHistoryTable';
 import { PerformancePanel } from '@/components/trading/PerformancePanel';
@@ -245,7 +245,7 @@ const Index = () => {
             {/* Left Column - Controls & Configuration */}
             <div className="lg:col-span-4 xl:col-span-3 space-y-4">
               <ExitLogicPanel settings={state.exitSettings} onUpdate={updateExitSettings} disabled={state.status === 'running'} />
-              <FiltersPanel filters={state.filters} onUpdate={updateFilters} />
+              
               <ApiConfigPanel apiKey={apiConfig.apiKey} apiSecret={apiConfig.apiSecret} status={apiConfig.status} lastConnected={apiConfig.lastConnected} error={apiConfig.error} isTesting={isTestingApi} onCredentialsChange={updateCredentials} onTestConnection={handleApiTest} onDisconnect={disconnectApi} />
             </div>
 
