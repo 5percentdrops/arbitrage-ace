@@ -1,64 +1,70 @@
 
-# Fix Order Book Filtering Logic
+# Fix Order Book Best Price Calculation
 
 ## Problem Analysis
 
-The current filtering logic requires **both** YES and NO ask prices to fall within their respective 10% ranges below the best ask. This is overly restrictive because:
+The order book displays prices higher than the "best ask" because there's a mismatch between:
 
-1. YES prices cluster around `price` (e.g., 0.48, 0.50, 0.52)
-2. NO prices cluster around `1 - price` (e.g., 0.52, 0.50, 0.48)
+1. **Static best prices**: `orderBook.best.yesAsk` is set to `refPrice` (e.g., 50c)
+2. **Dynamic level prices**: `level.yesAskPrice` values are randomly generated and can be higher or lower than `refPrice`
 
-These are different price bands. A level with `yesAskPrice = 0.48` will have `noAskPrice ≈ 0.52`, so it's nearly impossible for both to be in range simultaneously.
+For example, with `refPrice = 0.50`:
+- `best.yesAsk = 0.50` (static)
+- But a level might have `yesAskPrice = 0.52` (due to premium added in mock generation)
 
-**Current logic (too restrictive):**
+The filtering logic uses these incorrect "best" values, so levels with prices above the true market best are slipping through.
+
+## Root Cause
+
+In `src/services/autoApi.ts`, the `best` prices are calculated statically from `refPrice`:
+
+```typescript
+best: {
+  yesBid: Math.round((refPrice - 0.01) * 100) / 100,
+  yesAsk: refPrice,  // Static - not the actual minimum ask!
+  noBid: Math.round((1 - refPrice) * 100) / 100,
+  noAsk: Math.round((1 - refPrice + 0.01) * 100) / 100,
+}
 ```
-yesInRange AND noInRange → almost nothing passes
-```
+
+But the actual ask prices in `levels` are generated with random premiums/discounts, so the true best (lowest) ask may differ.
 
 ## Solution
 
-Change the filtering to require **either** YES or NO to be in a valid limit order range below best ask, rather than both. This makes logical sense because:
-
-- If you want to place a limit order on the YES side, you need YES price to be below the best YES ask
-- If you want to place a limit order on the NO side, you need NO price to be below the best NO ask
-- The ladder shows opportunities on both sides, so showing a level when *either* side has a valid limit order opportunity is appropriate
-
-**New logic (inclusive):**
-```
-yesInRange OR noInRange → shows more levels
-```
-
-Alternatively, we could filter each ladder independently (YES ladder shows YES range, NO ladder shows NO range), but that would require architectural changes to pass different level sets to each ladder.
+Update the mock data generator to calculate `best` prices dynamically from the actual level data. This ensures `best.yesAsk` is truly the lowest YES ask price available, and `best.noAsk` is the lowest NO ask price.
 
 ---
 
-## Implementation
+## Technical Implementation
 
-### File: `src/components/trading/auto/AutoLadder.tsx`
+### File: `src/services/autoApi.ts`
 
-**Change the filter condition (around lines 223-229):**
+**Update the best price calculation (lines 126-140):**
 
-Replace:
+After generating all levels, calculate the actual minimum ask prices:
+
 ```typescript
-return orderBook.levels.filter(level => {
-  // YES ask must be within range below best (exclusive of best)
-  const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
-  // NO ask must be within range below best (exclusive of best)
-  const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
-  
-  if (!yesInRange || !noInRange) return false;
-```
+// Calculate actual best prices from generated levels
+const bestYesAsk = Math.min(...levels.map(l => l.yesAskPrice));
+const bestNoAsk = Math.min(...levels.map(l => l.noAskPrice));
+const bestYesBid = Math.max(...levels.filter(l => l.yesBid > 0).map(l => l.yesAskPrice - 0.01));
+const bestNoBid = Math.max(...levels.filter(l => l.noBid > 0).map(l => l.noAskPrice - 0.01));
 
-With:
-```typescript
-return orderBook.levels.filter(level => {
-  // YES ask within range below best (exclusive of best)
-  const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
-  // NO ask within range below best (exclusive of best)
-  const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
-  
-  // Show level if EITHER side has a valid limit order opportunity
-  if (!yesInRange && !noInRange) return false;
+return {
+  tick,
+  refPrice,
+  levels,
+  best: {
+    yesBid: Math.round(bestYesBid * 100) / 100,
+    yesAsk: Math.round(bestYesAsk * 100) / 100,
+    noBid: Math.round(bestNoBid * 100) / 100,
+    noAsk: Math.round(bestNoAsk * 100) / 100,
+  },
+  fee: {
+    takerPct: 0.4,
+    makerPct: 0.0,
+  },
+};
 ```
 
 ---
@@ -67,6 +73,6 @@ return orderBook.levels.filter(level => {
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/AutoLadder.tsx` | Change filter from AND to OR logic so levels show if either YES or NO has a valid limit order price |
+| `src/services/autoApi.ts` | Calculate `best` prices dynamically from actual level ask prices instead of using static values from `refPrice` |
 
-This simple one-line change (from `!yesInRange || !noInRange` to `!yesInRange && !noInRange`) will show many more levels while still maintaining the limit order price constraint for at least one side.
+This ensures the filtering logic in `AutoLadder.tsx` correctly identifies which prices are below the market's true best ask, so only valid limit order opportunities are displayed.
