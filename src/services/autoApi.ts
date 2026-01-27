@@ -123,15 +123,21 @@ export function generateMockOrderBook(): OrderBookData {
   // Sort by price descending (highest at top)
   levels.sort((a, b) => b.price - a.price);
   
+  // Calculate actual best prices from generated levels
+  const bestYesAsk = Math.min(...levels.map(l => l.yesAskPrice));
+  const bestNoAsk = Math.min(...levels.map(l => l.noAskPrice));
+  const bestYesBid = Math.max(...levels.filter(l => l.yesBid > 0).map(l => l.yesAskPrice - 0.01));
+  const bestNoBid = Math.max(...levels.filter(l => l.noBid > 0).map(l => l.noAskPrice - 0.01));
+  
   return {
     tick,
     refPrice,
     levels,
     best: {
-      yesBid: Math.round((refPrice - 0.01) * 100) / 100,
-      yesAsk: refPrice,
-      noBid: Math.round((1 - refPrice) * 100) / 100,
-      noAsk: Math.round((1 - refPrice + 0.01) * 100) / 100,
+      yesBid: Math.round(bestYesBid * 100) / 100,
+      yesAsk: Math.round(bestYesAsk * 100) / 100,
+      noBid: Math.round(bestNoBid * 100) / 100,
+      noAsk: Math.round(bestNoAsk * 100) / 100,
     },
     fee: {
       takerPct: 0.4,
