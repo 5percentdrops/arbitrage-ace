@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import type { OrderBookLevel, LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
+import type { OrderBookLevel, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 
 interface LadderRowProps {
   level: OrderBookLevel;
@@ -13,6 +13,10 @@ interface LadderRowProps {
   onYesClick: (type: 'bid' | 'ask') => void;
   onNoClick: (type: 'bid' | 'ask') => void;
   onArbClick?: () => void;
+  onHover?: (isHovering: boolean) => void;
+  isInPreview?: boolean;
+  previewTier?: number;
+  tierAllocation?: number;
 }
 
 export function LadderRow({
@@ -27,19 +31,33 @@ export function LadderRow({
   onYesClick,
   onNoClick,
   onArbClick,
+  onHover,
+  isInPreview,
+  previewTier,
+  tierAllocation,
 }: LadderRowProps) {
   const noPrice = 1 - level.price;
 
   return (
     <div
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
       className={cn(
-        "grid grid-cols-9 text-xs font-mono border-b border-border/50 transition-all duration-150",
+        "grid grid-cols-9 text-xs font-mono border-b border-border/50 transition-all duration-150 relative",
         isSelected && "bg-primary/20 border-primary/50",
         isProfitable && !isSelected && "bg-success/10",
         isSuggested && "ring-1 ring-dashed ring-warning",
-        isMidpoint && "border-b-2 border-b-primary"
+        isMidpoint && "border-b-2 border-b-primary",
+        isInPreview && "ring-2 ring-inset ring-primary/60 bg-primary/10"
       )}
     >
+      {/* Tier Label Overlay */}
+      {isInPreview && previewTier && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10 text-[9px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-r font-bold">
+          L{previewTier}: ${tierAllocation}
+        </div>
+      )}
+
       {/* YES Side */}
       <Cell
         value={level.yesBid}
