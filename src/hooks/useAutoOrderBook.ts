@@ -9,7 +9,7 @@ import type {
 import { generateMockOrderBook } from '@/services/autoApi';
 
 const POLL_INTERVAL = 300; // 300ms
-const RANGE_PCT = 0.05; // ±5% range around reference
+const RANGE_PCT = 0.15; // ±15% range around reference
 
 interface UseAutoOrderBookOptions {
   marketId: string;
