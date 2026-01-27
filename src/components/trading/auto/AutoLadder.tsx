@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
-import { AutoOrdersPanel } from './AutoOrdersPanel';
+import { LimitOrdersTable } from './LimitOrdersTable';
 import { BetAngelLadder } from './BetAngelLadder';
 import { QuickStakeButtons } from './QuickStakeButtons';
 import { SpreadIndicator } from './SpreadIndicator';
@@ -96,6 +96,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         filledShares: 0,
         fillPercent: 0,
         status: 'pending',
+        arbAmount: (1 - currentEdge.totalCost) * Math.floor(size * (1 - i * 0.1)),
       }));
       
       setDeployedOrders(mockOrders);
@@ -191,35 +192,41 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     // Auto-deploy orders at these levels
     const tierShares = calculateTieredShares(positionSize, top7.length);
     
-    const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
-      const level = orderBook.levels.find(l => l.price === price);
-      if (!level) return [];
-      
-      return [
-        {
-          id: `auto-${Date.now()}-yes-${index}`,
-          ladderIndex: index + 1,
-          side: 'YES' as const,
-          price: level.yesAskPrice,
-          levelPrice: price,
-          shares: tierShares[index],
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending' as const,
-        },
-        {
-          id: `auto-${Date.now()}-no-${index}`,
-          ladderIndex: index + 1,
-          side: 'NO' as const,
-          price: level.noAskPrice,
-          levelPrice: price,
-          shares: tierShares[index],
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending' as const,
-        },
-      ];
-    });
+      const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
+        const level = orderBook.levels.find(l => l.price === price);
+        if (!level) return [];
+        
+        const totalCost = level.yesAskPrice + level.noAskPrice;
+        const arbPerShare = 1 - totalCost;
+        const arbAmount = arbPerShare * tierShares[index];
+        
+        return [
+          {
+            id: `auto-${Date.now()}-yes-${index}`,
+            ladderIndex: index + 1,
+            side: 'YES' as const,
+            price: level.yesAskPrice,
+            levelPrice: price,
+            shares: tierShares[index],
+            filledShares: 0,
+            fillPercent: 0,
+            status: 'pending' as const,
+            arbAmount,
+          },
+          {
+            id: `auto-${Date.now()}-no-${index}`,
+            ladderIndex: index + 1,
+            side: 'NO' as const,
+            price: level.noAskPrice,
+            levelPrice: price,
+            shares: tierShares[index],
+            filledShares: 0,
+            fillPercent: 0,
+            status: 'pending' as const,
+            arbAmount,
+          },
+        ];
+      });
     
     // Replace all orders with new ones (simulates cancel + redeploy)
     setDeployedOrders(newOrders);
@@ -276,6 +283,9 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      const arbPerShare = 1 - pairedSelection.totalCost;
+      const arbAmount = arbPerShare * pairedSelection.yesAllocation;
+      
       const newOrders: ActiveLadderOrder[] = [
         {
           id: `order-${Date.now()}-yes`,
@@ -287,6 +297,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           filledShares: 0,
           fillPercent: 0,
           status: 'pending',
+          arbAmount,
         },
         {
           id: `order-${Date.now()}-no`,
@@ -298,6 +309,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           filledShares: 0,
           fillPercent: 0,
           status: 'pending',
+          arbAmount,
         },
       ];
       
@@ -336,6 +348,11 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price], index) => {
         const level = orderBook?.levels.find(l => l.price === price);
         if (!level) return [];
+        
+        const totalCost = level.yesAskPrice + level.noAskPrice;
+        const arbPerShare = 1 - totalCost;
+        const arbAmount = arbPerShare * tierShares[index];
+        
         return [
           {
             id: `order-${Date.now()}-yes-${index}`,
@@ -347,6 +364,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             filledShares: 0,
             fillPercent: 0,
             status: 'pending' as const,
+            arbAmount,
           },
           {
             id: `order-${Date.now()}-no-${index}`,
@@ -358,6 +376,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             filledShares: 0,
             fillPercent: 0,
             status: 'pending' as const,
+            arbAmount,
           },
         ];
       });
@@ -710,14 +729,20 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             hasSelection={hasSelection}
           />
 
-          <AutoOrdersPanel
+          <LimitOrdersTable
             orders={deployedOrders}
             onCancelAll={handleCancelAll}
-            onRefresh={refresh}
             isCancelling={isCancelling}
           />
         </div>
       </div>
+
+      {/* Limit Orders Table Below Ladder */}
+      <LimitOrdersTable
+        orders={deployedOrders}
+        onCancelAll={handleCancelAll}
+        isCancelling={isCancelling}
+      />
     </div>
   );
 }
