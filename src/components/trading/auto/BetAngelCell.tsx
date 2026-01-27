@@ -5,7 +5,7 @@ interface BetAngelCellProps {
   value: number;
   maxDepth: number;
   type: 'back' | 'lay';
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   hasOrder?: boolean;
   orderLabel?: string;
 }
