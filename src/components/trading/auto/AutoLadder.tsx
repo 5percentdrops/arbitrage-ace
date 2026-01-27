@@ -216,16 +216,18 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     const MAX_RANGE_PCT = 50; // Cap auto-expansion at 50%
     const RANGE_INCREMENT = 5; // Expand by 5% each iteration
     
-    const bestYesAsk = orderBook.best.yesAsk;
-    const bestNoAsk = orderBook.best.noAsk;
+    // Interpret "Depth" as how far BELOW the current market/last price we show.
+    // In our mock book, the closest proxy to last price is the reference price.
+    const yesLastPrice = orderBook.refPrice;
+    const noLastPrice = 1 - orderBook.refPrice;
     
     const filterLevels = (rangePct: number) => {
-      // For limit orders, show levels with prices LOWER than the best ask
-      // Range extends downward from best ask by rangePct
-      const yesUpperBound = bestYesAsk; // Best (lowest) YES ask
-      const yesLowerBound = bestYesAsk * (1 - rangePct / 100);
-      const noUpperBound = bestNoAsk; // Best (lowest) NO ask
-      const noLowerBound = bestNoAsk * (1 - rangePct / 100);
+      // For limit orders, show prices below the current market level.
+      // Range extends downward from last price by rangePct.
+      const yesUpperBound = yesLastPrice;
+      const yesLowerBound = yesLastPrice * (1 - rangePct / 100);
+      const noUpperBound = noLastPrice;
+      const noLowerBound = noLastPrice * (1 - rangePct / 100);
       
       return orderBook.levels.filter(level => {
         // Show levels where prices fall within range below best ask
