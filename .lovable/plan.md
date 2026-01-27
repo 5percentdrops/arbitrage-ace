@@ -1,70 +1,57 @@
 
-# Fix Order Book Best Price Calculation
 
-## Problem Analysis
+# Fix Order Book Empty State Bug
 
-The order book displays prices higher than the "best ask" because there's a mismatch between:
+## Problem
 
-1. **Static best prices**: `orderBook.best.yesAsk` is set to `refPrice` (e.g., 50c)
-2. **Dynamic level prices**: `level.yesAskPrice` values are randomly generated and can be higher or lower than `refPrice`
+After the recent change to calculate best prices dynamically, no cells are showing because the filtering logic is now impossible to satisfy:
 
-For example, with `refPrice = 0.50`:
-- `best.yesAsk = 0.50` (static)
-- But a level might have `yesAskPrice = 0.52` (due to premium added in mock generation)
+**Current Filter Logic:**
+```typescript
+level.yesAskPrice < bestYesAsk  // Show prices BELOW best ask
+```
 
-The filtering logic uses these incorrect "best" values, so levels with prices above the true market best are slipping through.
+**But `bestYesAsk` is now:**
+```typescript
+Math.min(...levels.map(l => l.yesAskPrice))  // The MINIMUM of all prices
+```
+
+No price can ever be less than the minimum - so zero levels pass the filter.
 
 ## Root Cause
 
-In `src/services/autoApi.ts`, the `best` prices are calculated statically from `refPrice`:
+There's a conceptual mismatch:
+- **Filter intent**: Show prices below "best market ask" (for limit order placement)
+- **Best ask calculation**: Returns the lowest ask price in the entire book
 
-```typescript
-best: {
-  yesBid: Math.round((refPrice - 0.01) * 100) / 100,
-  yesAsk: refPrice,  // Static - not the actual minimum ask!
-  noBid: Math.round((1 - refPrice) * 100) / 100,
-  noAsk: Math.round((1 - refPrice + 0.01) * 100) / 100,
-}
-```
-
-But the actual ask prices in `levels` are generated with random premiums/discounts, so the true best (lowest) ask may differ.
+When "best ask" equals the lowest price, no level can be below it.
 
 ## Solution
 
-Update the mock data generator to calculate `best` prices dynamically from the actual level data. This ensures `best.yesAsk` is truly the lowest YES ask price available, and `best.noAsk` is the lowest NO ask price.
+Change the filter to use **less than or equal** (`<=`) instead of **strictly less than** (`<`). This ensures at least the best price level is always included, plus any levels within the configured range.
+
+The filter should show:
+- The best ask level itself (where immediate market orders would execute)
+- Levels within the range below best ask (where limit orders can be placed)
 
 ---
 
 ## Technical Implementation
 
-### File: `src/services/autoApi.ts`
+### File: `src/components/trading/auto/AutoLadder.tsx`
 
-**Update the best price calculation (lines 126-140):**
+**Update the filter conditions (around lines 228-229):**
 
-After generating all levels, calculate the actual minimum ask prices:
-
+Replace:
 ```typescript
-// Calculate actual best prices from generated levels
-const bestYesAsk = Math.min(...levels.map(l => l.yesAskPrice));
-const bestNoAsk = Math.min(...levels.map(l => l.noAskPrice));
-const bestYesBid = Math.max(...levels.filter(l => l.yesBid > 0).map(l => l.yesAskPrice - 0.01));
-const bestNoBid = Math.max(...levels.filter(l => l.noBid > 0).map(l => l.noAskPrice - 0.01));
+const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
+const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
+```
 
-return {
-  tick,
-  refPrice,
-  levels,
-  best: {
-    yesBid: Math.round(bestYesBid * 100) / 100,
-    yesAsk: Math.round(bestYesAsk * 100) / 100,
-    noBid: Math.round(bestNoBid * 100) / 100,
-    noAsk: Math.round(bestNoAsk * 100) / 100,
-  },
-  fee: {
-    takerPct: 0.4,
-    makerPct: 0.0,
-  },
-};
+With:
+```typescript
+const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice <= bestYesAsk;
+const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice <= bestNoAsk;
 ```
 
 ---
@@ -73,6 +60,7 @@ return {
 
 | File | Change |
 |------|--------|
-| `src/services/autoApi.ts` | Calculate `best` prices dynamically from actual level ask prices instead of using static values from `refPrice` |
+| `src/components/trading/auto/AutoLadder.tsx` | Change filter from `<` to `<=` to include the best ask level and fix empty state |
 
-This ensures the filtering logic in `AutoLadder.tsx` correctly identifies which prices are below the market's true best ask, so only valid limit order opportunities are displayed.
+This one-character fix (changing `<` to `<=`) restores visibility of all levels within the configured range, including the best market price.
+
