@@ -1,345 +1,299 @@
 
 
-# Polymarket + BetAngel Hybrid Trading Ladder
+# Row Selection Arbitrage Pairing System
 
-## Design Philosophy Comparison
+## Summary
 
-| Aspect | Current BetAngel | Polymarket Style | Hybrid Approach |
-|--------|------------------|------------------|-----------------|
-| **Color scheme** | Blue (Back) / Pink (Lay) | Green (Bid) / Red (Ask) | Keep BetAngel blue/pink with Polymarket's clean contrast |
-| **Layout** | Separate YES/NO ladders | Single shared order book | Keep side-by-side but add shared book visualization |
-| **Price display** | Decimal (0.48, 0.52) | Percentage with cents (48c, 52%) | Show both: "48c" with "48%" subtext |
-| **Visual style** | Dense trading terminal | Clean, minimal, lots of whitespace | Clean cards with compact rows |
-| **Spread indicator** | Implicit in ladder | Explicit "0.3c spread" callout | Add prominent spread pill |
+Remove the "Buy Yes"/"Buy No" buttons and implement row-based order placement where clicking an arbitrage-highlighted row automatically pairs a matching amount on the opposite side, ensuring the total cost is always below $1.00.
 
 ---
 
-## Visual Comparison
+## Current Behavior vs New Behavior
 
 ```text
-CURRENT BETANGEL STYLE:
-┌─────────────────────────────────────────┐
-│         YES          │         NO       │
-│  BACK │ PRICE │ LAY  │ BACK │ PRICE │ LAY │
-│ ████  │ 0.52  │  42  │ ████ │ 0.48  │  38 │
-└─────────────────────────────────────────┘
+CURRENT:
+┌────────────────────────────────────────────────────────┐
+│  YES Ladder                    NO Ladder               │
+│  Click row → highlights        Click row → highlights  │
+│                                                        │
+│  [Buy Yes @ 52¢]    [Buy No @ 48¢]   ← Remove these   │
+└────────────────────────────────────────────────────────┘
 
-POLYMARKET + BETANGEL HYBRID:
-┌─────────────────────────────────────────────────────────┐
-│  ┌─────────────────┐    SPREAD: 2¢    ┌─────────────────┐│
-│  │      YES        │                  │       NO        ││
-│  │   52% chance    │                  │    48% chance   ││
-│  └─────────────────┘                  └─────────────────┘│
-├─────────────────────────────────────────────────────────┤
-│    BUY     │   52¢   │ SELL  ║  BUY   │   48¢   │  SELL │
-│  ▓▓▓  150  │   52%   │  42 ░ ║ ░  38  │   48%   │ 95 ▓▓▓│
-│  ▓▓   120  │  ►51¢◄  │  65 ░░║ ░░ 52  │  ►49¢◄  │112 ▓▓▓│
-└─────────────────────────────────────────────────────────┘
+NEW BEHAVIOR:
+┌────────────────────────────────────────────────────────┐
+│  YES Ladder                    NO Ladder               │
+│  Row 48¢ (arb) ← Click                                 │
+│       ↓                              ↓                 │
+│  Auto-selects YES @ 48¢     Auto-pairs NO @ 51¢       │
+│       ↓                              ↓                 │
+│  Total: 48¢ + 51¢ = 99¢ (< $1.00) ✓                   │
+│       ↓                                                │
+│  Deploy paired orders with $125 each (from stake)     │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Implementation Plan
 
-### 1. Add Polymarket Color Variables
-
-**File:** `src/index.css`
-
-Add Polymarket-inspired colors alongside BetAngel colors:
-
-```css
-/* Polymarket-inspired colors */
---poly-yes: 142 70% 45%;        /* Green for YES outcome */
---poly-no: 0 70% 55%;           /* Red for NO outcome */
---poly-bid: 142 60% 50%;        /* Green for bids */
---poly-ask: 0 60% 55%;          /* Red for asks */
---poly-spread: 45 90% 50%;      /* Yellow for spread highlight */
---poly-probability: 210 100% 60%; /* Blue for probability display */
-```
-
-### 2. Create Probability Header Component
-
-**New File:** `src/components/trading/auto/ProbabilityHeader.tsx`
-
-A Polymarket-style probability display above each ladder:
-
-```tsx
-interface ProbabilityHeaderProps {
-  side: 'YES' | 'NO';
-  probability: number;  // 0.52 → "52%"
-  price: number;        // 0.52 → "52¢"
-  change24h?: number;   // +2.3%
-}
-
-function ProbabilityHeader({ side, probability, price, change24h }: ProbabilityHeaderProps) {
-  return (
-    <div className={cn(
-      "rounded-lg p-4 text-center",
-      side === 'YES' 
-        ? "bg-[hsl(var(--poly-yes))]/10 border border-[hsl(var(--poly-yes))]/30" 
-        : "bg-[hsl(var(--poly-no))]/10 border border-[hsl(var(--poly-no))]/30"
-    )}>
-      <div className="text-2xl font-bold">
-        {side === 'YES' ? '✓' : '✗'} {side}
-      </div>
-      <div className="text-3xl font-mono font-bold mt-1">
-        {Math.round(probability * 100)}%
-      </div>
-      <div className="text-sm text-muted-foreground mt-1">
-        Buy at {Math.round(price * 100)}¢
-      </div>
-      {change24h && (
-        <div className={cn(
-          "text-xs mt-2 font-medium",
-          change24h > 0 ? "text-success" : "text-destructive"
-        )}>
-          {change24h > 0 ? '↑' : '↓'} {Math.abs(change24h).toFixed(1)}% (24h)
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
-### 3. Add Spread Indicator Component
-
-**New File:** `src/components/trading/auto/SpreadIndicator.tsx`
-
-A prominent spread display between the two ladders:
-
-```tsx
-interface SpreadIndicatorProps {
-  yesBestAsk: number;
-  noBestAsk: number;
-  spreadCents: number;
-}
-
-function SpreadIndicator({ yesBestAsk, noBestAsk, spreadCents }: SpreadIndicatorProps) {
-  const totalCost = yesBestAsk + noBestAsk;
-  const hasArb = totalCost < 1.0;
-  
-  return (
-    <div className="flex flex-col items-center justify-center py-4">
-      <div className={cn(
-        "px-4 py-2 rounded-full font-mono text-sm font-bold",
-        hasArb 
-          ? "bg-success/20 text-success border border-success/50"
-          : "bg-muted text-muted-foreground"
-      )}>
-        {hasArb ? (
-          <>Arb: {((1 - totalCost) * 100).toFixed(1)}%</>
-        ) : (
-          <>Spread: {spreadCents}¢</>
-        )}
-      </div>
-      <div className="text-xs text-muted-foreground mt-2">
-        YES {Math.round(yesBestAsk * 100)}¢ + NO {Math.round(noBestAsk * 100)}¢
-      </div>
-    </div>
-  );
-}
-```
-
-### 4. Update BetAngelLadder Header Styling
-
-**File:** `src/components/trading/auto/BetAngelLadder.tsx`
-
-Replace the simple header with Polymarket-style probability display:
-
-```tsx
-{/* Header - Polymarket style */}
-<div className={cn(
-  "p-4 text-center",
-  side === 'YES' 
-    ? "bg-gradient-to-b from-[hsl(var(--poly-yes))]/20 to-transparent" 
-    : "bg-gradient-to-b from-[hsl(var(--poly-no))]/20 to-transparent"
-)}>
-  <div className={cn(
-    "text-lg font-bold",
-    side === 'YES' ? "text-[hsl(var(--poly-yes))]" : "text-[hsl(var(--poly-no))]"
-  )}>
-    {side}
-  </div>
-  <div className="text-2xl font-mono font-bold text-foreground">
-    {Math.round(ltpPrice * 100)}¢
-  </div>
-  <div className="text-xs text-muted-foreground">
-    {Math.round(ltpPrice * 100)}% chance
-  </div>
-</div>
-```
-
-### 5. Update Column Headers with Polymarket Language
-
-**File:** `src/components/trading/auto/BetAngelLadder.tsx`
-
-Change "BACK/LAY" to "BUY/SELL" for Polymarket familiarity:
-
-```tsx
-<div className="grid grid-cols-3 text-[10px] font-medium uppercase tracking-wider border-b border-border">
-  <div className="py-1.5 px-2 text-center bg-[hsl(var(--betangel-back))]/30 text-muted-foreground">
-    Buy
-  </div>
-  <div className="py-1.5 px-2 text-center bg-muted/30 text-muted-foreground">
-    Price
-  </div>
-  <div className="py-1.5 px-2 text-center bg-[hsl(var(--betangel-lay))]/30 text-muted-foreground">
-    Sell
-  </div>
-</div>
-```
-
-### 6. Update Price Display Format
-
-**File:** `src/components/trading/auto/BetAngelPriceCell.tsx`
-
-Show prices in cents (Polymarket style) with percentage subtext:
-
-```tsx
-function BetAngelPriceCell({ price, isLTP, momentum, isProfitable, onClick }: BetAngelPriceCellProps) {
-  const cents = Math.round(price * 100);
-  
-  return (
-    <div 
-      onClick={onClick}
-      className={cn(
-        "h-8 flex flex-col items-center justify-center font-mono cursor-pointer",
-        // ... existing styling
-      )}
-    >
-      <div className="flex items-center text-sm font-bold">
-        {isLTP && <span className="mr-0.5 text-[10px]">►</span>}
-        {cents}¢
-        {isLTP && <span className="ml-0.5 text-[10px]">◄</span>}
-      </div>
-      <div className="text-[9px] text-muted-foreground">
-        {cents}%
-      </div>
-    </div>
-  );
-}
-```
-
-### 7. Update AutoLadder Layout
+### 1. Remove QuickTradeButtons Component
 
 **File:** `src/components/trading/auto/AutoLadder.tsx`
 
-Add the spread indicator between the two ladders:
+- Remove the import for `QuickTradeButtons`
+- Remove the `<QuickTradeButtons ... />` component at lines 512-520
 
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-2 p-4">
-  {/* YES Ladder */}
-  <BetAngelLadder
-    side="YES"
-    // ... props
-  />
-  
-  {/* Center Spread Indicator */}
-  <div className="hidden md:flex">
-    <SpreadIndicator
-      yesBestAsk={orderBook?.refPrice ?? 0.5}
-      noBestAsk={1 - (orderBook?.refPrice ?? 0.5)}
-      spreadCents={2}
-    />
-  </div>
-  
-  {/* NO Ladder */}
-  <BetAngelLadder
-    side="NO"
-    // ... props
-  />
-</div>
-```
+### 2. Add Paired Selection State
 
-### 8. Add Quick Trade Buttons (Polymarket Style)
+**File:** `src/components/trading/auto/AutoLadder.tsx`
 
-**New File:** `src/components/trading/auto/QuickTradeButtons.tsx`
+Add new state to track paired selections:
 
-Polymarket-style "Buy Yes" / "Buy No" buttons:
-
-```tsx
-interface QuickTradeButtonsProps {
+```typescript
+interface PairedArbSelection {
   yesPrice: number;
   noPrice: number;
-  stake: number;
-  onBuyYes: () => void;
-  onBuyNo: () => void;
+  totalCost: number;
+  edgePct: number;
+  yesAllocation: number;
+  noAllocation: number;
 }
 
-function QuickTradeButtons({ yesPrice, noPrice, stake, onBuyYes, onBuyNo }: QuickTradeButtonsProps) {
-  return (
-    <div className="grid grid-cols-2 gap-3 p-4 border-t border-border">
-      <Button 
-        onClick={onBuyYes}
-        className="h-12 bg-[hsl(var(--poly-yes))] hover:bg-[hsl(var(--poly-yes))]/90 text-white"
-      >
-        <div className="flex flex-col items-center">
-          <span className="font-bold">Buy Yes</span>
-          <span className="text-xs opacity-80">{Math.round(yesPrice * 100)}¢ → ${stake}</span>
-        </div>
-      </Button>
-      <Button 
-        onClick={onBuyNo}
-        className="h-12 bg-[hsl(var(--poly-no))] hover:bg-[hsl(var(--poly-no))]/90 text-white"
-      >
-        <div className="flex flex-col items-center">
-          <span className="font-bold">Buy No</span>
-          <span className="text-xs opacity-80">{Math.round(noPrice * 100)}¢ → ${stake}</span>
-        </div>
-      </Button>
-    </div>
-  );
+const [pairedSelection, setPairedSelection] = useState<PairedArbSelection | null>(null);
+```
+
+### 3. Modify Row Click Handler for Arbitrage Pairing
+
+**File:** `src/components/trading/auto/AutoLadder.tsx`
+
+Update `handlePriceClick` to:
+1. Check if clicked row is profitable (arb opportunity)
+2. Find the corresponding NO price that pairs with this YES price
+3. Calculate allocation ensuring total < $1.00
+4. Show visual pairing on both ladders
+5. On second click (confirmation), deploy the paired orders
+
+```typescript
+const handleArbRowClick = useCallback((clickedPrice: number, clickedSide: 'YES' | 'NO') => {
+  const edge = levelEdges.get(clickedPrice);
+  if (!edge?.isProfitable) return;
+  
+  // Get actual prices from the level
+  const level = orderBook?.levels.find(l => l.price === clickedPrice);
+  if (!level) return;
+  
+  const yesPrice = level.yesAskPrice;
+  const noPrice = level.noAskPrice;
+  const totalCost = yesPrice + noPrice;
+  
+  // Only proceed if total < $1.00 (arb exists)
+  if (totalCost >= 1.0) return;
+  
+  // Calculate allocation: split stake evenly between YES and NO
+  // Each leg gets half the stake
+  const perLegAllocation = Math.floor(positionSize / 2);
+  
+  setPairedSelection({
+    yesPrice,
+    noPrice,
+    totalCost,
+    edgePct: edge.netEdgePct,
+    yesAllocation: perLegAllocation,
+    noAllocation: perLegAllocation,
+  });
+  
+  // Highlight both sides in preview
+  const previewMap = new Map<number, { tier: number; allocation: number }>();
+  previewMap.set(clickedPrice, { tier: 1, allocation: perLegAllocation });
+  setPreviewPrices(previewMap);
+}, [levelEdges, orderBook, positionSize]);
+```
+
+### 4. Add Confirmation Click Handler
+
+When a row is already selected (in preview), clicking it again deploys the paired orders:
+
+```typescript
+const handleConfirmPairedOrder = useCallback(async () => {
+  if (!pairedSelection) return;
+  
+  setIsDeploying(true);
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const newOrders: ActiveLadderOrder[] = [
+      {
+        id: `order-${Date.now()}-yes`,
+        ladderIndex: 1,
+        side: 'YES',
+        price: pairedSelection.yesPrice,
+        shares: pairedSelection.yesAllocation,
+        filledShares: 0,
+        fillPercent: 0,
+        status: 'pending',
+      },
+      {
+        id: `order-${Date.now()}-no`,
+        ladderIndex: 1,
+        side: 'NO',
+        price: pairedSelection.noPrice,
+        shares: pairedSelection.noAllocation,
+        filledShares: 0,
+        fillPercent: 0,
+        status: 'pending',
+      },
+    ];
+    
+    setDeployedOrders(prev => [...prev, ...newOrders]);
+    setPairedSelection(null);
+    setPreviewPrices(new Map());
+    
+    toast({
+      title: "Paired Arb Order Deployed",
+      description: `YES @ ${Math.round(pairedSelection.yesPrice * 100)}¢ + NO @ ${Math.round(pairedSelection.noPrice * 100)}¢ = ${Math.round(pairedSelection.totalCost * 100)}¢`,
+    });
+  } finally {
+    setIsDeploying(false);
+  }
+}, [pairedSelection]);
+```
+
+### 5. Update BetAngelLadder for Paired Highlighting
+
+**File:** `src/components/trading/auto/BetAngelLadder.tsx`
+
+Add props to show paired selection on both ladders:
+
+```typescript
+interface BetAngelLadderProps {
+  // ... existing props
+  pairedSelection?: PairedArbSelection | null;
+  onRowClick: (price: number) => void;
+  onConfirmClick?: () => void;
 }
+```
+
+Update row rendering to show:
+- Primary selection highlight on clicked row
+- Secondary paired highlight on corresponding row in opposite ladder
+- "Click to confirm" indicator when row is selected
+
+### 6. Add Paired Selection Summary Banner
+
+**File:** `src/components/trading/auto/AutoLadder.tsx`
+
+Show a summary between the ladders when a pair is selected:
+
+```typescript
+{pairedSelection && (
+  <div className="bg-success/10 border border-success/30 rounded-lg p-3 text-center">
+    <div className="text-xs text-success font-medium mb-1">
+      Paired Arbitrage Ready
+    </div>
+    <div className="font-mono text-sm">
+      <span className="text-[hsl(var(--poly-yes))]">
+        YES @ {Math.round(pairedSelection.yesPrice * 100)}¢
+      </span>
+      {' + '}
+      <span className="text-[hsl(var(--poly-no))]">
+        NO @ {Math.round(pairedSelection.noPrice * 100)}¢
+      </span>
+      {' = '}
+      <span className="font-bold text-success">
+        {Math.round(pairedSelection.totalCost * 100)}¢
+      </span>
+    </div>
+    <div className="text-xs text-muted-foreground mt-1">
+      Edge: +{pairedSelection.edgePct.toFixed(2)}% | 
+      ${pairedSelection.yesAllocation} + ${pairedSelection.noAllocation}
+    </div>
+    <Button
+      size="sm"
+      onClick={handleConfirmPairedOrder}
+      disabled={isDeploying}
+      className="mt-2 bg-success hover:bg-success/90"
+    >
+      {isDeploying ? 'Deploying...' : 'Confirm Order Pair'}
+    </Button>
+  </div>
+)}
 ```
 
 ---
 
-## Files to Modify/Create
-
-| File | Action | Changes |
-|------|--------|---------|
-| `src/index.css` | Modify | Add Polymarket color variables |
-| `src/components/trading/auto/SpreadIndicator.tsx` | Create | Spread display between ladders |
-| `src/components/trading/auto/QuickTradeButtons.tsx` | Create | Buy Yes/Buy No action buttons |
-| `src/components/trading/auto/BetAngelLadder.tsx` | Modify | Update header to show probability %, change BACK/LAY to BUY/SELL |
-| `src/components/trading/auto/BetAngelPriceCell.tsx` | Modify | Show prices as cents (52¢) with % subtext |
-| `src/components/trading/auto/AutoLadder.tsx` | Modify | Add SpreadIndicator, add QuickTradeButtons |
-
----
-
-## Visual Result After Changes
+## Visual Flow After Changes
 
 ```text
-┌────────────────────────────────────────────────────────────────┐
-│ BTC Order Book  [Pause] [⟳]    $50  $100  $250  $500  $1K      │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  ┌─────────────────┐   ┌──────────┐   ┌─────────────────┐     │
-│  │      YES        │   │ SPREAD   │   │       NO        │     │
-│  │    52% chance   │   │   2¢     │   │   48% chance    │     │
-│  │   Buy at 52¢    │   │ ────────│   │   Buy at 48¢    │     │
-│  └─────────────────┘   │ Arb: 1%  │   └─────────────────┘     │
-│                        └──────────┘                            │
-│   BUY    │   52¢   │  SELL ║  BUY   │   48¢   │  SELL        │
-│          │   52%   │       ║        │   48%   │              │
-│ ▓▓▓ 150  │   52¢   │  42 ░ ║ ░  38  │   48¢   │  95 ▓▓▓     │
-│ ▓▓  120  │  ►51¢◄  │  65 ░░║ ░░ 52  │  ►49¢◄  │ 112 ▓▓▓     │
-│ ▓   89   │   50¢   │  89 ░░║ ░░░71  │   50¢   │  89 ▓▓      │
-│          │   49¢   │ 112 ░░║ ░░░░95 │   51¢   │  65 ▓       │
-│          │   48¢   │ 145 ░░║ ░░░128 │   52¢   │  42         │
-├────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────┐   ┌─────────────────────┐            │
-│  │     Buy Yes         │   │      Buy No         │            │
-│  │   52¢ → $250        │   │    48¢ → $250       │            │
-│  └─────────────────────┘   └─────────────────────┘            │
-└────────────────────────────────────────────────────────────────┘
+Step 1: User sees profitable rows highlighted in green
+┌─────────────────────────────────────────────────────────┐
+│    YES LADDER                      NO LADDER            │
+│  Buy  │ 52¢ │ Sell      SPREAD    Buy  │ 48¢ │ Sell    │
+│  ▓▓▓  │ 51¢ │  42        2¢       38   │ 49¢ │ ▓▓▓     │
+│  ▓▓   │►48¢◄│  65    [Arb: +1%]   52   │►51¢◄│ ▓▓      │  ← Green = arb
+│  ▓    │ 47¢ │  89                 71   │ 52¢ │ ▓       │
+└─────────────────────────────────────────────────────────┘
+
+Step 2: User clicks YES @ 48¢ row
+┌─────────────────────────────────────────────────────────┐
+│    YES LADDER                      NO LADDER            │
+│  ▓▓   │►48¢◄│  65  ←SELECTED→   52   │►51¢◄│ ▓▓       │
+│        ╔══════════════════════════════════╗             │
+│        ║  Paired Arb: 48¢ + 51¢ = 99¢    ║             │
+│        ║  Edge: +1.2%  |  $125 + $125    ║             │
+│        ║     [Confirm Order Pair]        ║             │
+│        ╚══════════════════════════════════╝             │
+└─────────────────────────────────────────────────────────┘
+
+Step 3: User clicks "Confirm" → Orders deployed
 ```
 
 ---
 
-## Key Hybrid Elements
+## Files to Modify
 
-1. **BetAngel kept**: Blue/Pink depth bars, ladder structure, LTP indicators, tier labels
-2. **Polymarket added**: Probability headers, cent pricing, spread indicator, Buy Yes/No buttons, cleaner card styling
-3. **Best of both**: Professional trading depth visualization + intuitive prediction market UX
+| File | Changes |
+|------|---------|
+| `src/components/trading/auto/AutoLadder.tsx` | Remove QuickTradeButtons, add paired selection state, update click handlers, add confirmation banner |
+| `src/components/trading/auto/BetAngelLadder.tsx` | Update to show paired highlighting on both ladders |
+| `src/types/auto-trading.ts` | Add `PairedArbSelection` interface |
+
+### File to Delete
+
+| File | Reason |
+|------|--------|
+| `src/components/trading/auto/QuickTradeButtons.tsx` | No longer needed - orders placed via row selection |
+
+---
+
+## Technical Details
+
+### Arbitrage Constraint Validation
+
+Every paired order MUST satisfy: `yesPrice + noPrice < 1.00`
+
+```typescript
+const isValidArb = (yesPrice: number, noPrice: number): boolean => {
+  return yesPrice + noPrice < 1.0;
+};
+```
+
+### Allocation Logic
+
+Split the position size evenly between YES and NO legs:
+- Total stake: $250
+- YES allocation: $125
+- NO allocation: $125
+- Each wins $125 profit when market resolves (guaranteed arbitrage)
+
+### Click State Machine
+
+```text
+State 1: No selection
+  → Click profitable row → State 2
+
+State 2: Row selected (preview shown)
+  → Click "Confirm" → Deploy orders → State 1
+  → Click different row → Update selection → State 2
+  → Click cancel/X → State 1
+```
 
