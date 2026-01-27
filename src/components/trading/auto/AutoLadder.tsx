@@ -570,6 +570,33 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               </div>
               
               <div className="flex items-center gap-3 flex-wrap">
+                {/* Auto Toggle */}
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="auto-trade-toggle"
+                    checked={autoTradeEnabled}
+                    onCheckedChange={(enabled) => {
+                      setAutoTradeEnabled(enabled);
+                      if (!enabled) {
+                        setDeployedOrders([]);
+                        prevProfitableLevelsRef.current = '';
+                      }
+                    }}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <Label 
+                    htmlFor="auto-trade-toggle" 
+                    className={cn(
+                      "text-xs cursor-pointer flex items-center gap-1.5 font-medium",
+                      autoTradeEnabled ? "text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    <Zap className={cn("h-3 w-3", autoTradeEnabled && "animate-pulse")} />
+                    Auto
+                  </Label>
+                </div>
+
+                {/* Arb Only Filter */}
                 <div className="flex items-center gap-2">
                   <Switch
                     id="profitable-filter"
