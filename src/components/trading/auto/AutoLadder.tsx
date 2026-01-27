@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,9 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
   const [pairedSelection, setPairedSelection] = useState<PairedArbSelection | null>(null);
+  
+  // Ref to track previous profitable levels for auto-deploy
+  const prevProfitableLevelsRef = useRef<string>('');
 
   const {
     orderBook,
@@ -153,6 +156,72 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       .sort((a, b) => b[1].netEdgePct - a[1].netEdgePct)
       .slice(0, 7);
   }, [levelEdges]);
+
+  // Auto-deploy effect: deploy orders when autoTradeEnabled and profitable levels change
+  useEffect(() => {
+    // Only run when auto-trade is enabled and not paused
+    if (!autoTradeEnabled || isPaused || isDeploying) return;
+    
+    // Get current top 7 profitable levels
+    const top7 = getTop7Profitable();
+    if (top7.length === 0) {
+      // Clear orders if no profitable levels
+      if (deployedOrders.length > 0) {
+        setDeployedOrders([]);
+        prevProfitableLevelsRef.current = '';
+      }
+      return;
+    }
+    
+    // Create a fingerprint of current profitable levels
+    const currentLevelsKey = top7.map(([price]) => price.toFixed(2)).join(',');
+    
+    // Skip if levels haven't changed
+    if (currentLevelsKey === prevProfitableLevelsRef.current) return;
+    prevProfitableLevelsRef.current = currentLevelsKey;
+    
+    // Auto-deploy orders at these levels
+    const tierShares = calculateTieredShares(positionSize, top7.length);
+    
+    const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
+      const level = orderBook?.levels.find(l => l.price === price);
+      if (!level) return [];
+      
+      return [
+        {
+          id: `auto-${Date.now()}-yes-${index}`,
+          ladderIndex: index + 1,
+          side: 'YES' as const,
+          price: level.yesAskPrice,
+          shares: tierShares[index],
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+        },
+        {
+          id: `auto-${Date.now()}-no-${index}`,
+          ladderIndex: index + 1,
+          side: 'NO' as const,
+          price: level.noAskPrice,
+          shares: tierShares[index],
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+        },
+      ];
+    });
+    
+    // Replace all orders with new ones (simulates cancel + redeploy)
+    setDeployedOrders(newOrders);
+    
+  }, [autoTradeEnabled, isPaused, isDeploying, getTop7Profitable, positionSize, orderBook, deployedOrders.length]);
+
+  // Clear ref when auto-trade is disabled
+  useEffect(() => {
+    if (!autoTradeEnabled) {
+      prevProfitableLevelsRef.current = '';
+    }
+  }, [autoTradeEnabled]);
 
   // Handle row click for arbitrage pairing
   const handleArbRowClick = useCallback((clickedPrice: number) => {
@@ -442,9 +511,19 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           <CardContent className="p-0">
             {/* Deployed Orders Banner */}
             {deployedOrders.length > 0 && (
-              <div className="flex items-center justify-between px-4 py-2 bg-warning/10 border-b border-warning/30">
-                <span className="text-xs text-warning font-medium">
-                  {deployedOrders.length} orders deployed across {new Set(deployedOrders.map(o => o.ladderIndex)).size} tiers
+              <div className={cn(
+                "flex items-center justify-between px-4 py-2 border-b",
+                autoTradeEnabled 
+                  ? "bg-success/10 border-success/30" 
+                  : "bg-warning/10 border-warning/30"
+              )}>
+                <span className={cn(
+                  "text-xs font-medium",
+                  autoTradeEnabled ? "text-success" : "text-warning"
+                )}>
+                  {autoTradeEnabled 
+                    ? `AUTO: ${deployedOrders.length / 2} arb levels active` 
+                    : `${deployedOrders.length} orders deployed across ${new Set(deployedOrders.map(o => o.ladderIndex)).size} tiers`}
                 </span>
                 <Button
                   variant="ghost"
