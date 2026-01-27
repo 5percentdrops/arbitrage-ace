@@ -418,21 +418,6 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-        {/* Right Side Panel - shown first on mobile for visibility */}
-        <div className="xl:hidden space-y-4">
-          <SpreadCalculator
-            edge={currentEdge}
-            size={size}
-            onSizeChange={setSize}
-            minNetEdgePct={minNetEdgePct}
-            onMinEdgeChange={setMinNetEdgePct}
-            autoTradeEnabled={autoTradeEnabled}
-            onAutoTradeToggle={setAutoTradeEnabled}
-            onDeployLadder={handleDeployLadder}
-            isDeploying={isDeploying}
-            hasSelection={hasSelection}
-          />
-        </div>
 
         {/* Main Ladder Card */}
         <Card className="xl:col-span-3 border-border bg-card overflow-hidden">
