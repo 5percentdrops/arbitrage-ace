@@ -65,18 +65,104 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     refresh,
   } = useAutoOrderBook({ marketId, minNetEdgePct, isPaused });
 
-  // Handle YES cell click
-  const handleYesClick = useCallback((price: number, type: 'bid' | 'ask') => {
-    const selection: LadderSelection = { side: 'YES', price, type };
-    setYesSelection(selection);
-  }, [setYesSelection]);
-
-  // Handle NO cell click
-  const handleNoClick = useCallback((price: number, type: 'bid' | 'ask') => {
-    const noPrice = 1 - price;
-    const selection: LadderSelection = { side: 'NO', price: noPrice, type };
-    setNoSelection(selection);
-  }, [setNoSelection]);
+  // Handle cell click to deploy 7 tiered arb orders
+  // Clicking on YES side auto-matches NO, clicking on NO side auto-matches YES
+  const handleCellClick = useCallback((clickedLevelPrice: number, side: 'YES' | 'NO', type: 'bid' | 'ask') => {
+    if (!orderBook) return;
+    
+    // Find the clicked level
+    const clickedLevel = orderBook.levels.find(l => Math.abs(l.price - clickedLevelPrice) < 0.005);
+    if (!clickedLevel) return;
+    
+    // Check if this level has an arb opportunity
+    const totalCost = clickedLevel.yesAskPrice + clickedLevel.noAskPrice;
+    if (totalCost >= 1.0) {
+      toast({
+        title: "No Arbitrage Available",
+        description: `YES (${Math.round(clickedLevel.yesAskPrice * 100)}¢) + NO (${Math.round(clickedLevel.noAskPrice * 100)}¢) = ${Math.round(totalCost * 100)}¢ ≥ 100¢`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Get top 7 profitable levels, ensuring clicked level is included and ranked by edge
+    const profitableLevelsSorted = Array.from(levelEdges.entries())
+      .filter(([_, edge]) => edge.isProfitable)
+      .sort((a, b) => b[1].netEdgePct - a[1].netEdgePct)
+      .slice(0, 7);
+    
+    // If clicked level is not in top 7 but is profitable, include it
+    const clickedEdge = levelEdges.get(clickedLevelPrice);
+    if (clickedEdge?.isProfitable) {
+      const isInTop7 = profitableLevelsSorted.some(([p]) => Math.abs(p - clickedLevelPrice) < 0.005);
+      if (!isInTop7) {
+        // Replace the lowest-edge level with clicked level
+        if (profitableLevelsSorted.length >= 7) {
+          profitableLevelsSorted.pop();
+        }
+        profitableLevelsSorted.push([clickedLevelPrice, clickedEdge]);
+        profitableLevelsSorted.sort((a, b) => b[1].netEdgePct - a[1].netEdgePct);
+      }
+    }
+    
+    if (profitableLevelsSorted.length === 0) {
+      toast({
+        title: "No Profitable Levels",
+        description: "No arbitrage opportunities meeting minimum edge threshold",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Deploy orders
+    setIsDeploying(true);
+    
+    const tierShares = calculateTieredShares(positionSize, profitableLevelsSorted.length);
+    
+    const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price], index) => {
+      const level = orderBook.levels.find(l => Math.abs(l.price - price) < 0.005);
+      if (!level) return [];
+      
+      const levelTotalCost = level.yesAskPrice + level.noAskPrice;
+      const arbPerShare = 1 - levelTotalCost;
+      const arbAmount = arbPerShare * tierShares[index];
+      
+      return [
+        {
+          id: `order-${Date.now()}-yes-${index}`,
+          ladderIndex: index + 1,
+          side: 'YES' as const,
+          price: level.yesAskPrice,
+          levelPrice: price,
+          shares: tierShares[index],
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+          arbAmount,
+        },
+        {
+          id: `order-${Date.now()}-no-${index}`,
+          ladderIndex: index + 1,
+          side: 'NO' as const,
+          price: level.noAskPrice,
+          levelPrice: price,
+          shares: tierShares[index],
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+          arbAmount,
+        },
+      ];
+    });
+    
+    setDeployedOrders(prev => [...prev, ...newOrders]);
+    setIsDeploying(false);
+    
+    toast({
+      title: "Tiered Arb Orders Deployed",
+      description: `${profitableLevelsSorted.length} arb levels (${newOrders.length} orders) @ $${positionSize}`,
+    });
+  }, [orderBook, levelEdges, positionSize]);
 
   // Deploy ladder orders
   const handleDeployLadder = useCallback(async () => {
@@ -602,8 +688,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 momentum="same"
                 previewPrices={previewPrices}
                 pairedSelection={pairedSelection}
-                onBackClick={(price) => handleYesClick(price, 'bid')}
-                onLayClick={(price) => handleYesClick(price, 'ask')}
+                onBackClick={(price) => handleCellClick(price, 'YES', 'bid')}
+                onLayClick={(price) => handleCellClick(price, 'YES', 'ask')}
                 onPriceClick={handleArbRowClick}
               />
               
@@ -670,8 +756,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 momentum="same"
                 previewPrices={previewPrices}
                 pairedSelection={pairedSelection}
-                onBackClick={(price) => handleNoClick(price, 'bid')}
-                onLayClick={(price) => handleNoClick(price, 'ask')}
+                onBackClick={(price) => handleCellClick(price, 'NO', 'bid')}
+                onLayClick={(price) => handleCellClick(price, 'NO', 'ask')}
                 onPriceClick={handleArbRowClick}
               />
             </div>
