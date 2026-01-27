@@ -46,10 +46,17 @@ export async function cancelAllOrders(marketId: string): Promise<boolean> {
   return response.success && response.data?.success === true;
 }
 
+// Track price state between calls (simulates market movement)
+let currentRefPrice = 0.50;
+
 // Generate mock order book data for development
 // Creates realistic arbitrage opportunities where YES + NO < $1.00
 export function generateMockOrderBook(): OrderBookData {
-  const refPrice = 0.50;
+  // Drift the reference price randomly by ±0.5¢ each tick
+  const drift = (Math.random() - 0.5) * 0.01; // -0.5¢ to +0.5¢
+  currentRefPrice = Math.max(0.20, Math.min(0.80, currentRefPrice + drift));
+  
+  const refPrice = Math.round(currentRefPrice * 100) / 100;
   const tick = 0.01;
   const levels: OrderBookData['levels'] = [];
   
@@ -121,10 +128,10 @@ export function generateMockOrderBook(): OrderBookData {
     refPrice,
     levels,
     best: {
-      yesBid: 0.49,
-      yesAsk: 0.50,
-      noBid: 0.50,
-      noAsk: 0.51,
+      yesBid: Math.round((refPrice - 0.01) * 100) / 100,
+      yesAsk: refPrice,
+      noBid: Math.round((1 - refPrice) * 100) / 100,
+      noAsk: Math.round((1 - refPrice + 0.01) * 100) / 100,
     },
     fee: {
       takerPct: 0.4,
