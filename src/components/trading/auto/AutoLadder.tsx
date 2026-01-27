@@ -204,12 +204,25 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     }
   }, [clearSelections]);
 
-  // Filter levels within range and optionally by profitability
+  // Filter levels within range, by profitability, and only show prices BELOW best ask
+  // (for limit orders, we only place orders at prices lower than current market)
   const visibleLevels = useMemo(() => {
     if (!orderBook) return [];
+    
+    // Best ask prices are the "main" prices - only show levels below these
+    const bestYesAsk = orderBook.best.yesAsk;
+    const bestNoAsk = orderBook.best.noAsk;
+    
     return orderBook.levels.filter(level => {
       const inRange = level.price >= rangeMin && level.price <= rangeMax;
       if (!inRange) return false;
+      
+      // Only show levels where BOTH YES and NO ask prices are below their respective best asks
+      // This ensures we're only showing limit order opportunities
+      const yesAskBelowBest = level.yesAskPrice < bestYesAsk;
+      const noAskBelowBest = level.noAskPrice < bestNoAsk;
+      if (!yesAskBelowBest || !noAskBelowBest) return false;
+      
       if (showProfitableOnly) {
         return profitableLevels.has(level.price);
       }
