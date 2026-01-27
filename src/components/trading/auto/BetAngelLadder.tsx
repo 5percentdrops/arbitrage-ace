@@ -47,26 +47,42 @@ export function BetAngelLadder({
   // Get orders for this side
   const sideOrders = deployedOrders.filter(o => o.side === side);
 
+  // Calculate probability display
+  const probability = ltpPrice ? Math.round(ltpPrice * 100) : 50;
+
   return (
     <div className="flex flex-col border border-border rounded-lg overflow-hidden">
-      {/* Header */}
+      {/* Header - Polymarket style probability */}
       <div className={cn(
-        "text-center font-bold py-2 text-sm",
-        side === 'YES' ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+        "p-4 text-center",
+        side === 'YES' 
+          ? "bg-gradient-to-b from-[hsl(var(--poly-yes))]/20 to-transparent" 
+          : "bg-gradient-to-b from-[hsl(var(--poly-no))]/20 to-transparent"
       )}>
-        {side}
+        <div className={cn(
+          "text-lg font-bold",
+          side === 'YES' ? "text-[hsl(var(--poly-yes))]" : "text-[hsl(var(--poly-no))]"
+        )}>
+          {side === 'YES' ? '✓' : '✗'} {side}
+        </div>
+        <div className="text-2xl font-mono font-bold text-foreground">
+          {probability}¢
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {probability}% chance
+        </div>
       </div>
       
-      {/* Column headers */}
+      {/* Column headers - Polymarket language */}
       <div className="grid grid-cols-3 text-[10px] font-medium uppercase tracking-wider border-b border-border">
         <div className="py-1.5 px-2 text-center bg-[hsl(var(--betangel-back))]/30 text-muted-foreground">
-          Back
+          Buy
         </div>
         <div className="py-1.5 px-2 text-center bg-muted/30 text-muted-foreground">
           Price
         </div>
         <div className="py-1.5 px-2 text-center bg-[hsl(var(--betangel-lay))]/30 text-muted-foreground">
-          Lay
+          Sell
         </div>
       </div>
       
