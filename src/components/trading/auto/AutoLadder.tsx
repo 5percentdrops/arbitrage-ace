@@ -317,7 +317,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         <Alert variant="destructive" className="bg-destructive/10">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
-            <span>Price moved outside ±15% range. Consider cancelling orders.</span>
+            <span>Price moved outside ±3% range. Consider cancelling orders.</span>
             <Button
               variant="destructive"
               size="sm"
