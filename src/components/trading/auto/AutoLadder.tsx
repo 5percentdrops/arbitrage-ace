@@ -226,7 +226,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       // NO ask must be within range below best (exclusive of best)
       const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
       
-      if (!yesInRange || !noInRange) return false;
+      // Show level if EITHER side has a valid limit order opportunity
+      if (!yesInRange && !noInRange) return false;
       
       if (showProfitableOnly) {
         return profitableLevels.has(level.price);
