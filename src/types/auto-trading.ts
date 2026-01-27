@@ -51,6 +51,7 @@ export interface ActiveLadderOrder {
   ladderIndex: number; // L1, L2, ... L7
   side: 'YES' | 'NO';
   price: number;
+  levelPrice: number;  // Reference level price for stable row matching
   shares: number;
   filledShares: number;
   fillPercent: number;

@@ -98,7 +98,7 @@ export function BetAngelLadder({
           const isLTP = ltpPrice !== undefined && Math.abs(price - ltpPrice) < 0.005;
           
           // Check for orders at this price
-          const ordersAtPrice = sideOrders.filter(o => Math.abs(o.price - price) < 0.005);
+          const ordersAtPrice = sideOrders.filter(o => o.levelPrice !== undefined && Math.abs(o.levelPrice - level.price) < 0.005);
           const hasBackOrder = ordersAtPrice.some(o => o.price <= price);
           const hasLayOrder = ordersAtPrice.some(o => o.price >= price);
           const orderLabel = ordersAtPrice[0]?.ladderIndex ? `L${ordersAtPrice[0].ladderIndex}` : undefined;

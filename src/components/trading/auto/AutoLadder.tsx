@@ -91,6 +91,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         ladderIndex: i + 1,
         side: i % 2 === 0 ? 'YES' : 'NO',
         price: currentEdge.yesPrice + (i - 3) * 0.01,
+        levelPrice: Math.round((currentEdge.yesPrice + (i - 3) * 0.01) * 100) / 100,
         shares: Math.floor(size * (1 - i * 0.1)),
         filledShares: 0,
         fillPercent: 0,
@@ -195,6 +196,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           ladderIndex: index + 1,
           side: 'YES' as const,
           price: level.yesAskPrice,
+          levelPrice: price,
           shares: tierShares[index],
           filledShares: 0,
           fillPercent: 0,
@@ -205,6 +207,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           ladderIndex: index + 1,
           side: 'NO' as const,
           price: level.noAskPrice,
+          levelPrice: price,
           shares: tierShares[index],
           filledShares: 0,
           fillPercent: 0,
@@ -274,6 +277,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           ladderIndex: 1,
           side: 'YES',
           price: pairedSelection.yesPrice,
+          levelPrice: pairedSelection.levelPrice,
           shares: pairedSelection.yesAllocation,
           filledShares: 0,
           fillPercent: 0,
@@ -284,6 +288,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           ladderIndex: 1,
           side: 'NO',
           price: pairedSelection.noPrice,
+          levelPrice: pairedSelection.levelPrice,
           shares: pairedSelection.noAllocation,
           filledShares: 0,
           fillPercent: 0,
@@ -323,28 +328,34 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       
       const tierShares = calculateTieredShares(positionSize, profitableLevelsSorted.length);
       
-      const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price], index) => ([
-        {
-          id: `order-${Date.now()}-yes-${index}`,
-          ladderIndex: index + 1,
-          side: 'YES' as const,
-          price: price,
-          shares: tierShares[index],
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending' as const,
-        },
-        {
-          id: `order-${Date.now()}-no-${index}`,
-          ladderIndex: index + 1,
-          side: 'NO' as const,
-          price: 1 - price,
-          shares: tierShares[index],
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending' as const,
-        },
-      ]));
+      const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price], index) => {
+        const level = orderBook?.levels.find(l => l.price === price);
+        if (!level) return [];
+        return [
+          {
+            id: `order-${Date.now()}-yes-${index}`,
+            ladderIndex: index + 1,
+            side: 'YES' as const,
+            price: level.yesAskPrice,
+            levelPrice: price,
+            shares: tierShares[index],
+            filledShares: 0,
+            fillPercent: 0,
+            status: 'pending' as const,
+          },
+          {
+            id: `order-${Date.now()}-no-${index}`,
+            ladderIndex: index + 1,
+            side: 'NO' as const,
+            price: level.noAskPrice,
+            levelPrice: price,
+            shares: tierShares[index],
+            filledShares: 0,
+            fillPercent: 0,
+            status: 'pending' as const,
+          },
+        ];
+      });
       
       setDeployedOrders(prev => [...prev, ...newOrders]);
       
