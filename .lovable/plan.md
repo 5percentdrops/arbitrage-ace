@@ -1,13 +1,34 @@
 
-# Fix Order Book Depth Slider Visibility
+# Fix Order Book Filtering Logic
 
-## Problem
+## Problem Analysis
 
-The depth slider is not visible because it uses a native HTML `<input type="range">` element with `appearance-none`, which removes the browser's default styling. The custom CSS applied only styles the track background, leaving the slider thumb essentially invisible on the dark theme.
+The current filtering logic requires **both** YES and NO ask prices to fall within their respective 10% ranges below the best ask. This is overly restrictive because:
+
+1. YES prices cluster around `price` (e.g., 0.48, 0.50, 0.52)
+2. NO prices cluster around `1 - price` (e.g., 0.52, 0.50, 0.48)
+
+These are different price bands. A level with `yesAskPrice = 0.48` will have `noAskPrice ≈ 0.52`, so it's nearly impossible for both to be in range simultaneously.
+
+**Current logic (too restrictive):**
+```
+yesInRange AND noInRange → almost nothing passes
+```
 
 ## Solution
 
-Replace the native input with the project's existing Radix UI `Slider` component (`src/components/ui/slider.tsx`) which has proper styling for both the track and thumb, and works well with the dark theme.
+Change the filtering to require **either** YES or NO to be in a valid limit order range below best ask, rather than both. This makes logical sense because:
+
+- If you want to place a limit order on the YES side, you need YES price to be below the best YES ask
+- If you want to place a limit order on the NO side, you need NO price to be below the best NO ask
+- The ladder shows opportunities on both sides, so showing a level when *either* side has a valid limit order opportunity is appropriate
+
+**New logic (inclusive):**
+```
+yesInRange OR noInRange → shows more levels
+```
+
+Alternatively, we could filter each ladder independently (YES ladder shows YES range, NO ladder shows NO range), but that would require architectural changes to pass different level sets to each ladder.
 
 ---
 
@@ -15,37 +36,29 @@ Replace the native input with the project's existing Radix UI `Slider` component
 
 ### File: `src/components/trading/auto/AutoLadder.tsx`
 
-**1. Add Slider import (around line 8):**
-
-```typescript
-import { Slider } from '@/components/ui/slider';
-```
-
-**2. Replace native input with Slider component (lines 662-670):**
+**Change the filter condition (around lines 223-229):**
 
 Replace:
-```tsx
-<input
-  type="range"
-  min={5}
-  max={30}
-  step={5}
-  value={orderBookRangePct}
-  onChange={(e) => setOrderBookRangePct(Number(e.target.value))}
-  className="w-20 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-/>
+```typescript
+return orderBook.levels.filter(level => {
+  // YES ask must be within range below best (exclusive of best)
+  const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
+  // NO ask must be within range below best (exclusive of best)
+  const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
+  
+  if (!yesInRange || !noInRange) return false;
 ```
 
 With:
-```tsx
-<Slider
-  value={[orderBookRangePct]}
-  onValueChange={(values) => setOrderBookRangePct(values[0])}
-  min={5}
-  max={30}
-  step={5}
-  className="w-24"
-/>
+```typescript
+return orderBook.levels.filter(level => {
+  // YES ask within range below best (exclusive of best)
+  const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
+  // NO ask within range below best (exclusive of best)
+  const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
+  
+  // Show level if EITHER side has a valid limit order opportunity
+  if (!yesInRange && !noInRange) return false;
 ```
 
 ---
@@ -54,6 +67,6 @@ With:
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/AutoLadder.tsx` | Import Slider component and replace native input with styled Radix UI Slider |
+| `src/components/trading/auto/AutoLadder.tsx` | Change filter from AND to OR logic so levels show if either YES or NO has a valid limit order price |
 
-The Slider component has proper thumb and track styling that will be visible on both light and dark themes, matching the rest of the application's design.
+This simple one-line change (from `!yesInRange || !noInRange` to `!yesInRange && !noInRange`) will show many more levels while still maintaining the limit order price constraint for at least one side.
