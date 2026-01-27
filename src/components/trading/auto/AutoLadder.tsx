@@ -225,8 +225,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       const noLowerBound = bestNoAsk * rangeFactor;
       
       return orderBook.levels.filter(level => {
-        const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
-        const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
+        const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice <= bestYesAsk;
+        const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice <= bestNoAsk;
         
         if (!yesInRange && !noInRange) return false;
         
