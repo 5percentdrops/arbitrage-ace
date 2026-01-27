@@ -36,7 +36,9 @@ export function LadderRow({
   previewTier,
   tierAllocation,
 }: LadderRowProps) {
-  const noPrice = 1 - level.price;
+  // Use actual ask prices for display
+  const yesPrice = level.yesAskPrice;
+  const noPrice = level.noAskPrice;
 
   return (
     <div
@@ -64,10 +66,10 @@ export function LadderRow({
         type="bid"
         side="YES"
         onClick={() => onYesClick('bid')}
-        orders={yesOrders.filter(o => o.price === level.price)}
+        orders={yesOrders.filter(o => o.price === yesPrice)}
       />
       <Cell
-        value={level.price}
+        value={yesPrice}
         isPrice
         className="text-success font-bold"
       />

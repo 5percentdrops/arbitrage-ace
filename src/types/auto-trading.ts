@@ -1,11 +1,13 @@
 // Auto Trading Order Book Types
 
 export interface OrderBookLevel {
-  price: number;
-  yesBid: number;
-  yesAsk: number;
-  noBid: number;
-  noAsk: number;
+  price: number;        // Reference price for this row
+  yesBid: number;       // Size available at YES bid
+  yesAsk: number;       // Size available at YES ask
+  yesAskPrice: number;  // Actual YES ask price (may differ from level.price)
+  noBid: number;        // Size available at NO bid
+  noAsk: number;        // Size available at NO ask
+  noAskPrice: number;   // Actual NO ask price (may differ from 1-price)
 }
 
 export interface BestPrices {
