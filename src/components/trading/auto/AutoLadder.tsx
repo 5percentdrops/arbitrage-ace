@@ -38,7 +38,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [deployedOrders, setDeployedOrders] = useState<ActiveLadderOrder[]>([]);
-  const [showProfitableOnly, setShowProfitableOnly] = useState(false);
+  const [showProfitableOnly, setShowProfitableOnly] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
   const [pairedSelection, setPairedSelection] = useState<PairedArbSelection | null>(null);
