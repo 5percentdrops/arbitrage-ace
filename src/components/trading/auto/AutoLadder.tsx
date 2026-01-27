@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, DollarSign } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
@@ -14,6 +15,15 @@ import { LadderRow } from './LadderRow';
 import type { LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 import type { TokenSymbol } from '@/types/trading';
 
+// Tiered distribution - L1 (best edge) gets most, L7 gets least
+const TIER_WEIGHTS = [0.25, 0.18, 0.15, 0.13, 0.11, 0.10, 0.08]; // = 1.00
+
+function calculateTieredShares(totalSize: number, numLevels: number): number[] {
+  const weights = TIER_WEIGHTS.slice(0, numLevels);
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  return weights.map(w => Math.floor((w / totalWeight) * totalSize));
+}
+
 interface AutoLadderProps {
   asset: TokenSymbol;
   marketId: string;
@@ -21,6 +31,7 @@ interface AutoLadderProps {
 
 export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [size, setSize] = useState(10);
+  const [positionSize, setPositionSize] = useState(1000);
   const [minNetEdgePct, setMinNetEdgePct] = useState(0.5);
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -28,6 +39,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [deployedOrders, setDeployedOrders] = useState<ActiveLadderOrder[]>([]);
   const [showProfitableOnly, setShowProfitableOnly] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
 
   const {
     orderBook,
@@ -133,7 +145,33 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
 
   const hasSelection = yesSelection !== null || noSelection !== null;
 
-  // Handle click on profitable arbitrage level - auto deploy ladder
+  // Calculate top 7 profitable levels for preview
+  const getTop7Profitable = useCallback(() => {
+    return Array.from(levelEdges.entries())
+      .filter(([_, edge]) => edge.isProfitable)
+      .sort((a, b) => b[1].netEdgePct - a[1].netEdgePct)
+      .slice(0, 7);
+  }, [levelEdges]);
+
+  // Handle row hover - show preview of 7-row selection with tiered allocation
+  const handleRowHover = useCallback((price: number, isHovering: boolean) => {
+    if (!isHovering || !levelEdges.get(price)?.isProfitable) {
+      setPreviewPrices(new Map());
+      return;
+    }
+    
+    const top7 = getTop7Profitable();
+    const tierShares = calculateTieredShares(positionSize, top7.length);
+    
+    const previewMap = new Map<number, { tier: number; allocation: number }>();
+    top7.forEach(([p], index) => {
+      previewMap.set(p, { tier: index + 1, allocation: tierShares[index] });
+    });
+    
+    setPreviewPrices(previewMap);
+  }, [levelEdges, positionSize, getTop7Profitable]);
+
+  // Handle click on profitable arbitrage level - auto deploy ladder with tiered sizing
   const handleArbLevelClick = useCallback(async (clickedPrice: number) => {
     // Only proceed if this level is profitable
     const clickedEdge = levelEdges.get(clickedPrice);
@@ -143,24 +181,22 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Get all profitable levels, sorted by edge (best first)
-      const profitableLevelsSorted = Array.from(levelEdges.entries())
-        .filter(([_, edge]) => edge.isProfitable)
-        .sort((a, b) => b[1].netEdgePct - a[1].netEdgePct)
-        .slice(0, 7); // Max 7 levels
+      // Get top 7 profitable levels, sorted by edge (best first)
+      const profitableLevelsSorted = getTop7Profitable();
       
       if (profitableLevelsSorted.length === 0) return;
       
-      const sharesPerLevel = Math.floor(size / profitableLevelsSorted.length);
+      // Calculate tiered shares allocation
+      const tierShares = calculateTieredShares(positionSize, profitableLevelsSorted.length);
       
-      // Generate paired orders for each profitable level
+      // Generate paired orders for each profitable level with tiered sizing
       const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price, edge], index) => ([
         {
           id: `order-${Date.now()}-yes-${index}`,
           ladderIndex: index + 1,
           side: 'YES' as const,
           price: price,
-          shares: sharesPerLevel,
+          shares: tierShares[index],
           filledShares: 0,
           fillPercent: 0,
           status: 'pending' as const,
@@ -170,7 +206,56 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           ladderIndex: index + 1,
           side: 'NO' as const,
           price: 1 - price,
-          shares: sharesPerLevel,
+          shares: tierShares[index],
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+        },
+      ]));
+      
+      setDeployedOrders(prev => [...prev, ...newOrders]);
+      setPreviewPrices(new Map());
+      
+      const totalDeployed = tierShares.reduce((a, b) => a + b, 0);
+      toast({
+        title: "Tiered Ladder Deployed",
+        description: `Deployed $${totalDeployed} across ${profitableLevelsSorted.length} arb levels (L1: $${tierShares[0]} → L${profitableLevelsSorted.length}: $${tierShares[profitableLevelsSorted.length - 1]})`,
+      });
+    } finally {
+      setIsDeploying(false);
+    }
+  }, [levelEdges, positionSize, getTop7Profitable]);
+
+  // Quick deploy best arb with tiered sizing
+  const handleQuickDeploy = useCallback(async () => {
+    if (!bestArb) return;
+    
+    setIsDeploying(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const profitableLevelsSorted = getTop7Profitable();
+      if (profitableLevelsSorted.length === 0) return;
+      
+      const tierShares = calculateTieredShares(positionSize, profitableLevelsSorted.length);
+      
+      const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price], index) => ([
+        {
+          id: `order-${Date.now()}-yes-${index}`,
+          ladderIndex: index + 1,
+          side: 'YES' as const,
+          price: price,
+          shares: tierShares[index],
+          filledShares: 0,
+          fillPercent: 0,
+          status: 'pending' as const,
+        },
+        {
+          id: `order-${Date.now()}-no-${index}`,
+          ladderIndex: index + 1,
+          side: 'NO' as const,
+          price: 1 - price,
+          shares: tierShares[index],
           filledShares: 0,
           fillPercent: 0,
           status: 'pending' as const,
@@ -180,53 +265,13 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       setDeployedOrders(prev => [...prev, ...newOrders]);
       
       toast({
-        title: "Ladder Deployed",
-        description: `Deployed ${newOrders.length} orders across ${profitableLevelsSorted.length} arb levels`,
+        title: "Tiered Ladder Deployed",
+        description: `Deployed $${positionSize} across ${profitableLevelsSorted.length} arb levels`,
       });
     } finally {
       setIsDeploying(false);
     }
-  }, [levelEdges, size]);
-
-  // Quick deploy best arb
-  const handleQuickDeploy = useCallback(async () => {
-    if (!bestArb) return;
-    
-    setIsDeploying(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const yesPrice = bestArb.price;
-      const noPrice = 1 - bestArb.price;
-      
-      const mockOrders: ActiveLadderOrder[] = [
-        {
-          id: `order-${Date.now()}-yes`,
-          ladderIndex: 1,
-          side: 'YES',
-          price: yesPrice,
-          shares: size,
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending',
-        },
-        {
-          id: `order-${Date.now()}-no`,
-          ladderIndex: 2,
-          side: 'NO',
-          price: noPrice,
-          shares: size,
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending',
-        },
-      ];
-      
-      setDeployedOrders(prev => [...prev, ...mockOrders]);
-    } finally {
-      setIsDeploying(false);
-    }
-  }, [bestArb, size]);
+  }, [bestArb, positionSize, getTop7Profitable]);
 
   if (isLoading) {
     return (
@@ -299,6 +344,23 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               </span>
             </div>
             <div className="flex items-center gap-4">
+              {/* Position Size Input */}
+              <div className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label htmlFor="position-size" className="text-xs text-muted-foreground whitespace-nowrap">
+                  Position Size
+                </Label>
+                <Input
+                  id="position-size"
+                  type="number"
+                  min={10}
+                  step={100}
+                  value={positionSize}
+                  onChange={(e) => setPositionSize(Number(e.target.value))}
+                  className="w-24 h-7 text-xs font-mono bg-background border-border"
+                />
+              </div>
+
               <div className="flex items-center gap-2">
                 <Switch
                   id="profitable-filter"
@@ -404,6 +466,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                   (suggestedCounterpart?.side === 'NO' && suggestedCounterpart.price === noPrice);
                 const isMidpoint = Math.abs(level.price - midpointPrice) < 0.005;
 
+                const previewData = previewPrices.get(level.price);
+
                 return (
                   <LadderRow
                     key={level.price}
@@ -418,6 +482,10 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                     onYesClick={(type) => handleYesClick(level.price, type)}
                     onNoClick={(type) => handleNoClick(level.price, type)}
                     onArbClick={() => handleArbLevelClick(level.price)}
+                    onHover={(isHovering) => handleRowHover(level.price, isHovering)}
+                    isInPreview={!!previewData}
+                    previewTier={previewData?.tier}
+                    tierAllocation={previewData?.allocation}
                   />
                 );
               })}
