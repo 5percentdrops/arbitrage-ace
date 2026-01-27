@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, X, Eye } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [deployedOrders, setDeployedOrders] = useState<ActiveLadderOrder[]>([]);
   const [showProfitableOnly, setShowProfitableOnly] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
+  const [orderBookRangePct, setOrderBookRangePct] = useState(10); // 10% default
   const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
   const [pairedSelection, setPairedSelection] = useState<PairedArbSelection | null>(null);
   
@@ -204,7 +205,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     }
   }, [clearSelections]);
 
-  // Filter levels to show 10% order book view below best ask prices
+  // Filter levels to show configurable % order book view below best ask prices
   // (for limit orders, we only place orders at prices lower than current market)
   const visibleLevels = useMemo(() => {
     if (!orderBook) return [];
@@ -213,14 +214,15 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     const bestYesAsk = orderBook.best.yesAsk;
     const bestNoAsk = orderBook.best.noAsk;
     
-    // Show 10% range below best ask for each side
-    const yesLowerBound = bestYesAsk * 0.90; // 10% below best YES ask
-    const noLowerBound = bestNoAsk * 0.90;   // 10% below best NO ask
+    // Show configurable range below best ask for each side
+    const rangeFactor = 1 - (orderBookRangePct / 100);
+    const yesLowerBound = bestYesAsk * rangeFactor;
+    const noLowerBound = bestNoAsk * rangeFactor;
     
     return orderBook.levels.filter(level => {
-      // YES ask must be within 10% range below best (exclusive of best)
+      // YES ask must be within range below best (exclusive of best)
       const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
-      // NO ask must be within 10% range below best (exclusive of best)
+      // NO ask must be within range below best (exclusive of best)
       const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
       
       if (!yesInRange || !noInRange) return false;
@@ -230,7 +232,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       }
       return true;
     });
-  }, [orderBook, showProfitableOnly, profitableLevels]);
+  }, [orderBook, showProfitableOnly, profitableLevels, orderBookRangePct]);
 
   // Find midpoint level (LTP)
   const midpointPrice = orderBook?.refPrice ?? 0.5;
@@ -646,15 +648,28 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               </div>
             </div>
 
-            {/* Quick Stake Buttons */}
+            {/* Quick Stake Buttons + Order Book Range */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <QuickStakeButtons
                 currentStake={positionSize}
                 onStakeChange={setPositionSize}
               />
-              <span className="text-xs text-muted-foreground font-mono">
-                Range: {rangeMin.toFixed(2)} - {rangeMax.toFixed(2)}
-              </span>
+              
+              {/* Order Book Range Slider */}
+              <div className="flex items-center gap-2">
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Depth:</span>
+                <input
+                  type="range"
+                  min={5}
+                  max={30}
+                  step={5}
+                  value={orderBookRangePct}
+                  onChange={(e) => setOrderBookRangePct(Number(e.target.value))}
+                  className="w-20 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <span className="text-xs font-mono text-foreground w-8">{orderBookRangePct}%</span>
+              </div>
             </div>
           </CardHeader>
 
