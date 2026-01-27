@@ -56,6 +56,7 @@ export interface ActiveLadderOrder {
   filledShares: number;
   fillPercent: number;
   status: 'pending' | 'partial' | 'filled' | 'cancelled';
+  arbAmount: number;   // Potential arb profit = (1 - totalCost) * shares
 }
 
 export interface DeployLadderRequest {
