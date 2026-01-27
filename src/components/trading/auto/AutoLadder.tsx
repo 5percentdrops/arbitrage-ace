@@ -1,17 +1,17 @@
 import { useState, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, DollarSign, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
 import { AutoOrdersPanel } from './AutoOrdersPanel';
-import { LadderRow } from './LadderRow';
+import { BetAngelLadder } from './BetAngelLadder';
+import { QuickStakeButtons } from './QuickStakeButtons';
 import type { LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 import type { TokenSymbol } from '@/types/trading';
 
@@ -31,7 +31,7 @@ interface AutoLadderProps {
 
 export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [size, setSize] = useState(10);
-  const [positionSize, setPositionSize] = useState(1000);
+  const [positionSize, setPositionSize] = useState(250);
   const [minNetEdgePct, setMinNetEdgePct] = useState(0.5);
   const [autoTradeEnabled, setAutoTradeEnabled] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -79,10 +79,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     
     setIsDeploying(true);
     try {
-      // Simulate API call - in production, call deployLadder()
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Generate mock deployed orders
       const mockOrders: ActiveLadderOrder[] = Array.from({ length: 7 }, (_, i) => ({
         id: `order-${Date.now()}-${i}`,
         ladderIndex: i + 1,
@@ -107,6 +105,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       await new Promise(resolve => setTimeout(resolve, 500));
       setDeployedOrders([]);
       clearSelections();
+      setPreviewPrices(new Map());
     } finally {
       setIsCancelling(false);
     }
@@ -125,7 +124,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     });
   }, [orderBook, rangeMin, rangeMax, showProfitableOnly, profitableLevels]);
 
-  // Find midpoint level
+  // Find midpoint level (LTP)
   const midpointPrice = orderBook?.refPrice ?? 0.5;
 
   // Find best arbitrage opportunity
@@ -153,12 +152,10 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       .slice(0, 7);
   }, [levelEdges]);
 
-  // Handle row hover - show preview of 7-row selection with tiered allocation
-  const handleRowHover = useCallback((price: number, isHovering: boolean) => {
-    if (!isHovering || !levelEdges.get(price)?.isProfitable) {
-      setPreviewPrices(new Map());
-      return;
-    }
+  // Handle price click - show preview and potentially deploy
+  const handlePriceClick = useCallback((price: number) => {
+    const edge = levelEdges.get(price);
+    if (!edge?.isProfitable) return;
     
     const top7 = getTop7Profitable();
     const tierShares = calculateTieredShares(positionSize, top7.length);
@@ -173,7 +170,6 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
 
   // Handle click on profitable arbitrage level - auto deploy ladder with tiered sizing
   const handleArbLevelClick = useCallback(async (clickedPrice: number) => {
-    // Only proceed if this level is profitable
     const clickedEdge = levelEdges.get(clickedPrice);
     if (!clickedEdge?.isProfitable) return;
     
@@ -181,16 +177,12 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Get top 7 profitable levels, sorted by edge (best first)
       const profitableLevelsSorted = getTop7Profitable();
-      
       if (profitableLevelsSorted.length === 0) return;
       
-      // Calculate tiered shares allocation
       const tierShares = calculateTieredShares(positionSize, profitableLevelsSorted.length);
       
-      // Generate paired orders for each profitable level with tiered sizing
-      const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price, edge], index) => ([
+      const newOrders: ActiveLadderOrder[] = profitableLevelsSorted.flatMap(([price], index) => ([
         {
           id: `order-${Date.now()}-yes-${index}`,
           ladderIndex: index + 1,
@@ -219,7 +211,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       const totalDeployed = tierShares.reduce((a, b) => a + b, 0);
       toast({
         title: "Tiered Ladder Deployed",
-        description: `Deployed $${totalDeployed} across ${profitableLevelsSorted.length} arb levels (L1: $${tierShares[0]} → L${profitableLevelsSorted.length}: $${tierShares[profitableLevelsSorted.length - 1]})`,
+        description: `Deployed $${totalDeployed} across ${profitableLevelsSorted.length} arb levels`,
       });
     } finally {
       setIsDeploying(false);
@@ -304,7 +296,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         <Alert variant="destructive" className="bg-destructive/10">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
-            <span>Price moved outside ±3% range. Consider cancelling orders.</span>
+            <span>Price moved outside ±15% range. Consider cancelling orders.</span>
             <Button
               variant="destructive"
               size="sm"
@@ -334,102 +326,104 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           />
         </div>
 
-        {/* Main Ladder */}
+        {/* Main Ladder Card */}
         <Card className="xl:col-span-3 border-border bg-card overflow-hidden">
-          <CardHeader className="pb-2 flex-row flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-base font-semibold">{asset} Order Book Ladder</CardTitle>
-              <span className="text-xs text-muted-foreground font-mono">
-                Tick: {orderBook?.tick ?? 0.01} | Range: {(rangeMin).toFixed(2)} - {(rangeMax).toFixed(2)}
-              </span>
-              {/* Pause/Refresh buttons immediately after title for visibility */}
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={isPaused ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setIsPaused(!isPaused)}
-                  className={cn(
-                    "h-8 gap-1.5",
-                    isPaused && "bg-warning text-warning-foreground hover:bg-warning/90"
-                  )}
-                >
-                  {isPaused ? (
-                    <>
-                      <Play className="h-3.5 w-3.5" />
-                      Resume
-                    </>
-                  ) : (
-                    <>
-                      <Pause className="h-3.5 w-3.5" />
-                      Pause
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={refresh}
-                  className="h-8 w-8"
-                  disabled={isPaused}
-                >
-                  <RefreshCw className={cn("h-4 w-4", !isPaused && "animate-none")} />
-                </Button>
+          <CardHeader className="pb-2 space-y-3">
+            {/* Top row: Title + Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-base font-semibold">{asset} Order Book</CardTitle>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Tick: {orderBook?.tick ?? 0.01}
+                </span>
+                {/* Pause/Refresh buttons */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={isPaused ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsPaused(!isPaused)}
+                    className={cn(
+                      "h-8 gap-1.5",
+                      isPaused && "bg-warning text-warning-foreground hover:bg-warning/90"
+                    )}
+                  >
+                    {isPaused ? (
+                      <>
+                        <Play className="h-3.5 w-3.5" />
+                        Resume
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="h-3.5 w-3.5" />
+                        Pause
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={refresh}
+                    className="h-8 w-8"
+                    disabled={isPaused}
+                  >
+                    <RefreshCw className={cn("h-4 w-4", !isPaused && "animate-none")} />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="profitable-filter"
+                    checked={showProfitableOnly}
+                    onCheckedChange={setShowProfitableOnly}
+                    className="data-[state=checked]:bg-success"
+                  />
+                  <Label 
+                    htmlFor="profitable-filter" 
+                    className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Filter className="h-3 w-3" />
+                    Arb Only
+                  </Label>
+                </div>
+
+                {/* Cancel Preview/Orders */}
+                {(previewPrices.size > 0 || deployedOrders.length > 0) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPreviewPrices(new Map());
+                      if (deployedOrders.length > 0) handleCancelAll();
+                    }}
+                    className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    {deployedOrders.length > 0 ? `Cancel ${deployedOrders.length} Orders` : 'Clear Preview'}
+                  </Button>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Position Size Input */}
-              <div className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1">
-                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label htmlFor="position-size" className="text-xs text-muted-foreground whitespace-nowrap">
-                  Position Size
-                </Label>
-                <Input
-                  id="position-size"
-                  type="number"
-                  min={10}
-                  step={100}
-                  value={positionSize}
-                  onChange={(e) => setPositionSize(Number(e.target.value))}
-                  className="w-24 h-7 text-xs font-mono bg-background border-border"
-                />
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="profitable-filter"
-                  checked={showProfitableOnly}
-                  onCheckedChange={setShowProfitableOnly}
-                  className="data-[state=checked]:bg-success"
-                />
-                <Label 
-                  htmlFor="profitable-filter" 
-                  className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5"
-                >
-                  <Filter className="h-3 w-3" />
-                  Arb Only
-                </Label>
-              </div>
-
-              {/* Cancel Preview Button */}
-              {previewPrices.size > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPreviewPrices(new Map())}
-                  className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  Clear Preview
-                </Button>
-              )}
+            {/* Quick Stake Buttons */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <QuickStakeButtons
+                currentStake={positionSize}
+                onStakeChange={setPositionSize}
+              />
+              <span className="text-xs text-muted-foreground font-mono">
+                Range: {rangeMin.toFixed(2)} - {rangeMax.toFixed(2)}
+              </span>
             </div>
           </CardHeader>
+
           <CardContent className="p-0">
             {/* Deployed Orders Banner */}
             {deployedOrders.length > 0 && (
               <div className="flex items-center justify-between px-4 py-2 bg-warning/10 border-b border-warning/30">
                 <span className="text-xs text-warning font-medium">
-                  {deployedOrders.length} orders deployed
+                  {deployedOrders.length} orders deployed across {new Set(deployedOrders.map(o => o.ladderIndex)).size} tiers
                 </span>
                 <Button
                   variant="ghost"
@@ -474,56 +468,34 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               </div>
             )}
 
-            {/* Header Row */}
-            <div className="grid grid-cols-9 text-[10px] font-medium text-muted-foreground uppercase tracking-wider bg-muted/50 border-b border-border">
-              <div className="py-2 px-2 text-center">Bid Size</div>
-              <div className="py-2 px-2 text-center text-success">YES</div>
-              <div className="py-2 px-2 text-center">Ask Size</div>
-              <div className="col-span-3 py-2 px-2 text-center">
-                <span className="mr-2">Cost</span>
-                <span>Net Edge</span>
-              </div>
-              <div className="py-2 px-2 text-center">Bid Size</div>
-              <div className="py-2 px-2 text-center text-destructive">NO</div>
-              <div className="py-2 px-2 text-center">Ask Size</div>
-            </div>
-
-            {/* Ladder Rows */}
-            <div className="max-h-[500px] overflow-y-auto">
-              {visibleLevels.map((level) => {
-                const isYesSelected = yesSelection?.price === level.price;
-                const noPrice = 1 - level.price;
-                const isNoSelected = noSelection?.price === noPrice;
-                const isSelected = isYesSelected || isNoSelected;
-                const isProfitable = profitableLevels.has(level.price);
-                const isSuggested = 
-                  (suggestedCounterpart?.side === 'YES' && suggestedCounterpart.price === level.price) ||
-                  (suggestedCounterpart?.side === 'NO' && suggestedCounterpart.price === noPrice);
-                const isMidpoint = Math.abs(level.price - midpointPrice) < 0.005;
-
-                const previewData = previewPrices.get(level.price);
-
-                return (
-                  <LadderRow
-                    key={level.price}
-                    level={level}
-                    edgeInfo={levelEdges.get(level.price) ?? null}
-                    isSelected={isSelected}
-                    isProfitable={isProfitable}
-                    isSuggested={isSuggested}
-                    isMidpoint={isMidpoint}
-                    yesOrders={deployedOrders.filter(o => o.side === 'YES')}
-                    noOrders={deployedOrders.filter(o => o.side === 'NO')}
-                    onYesClick={(type) => handleYesClick(level.price, type)}
-                    onNoClick={(type) => handleNoClick(level.price, type)}
-                    onArbClick={() => handleArbLevelClick(level.price)}
-                    onHover={(isHovering) => handleRowHover(level.price, isHovering)}
-                    isInPreview={!!previewData}
-                    previewTier={previewData?.tier}
-                    tierAllocation={previewData?.allocation}
-                  />
-                );
-              })}
+            {/* BetAngel Side-by-Side Ladders */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+              <BetAngelLadder
+                side="YES"
+                levels={visibleLevels}
+                levelEdges={levelEdges}
+                profitableLevels={profitableLevels}
+                deployedOrders={deployedOrders}
+                ltpPrice={midpointPrice}
+                momentum="same"
+                previewPrices={previewPrices}
+                onBackClick={(price) => handleYesClick(price, 'bid')}
+                onLayClick={(price) => handleYesClick(price, 'ask')}
+                onPriceClick={handlePriceClick}
+              />
+              <BetAngelLadder
+                side="NO"
+                levels={visibleLevels}
+                levelEdges={levelEdges}
+                profitableLevels={profitableLevels}
+                deployedOrders={deployedOrders}
+                ltpPrice={1 - midpointPrice}
+                momentum="same"
+                previewPrices={previewPrices}
+                onBackClick={(price) => handleNoClick(price, 'bid')}
+                onLayClick={(price) => handleNoClick(price, 'ask')}
+                onPriceClick={handlePriceClick}
+              />
             </div>
           </CardContent>
         </Card>

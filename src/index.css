@@ -121,6 +121,13 @@
     --glow-success: 142 70% 42%;
     --glow-danger: 0 70% 50%;
     --glow-warning: 32 95% 50%;
+
+    /* BetAngel Trading Colors */
+    --betangel-back: 207 85% 65%;
+    --betangel-lay: 340 75% 75%;
+    --betangel-ltp-up: 142 70% 45%;
+    --betangel-ltp-down: 0 70% 55%;
+    --betangel-ltp-same: 45 95% 55%;
   }
 }
 
