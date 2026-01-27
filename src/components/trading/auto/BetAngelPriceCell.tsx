@@ -17,25 +17,39 @@ export function BetAngelPriceCell({
   isProfitable,
   onClick 
 }: BetAngelPriceCellProps) {
+  const cents = Math.round(price * 100);
+  
   return (
     <div 
       onClick={onClick}
       className={cn(
-        "h-7 flex items-center justify-center font-mono text-xs font-bold",
-        "transition-all cursor-pointer hover:bg-muted/50",
+        "h-9 flex flex-col items-center justify-center font-mono cursor-pointer",
+        "transition-all hover:bg-muted/50",
         // LTP styling with momentum colors
-        isLTP && momentum === 'up' && "bg-[hsl(var(--betangel-ltp-up))]/30 text-success",
-        isLTP && momentum === 'down' && "bg-[hsl(var(--betangel-ltp-down))]/30 text-destructive",
-        isLTP && momentum === 'same' && "bg-[hsl(var(--betangel-ltp-same))]/30 text-yellow-500",
+        isLTP && momentum === 'up' && "bg-[hsl(var(--betangel-ltp-up))]/30",
+        isLTP && momentum === 'down' && "bg-[hsl(var(--betangel-ltp-down))]/30",
+        isLTP && momentum === 'same' && "bg-[hsl(var(--betangel-ltp-same))]/30",
         // Profitable indicator
-        isProfitable && !isLTP && "bg-success/10 text-success",
+        isProfitable && !isLTP && "bg-success/10",
         // Default
-        !isLTP && !isProfitable && "text-foreground"
+        !isLTP && !isProfitable && ""
       )}
     >
-      {isLTP && <span className="mr-0.5 text-[10px]">►</span>}
-      {price.toFixed(2)}
-      {isLTP && <span className="ml-0.5 text-[10px]">◄</span>}
+      <div className={cn(
+        "flex items-center text-sm font-bold",
+        isLTP && momentum === 'up' && "text-success",
+        isLTP && momentum === 'down' && "text-destructive",
+        isLTP && momentum === 'same' && "text-[hsl(var(--poly-spread))]",
+        isProfitable && !isLTP && "text-success",
+        !isLTP && !isProfitable && "text-foreground"
+      )}>
+        {isLTP && <span className="mr-0.5 text-[10px]">►</span>}
+        {cents}¢
+        {isLTP && <span className="ml-0.5 text-[10px]">◄</span>}
+      </div>
+      <div className="text-[9px] text-muted-foreground">
+        {cents}%
+      </div>
     </div>
   );
 }

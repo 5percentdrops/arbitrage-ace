@@ -12,6 +12,8 @@ import { SpreadCalculator } from './SpreadCalculator';
 import { AutoOrdersPanel } from './AutoOrdersPanel';
 import { BetAngelLadder } from './BetAngelLadder';
 import { QuickStakeButtons } from './QuickStakeButtons';
+import { SpreadIndicator } from './SpreadIndicator';
+import { QuickTradeButtons } from './QuickTradeButtons';
 import type { LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 import type { TokenSymbol } from '@/types/trading';
 
@@ -468,8 +470,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               </div>
             )}
 
-            {/* BetAngel Side-by-Side Ladders */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            {/* BetAngel Side-by-Side Ladders with Spread Indicator */}
+            <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-2 p-4">
               <BetAngelLadder
                 side="YES"
                 levels={visibleLevels}
@@ -483,6 +485,15 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 onLayClick={(price) => handleYesClick(price, 'ask')}
                 onPriceClick={handlePriceClick}
               />
+              
+              {/* Center Spread Indicator */}
+              <div className="hidden md:flex items-start pt-20">
+                <SpreadIndicator
+                  yesBestAsk={midpointPrice}
+                  noBestAsk={1 - midpointPrice}
+                />
+              </div>
+              
               <BetAngelLadder
                 side="NO"
                 levels={visibleLevels}
@@ -497,6 +508,16 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 onPriceClick={handlePriceClick}
               />
             </div>
+
+            {/* Quick Trade Buttons */}
+            <QuickTradeButtons
+              yesPrice={midpointPrice}
+              noPrice={1 - midpointPrice}
+              stake={positionSize}
+              onBuyYes={handleQuickDeploy}
+              onBuyNo={handleQuickDeploy}
+              disabled={isDeploying || !bestArb}
+            />
           </CardContent>
         </Card>
 

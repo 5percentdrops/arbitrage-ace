@@ -128,6 +128,14 @@
     --betangel-ltp-up: 142 70% 45%;
     --betangel-ltp-down: 0 70% 55%;
     --betangel-ltp-same: 45 95% 55%;
+
+    /* Polymarket-inspired colors */
+    --poly-yes: 142 70% 45%;
+    --poly-no: 0 70% 55%;
+    --poly-bid: 142 60% 50%;
+    --poly-ask: 0 60% 55%;
+    --poly-spread: 45 90% 50%;
+    --poly-probability: 210 100% 60%;
   }
 }
 
