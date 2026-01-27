@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, DollarSign } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, DollarSign, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -336,14 +336,47 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
 
         {/* Main Ladder */}
         <Card className="xl:col-span-3 border-border bg-card overflow-hidden">
-          <CardHeader className="pb-2 flex-row items-center justify-between">
+          <CardHeader className="pb-2 flex-row flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <CardTitle className="text-base font-semibold">{asset} Order Book Ladder</CardTitle>
               <span className="text-xs text-muted-foreground font-mono">
                 Tick: {orderBook?.tick ?? 0.01} | Range: {(rangeMin).toFixed(2)} - {(rangeMax).toFixed(2)}
               </span>
+              {/* Pause/Refresh buttons immediately after title for visibility */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={isPaused ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setIsPaused(!isPaused)}
+                  className={cn(
+                    "h-8 gap-1.5",
+                    isPaused && "bg-warning text-warning-foreground hover:bg-warning/90"
+                  )}
+                >
+                  {isPaused ? (
+                    <>
+                      <Play className="h-3.5 w-3.5" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-3.5 w-3.5" />
+                      Pause
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={refresh}
+                  className="h-8 w-8"
+                  disabled={isPaused}
+                >
+                  <RefreshCw className={cn("h-4 w-4", !isPaused && "animate-none")} />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
               {/* Position Size Input */}
               <div className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
@@ -376,39 +409,41 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                   Arb Only
                 </Label>
               </div>
-              <Button
-                variant={isPaused ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setIsPaused(!isPaused)}
-                className={cn(
-                  "h-8 gap-1.5",
-                  isPaused && "bg-warning text-warning-foreground hover:bg-warning/90"
-                )}
-              >
-                {isPaused ? (
-                  <>
-                    <Play className="h-3.5 w-3.5" />
-                    Resume
-                  </>
-                ) : (
-                  <>
-                    <Pause className="h-3.5 w-3.5" />
-                    Pause
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={refresh}
-                className="h-8 w-8"
-                disabled={isPaused}
-              >
-                <RefreshCw className={cn("h-4 w-4", !isPaused && "animate-none")} />
-              </Button>
+
+              {/* Cancel Preview Button */}
+              {previewPrices.size > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPreviewPrices(new Map())}
+                  className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear Preview
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-0">
+            {/* Deployed Orders Banner */}
+            {deployedOrders.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-2 bg-warning/10 border-b border-warning/30">
+                <span className="text-xs text-warning font-medium">
+                  {deployedOrders.length} orders deployed
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelAll}
+                  disabled={isCancelling}
+                  className="h-6 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  {isCancelling ? 'Cancelling...' : 'Cancel All'}
+                </Button>
+              </div>
+            )}
+
             {/* Best Arb Indicator */}
             {bestArb && (
               <div className="flex items-center justify-between px-4 py-3 bg-success/10 border-b border-success/30">
