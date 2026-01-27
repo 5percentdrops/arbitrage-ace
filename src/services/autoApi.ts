@@ -47,6 +47,7 @@ export async function cancelAllOrders(marketId: string): Promise<boolean> {
 }
 
 // Generate mock order book data for development
+// Creates realistic arbitrage opportunities where YES + NO < $1.00
 export function generateMockOrderBook(): OrderBookData {
   const refPrice = 0.50;
   const tick = 0.01;
@@ -57,7 +58,7 @@ export function generateMockOrderBook(): OrderBookData {
     const price = Math.round((refPrice + i * tick) * 100) / 100;
     if (price <= 0 || price >= 1) continue;
     
-    // Create realistic bid/ask spreads
+    // Create realistic bid/ask spreads with sizes
     const baseSize = Math.floor(Math.random() * 500) + 50;
     const yesBid = Math.floor(baseSize * (0.8 + Math.random() * 0.4));
     const yesAsk = Math.floor(baseSize * (0.8 + Math.random() * 0.4));
@@ -69,22 +70,6 @@ export function generateMockOrderBook(): OrderBookData {
   
   // Sort by price descending (highest at top)
   levels.sort((a, b) => b.price - a.price);
-  
-  // Randomly select 2-5 levels to have arbitrage opportunities
-  const numArbLevels = Math.floor(Math.random() * 4) + 2; // 2-5 levels
-  const eligiblePrices = levels
-    .filter(l => l.price >= 0.40 && l.price <= 0.60) // Only mid-range prices
-    .map(l => l.price);
-  
-  // Shuffle and pick random prices
-  const shuffled = eligiblePrices.sort(() => Math.random() - 0.5);
-  const arbPrices = shuffled.slice(0, numArbLevels);
-  
-  // Generate random edge percentages for selected prices (1-3% gross edge)
-  const arbEdges: Record<number, number> = {};
-  arbPrices.forEach(price => {
-    arbEdges[price] = 0.01 + Math.random() * 0.02; // 1-3% gross edge
-  });
   
   return {
     tick,
@@ -100,9 +85,7 @@ export function generateMockOrderBook(): OrderBookData {
       takerPct: 0.4,
       makerPct: 0.0,
     },
-    // Pass arb data in a custom field for the hook to use
-    _arbEdges: arbEdges,
-  } as OrderBookData & { _arbEdges: Record<number, number> };
+  };
 }
 
 // WebSocket support (placeholder for future implementation)
