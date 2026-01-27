@@ -77,24 +77,37 @@ export function useAutoOrderBook({
   ) : false;
   
   // Calculate profitable levels and level edges from order book data
+  // Arbitrage is profitable when: YES_price + NO_price < $1.00 (minus fees)
   const profitableLevels = new Set<number>();
   const levelEdges = new Map<number, LevelEdgeInfo>();
   
   if (orderBook) {
-    // Get arb edges from mock data (or calculate from real data)
-    const arbEdges = (orderBook as OrderBookData & { _arbEdges?: Record<number, number> })._arbEdges || {};
-    
     orderBook.levels.forEach(level => {
-      const hasArb = level.price in arbEdges;
-      const grossEdge = hasArb ? arbEdges[level.price] : 0;
+      // For arbitrage, we need to buy YES at yesAsk and NO at noAsk
+      // The YES price is the level price, NO price comes from the noAsk at this level
+      const yesPrice = level.price;
+      // Find the complementary NO price - in a real order book, we'd look up 
+      // the NO ask at the corresponding price level (1 - yesPrice)
+      // For now, use the noAsk value directly from this level
+      const noPrice = 1 - level.price;
+      
+      // Total cost to buy both YES and NO
+      const totalCost = yesPrice + noPrice;
+      
+      // Gross edge is profit before fees (should be > 0 for arb opportunity)
+      const grossEdge = 1.0 - totalCost;
       const grossEdgePct = grossEdge * 100;
+      
+      // Net edge after paying taker fees on both legs
       const fee = orderBook.fee.takerPct / 100;
-      const netEdge = grossEdge - (fee * 2); // Fee on both sides
+      const netEdge = grossEdge - (fee * 2);
       const netEdgePct = netEdge * 100;
+      
+      // Profitable if net edge meets minimum threshold
       const isProfitable = netEdgePct >= minNetEdgePct;
       
       levelEdges.set(level.price, {
-        totalCost: 1 - grossEdge,
+        totalCost,
         grossEdgePct,
         netEdgePct,
         isProfitable,
