@@ -1,96 +1,112 @@
 
-# Order Book 3% Price Range Filter
+
+# Dynamic Reference Price for Moving Order Book Window
 
 ## Summary
 
-Change the order book view to only display price levels within ±3% of the current YES and NO reference prices. This creates a focused, fast-paced view showing only the most relevant price levels for trading.
+Make the YES and NO reference prices dynamic (not fixed at 50¢) so that the ±5% order book window moves as prices change. Each 300ms refresh will generate slightly different reference prices, causing the visible price range to shift accordingly.
 
 ---
 
 ## Current vs New Behavior
 
 ```text
-CURRENT (±15% range):
-  YES @ 50¢ → Shows levels from 35¢ to 65¢ (30¢ window)
-  
-NEW (±3% range):
-  YES @ 50¢ → Shows levels from 47¢ to 53¢ (6¢ window)
+CURRENT (Fixed):
+  refPrice = 0.50 (always)
+  Window: 47.5¢ - 52.5¢ (never moves)
+
+NEW (Dynamic):
+  refPrice = 0.48 → Window: 45.6¢ - 50.4¢
+  refPrice = 0.52 → Window: 49.4¢ - 54.6¢
+  refPrice = 0.55 → Window: 52.25¢ - 57.75¢
+  (window follows price movement)
 ```
 
 ---
 
 ## Implementation Plan
 
-### 1. Update Range Constant
+### 1. Add Dynamic Reference Price to Mock Generator
 
-**File:** `src/hooks/useAutoOrderBook.ts`
+**File:** `src/services/autoApi.ts`
 
-Change the range percentage from 15% to 3%:
-
-```typescript
-// Line 12: Change from 0.15 to 0.03
-const RANGE_PCT = 0.03; // ±3% range around reference
-```
-
-### 2. Update Out-of-Range Warning Text
-
-**File:** `src/components/trading/auto/AutoLadder.tsx`
-
-Update the warning message to reflect the new range:
+Update `generateMockOrderBook()` to use a dynamic reference price that drifts over time:
 
 ```typescript
-// Line 320: Update text
-<span>Price moved outside ±3% range. Consider cancelling orders.</span>
+// Track price state between calls (simulates market movement)
+let currentRefPrice = 0.50;
+
+export function generateMockOrderBook(): OrderBookData {
+  // Drift the reference price randomly by ±0.5¢ each tick
+  const drift = (Math.random() - 0.5) * 0.01; // -0.5¢ to +0.5¢
+  currentRefPrice = Math.max(0.20, Math.min(0.80, currentRefPrice + drift));
+  
+  const refPrice = Math.round(currentRefPrice * 100) / 100;
+  const tick = 0.01;
+  // ... rest of generation uses this dynamic refPrice
 ```
 
-### 3. Update Range Display in Header
+### 2. Update Best Prices to Match Reference
 
-**File:** `src/components/trading/auto/AutoLadder.tsx`
+**File:** `src/services/autoApi.ts`
 
-The range display already shows `rangeMin` and `rangeMax` (line 437), so it will automatically update to show the tighter range (e.g., "0.47 - 0.53" instead of "0.35 - 0.65").
+Update the `best` prices to be based on the dynamic reference:
+
+```typescript
+return {
+  tick,
+  refPrice,
+  levels,
+  best: {
+    yesBid: Math.round((refPrice - 0.01) * 100) / 100,
+    yesAsk: refPrice,
+    noBid: Math.round((1 - refPrice) * 100) / 100,
+    noAsk: Math.round((1 - refPrice + 0.01) * 100) / 100,
+  },
+  fee: { takerPct: 0.4, makerPct: 0.0 },
+};
+```
 
 ---
 
 ## Visual Result
 
 ```text
-BEFORE (±15% range - 30 rows):
-┌──────────────────────────────────────┐
-│  Range: 0.35 - 0.65                  │
-│  ▓▓  65¢  │  ...                     │
-│  ▓▓  64¢  │  ...                     │
-│  ...many rows...                     │
-│  ▓▓  36¢  │  ...                     │
-│  ▓▓  35¢  │  ...                     │
-└──────────────────────────────────────┘
+Tick 1: refPrice = 50¢
+┌──────────────────────────────┐
+│  Range: 47.5¢ - 52.5¢        │
+│  ▓▓  52¢  │  ...             │
+│  ▓▓  51¢  │  ...             │
+│  ▓▓ ►50¢◄ │  ...  ← Current  │
+│  ▓▓  49¢  │  ...             │
+│  ▓▓  48¢  │  ...             │
+└──────────────────────────────┘
 
-AFTER (±3% range - 6 rows):
-┌──────────────────────────────────────┐
-│  Range: 0.47 - 0.53                  │
-│  ▓▓  53¢  │  ...                     │
-│  ▓▓  52¢  │  ...                     │
-│  ▓▓  51¢  │  ...  ← Focused view     │
-│  ▓▓  50¢  │  ...                     │
-│  ▓▓  49¢  │  ...                     │
-│  ▓▓  48¢  │  ...                     │
-│  ▓▓  47¢  │  ...                     │
-└──────────────────────────────────────┘
+Tick 50: refPrice drifted to 54¢
+┌──────────────────────────────┐
+│  Range: 51.3¢ - 56.7¢        │
+│  ▓▓  56¢  │  ...             │
+│  ▓▓  55¢  │  ...             │
+│  ▓▓ ►54¢◄ │  ...  ← Current  │
+│  ▓▓  53¢  │  ...             │
+│  ▓▓  52¢  │  ...             │
+└──────────────────────────────┘
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Line | Change |
-|------|------|--------|
-| `src/hooks/useAutoOrderBook.ts` | 12 | Change `RANGE_PCT = 0.15` to `0.03` |
-| `src/components/trading/auto/AutoLadder.tsx` | 320 | Update warning text from "±15%" to "±3%" |
+| File | Changes |
+|------|---------|
+| `src/services/autoApi.ts` | Add module-level `currentRefPrice` variable that drifts each tick, update `generateMockOrderBook()` to use dynamic price, update `best` prices to match |
 
 ---
 
 ## Technical Notes
 
-- The ±3% range at 50¢ gives a 6¢ window (47¢-53¢)
-- This creates a compact, fast-scrolling view ideal for quick order placement
-- The range automatically adjusts as the reference price moves
-- Out-of-range warning triggers when best ask prices exceed the ±3% bounds
+- Reference price drifts ±0.5¢ per 300ms tick (simulates market movement)
+- Price is bounded between 20¢ and 80¢ to stay realistic
+- The ±5% window automatically recalculates in `useAutoOrderBook.ts` since it uses `orderBook.refPrice`
+- No changes needed to the hook - it already reads `refPrice` from the order book data
+
