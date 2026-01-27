@@ -1,143 +1,110 @@
 
+# Fix Order Visibility on Ladder Rows
 
-# Auto-Deploy 7 Limit Orders on Every Price Change
+## Problem Identified
 
-## Summary
+Auto-deployed orders are not showing on the ladder rows because of a price matching mismatch:
 
-Automatically deploy up to 7 limit orders at profitable arbitrage levels (where YES + NO < $1.00) every time prices update. When `autoTradeEnabled` is true, the system will continuously monitor for profitable levels and auto-deploy/update orders on each 300ms refresh cycle.
+1. **Orders are created** with actual ask prices (`level.yesAskPrice`, `level.noAskPrice`)
+2. **Order book regenerates** every 300ms with different randomized prices
+3. **Row matching fails** because the deployed order prices no longer match current row prices
+
+```text
+Tick 1 (order created):
+  level.price = 0.50
+  level.yesAskPrice = 0.485 (with arb discount)
+  → Order created: price = 0.485
+
+Tick 2 (order book regenerates):
+  level.price = 0.50  
+  level.yesAskPrice = 0.502 (different random discount)
+  → Order at 0.485 doesn't match any row!
+```
 
 ---
 
-## Current vs New Behavior
+## Solution
 
-```text
-CURRENT (Manual):
-  - Price updates every 300ms
-  - Orders only deploy on user click (Quick Deploy button)
-  - autoTradeEnabled toggle exists but does nothing
-
-NEW (Automatic):
-  - Price updates every 300ms
-  - When autoTradeEnabled=true:
-    → Find top 7 profitable levels (YES + NO < $1.00)
-    → Auto-deploy tiered orders across those levels
-    → Replace previous orders with new levels on each tick
-  - When autoTradeEnabled=false: Manual mode (current behavior)
-```
+Match orders to rows using the **reference price** (`level.price`) instead of actual ask prices. Store `levelPrice` on orders for stable matching.
 
 ---
 
 ## Implementation Plan
 
-### 1. Add Auto-Deploy Effect to AutoLadder
+### 1. Update Order Type to Include Level Price
 
-**File:** `src/components/trading/auto/AutoLadder.tsx`
+**File:** `src/types/auto-trading.ts`
 
-Add a `useEffect` that watches for profitable level changes and auto-deploys when enabled:
+Add `levelPrice` field to `ActiveLadderOrder`:
 
 ```typescript
-// Add useEffect import if not present
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-
-// Inside AutoLadder component, add ref to track previous levels
-const prevProfitableLevelsRef = useRef<string>('');
-
-// Add auto-deploy effect
-useEffect(() => {
-  // Only run when auto-trade is enabled and not paused
-  if (!autoTradeEnabled || isPaused || isDeploying) return;
-  
-  // Get current top 7 profitable levels
-  const top7 = getTop7Profitable();
-  if (top7.length === 0) return;
-  
-  // Create a fingerprint of current profitable levels
-  const currentLevelsKey = top7.map(([price]) => price.toFixed(2)).join(',');
-  
-  // Skip if levels haven't changed
-  if (currentLevelsKey === prevProfitableLevelsRef.current) return;
-  prevProfitableLevelsRef.current = currentLevelsKey;
-  
-  // Auto-deploy orders at these levels
-  const tierShares = calculateTieredShares(positionSize, top7.length);
-  
-  const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
-    const level = orderBook?.levels.find(l => l.price === price);
-    if (!level) return [];
-    
-    return [
-      {
-        id: `auto-${Date.now()}-yes-${index}`,
-        ladderIndex: index + 1,
-        side: 'YES' as const,
-        price: level.yesAskPrice,
-        shares: tierShares[index],
-        filledShares: 0,
-        fillPercent: 0,
-        status: 'pending' as const,
-      },
-      {
-        id: `auto-${Date.now()}-no-${index}`,
-        ladderIndex: index + 1,
-        side: 'NO' as const,
-        price: level.noAskPrice,
-        shares: tierShares[index],
-        filledShares: 0,
-        fillPercent: 0,
-        status: 'pending' as const,
-      },
-    ];
-  });
-  
-  // Replace all orders with new ones (simulates cancel + redeploy)
-  setDeployedOrders(newOrders);
-  
-}, [autoTradeEnabled, isPaused, isDeploying, getTop7Profitable, positionSize, orderBook]);
+export interface ActiveLadderOrder {
+  id: string;
+  ladderIndex: number;
+  side: 'YES' | 'NO';
+  price: number;        // Actual execution price
+  levelPrice: number;   // NEW: Reference level price for row matching
+  shares: number;
+  filledShares: number;
+  fillPercent: number;
+  status: 'pending' | 'partial' | 'filled' | 'cancelled';
+}
 ```
 
-### 2. Clear Orders When Auto-Trade Disabled
+### 2. Update Auto-Deploy to Store Level Price
 
 **File:** `src/components/trading/auto/AutoLadder.tsx`
 
-Add cleanup when auto-trade is turned off:
+When creating orders, include the `levelPrice`:
 
 ```typescript
-// Add effect to clear auto-deployed orders when disabled
-useEffect(() => {
-  if (!autoTradeEnabled) {
-    prevProfitableLevelsRef.current = '';
-    // Optionally clear orders when auto-trade disabled:
-    // setDeployedOrders([]);
-  }
-}, [autoTradeEnabled]);
+const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
+  const level = orderBook.levels.find(l => l.price === price);
+  if (!level) return [];
+  
+  return [
+    {
+      id: `auto-${Date.now()}-yes-${index}`,
+      ladderIndex: index + 1,
+      side: 'YES' as const,
+      price: level.yesAskPrice,
+      levelPrice: price,  // ADD: Store reference price
+      shares: tierShares[index],
+      // ...
+    },
+    {
+      id: `auto-${Date.now()}-no-${index}`,
+      ladderIndex: index + 1,
+      side: 'NO' as const,
+      price: level.noAskPrice,
+      levelPrice: price,  // ADD: Store reference price
+      shares: tierShares[index],
+      // ...
+    },
+  ];
+});
 ```
 
-### 3. Update UI to Show Auto Mode Status
+### 3. Update Quick Deploy and Confirm Paired Order
 
 **File:** `src/components/trading/auto/AutoLadder.tsx`
 
-Add visual indicator when auto-trading is active (in the deployed orders banner):
+Update `handleQuickDeploy` and `handleConfirmPairedOrder` to also include `levelPrice`.
+
+### 4. Update Ladder Row Matching Logic
+
+**File:** `src/components/trading/auto/BetAngelLadder.tsx`
+
+Change order matching to use `levelPrice` instead of execution price:
 
 ```typescript
-{/* Deployed Orders Banner - updated text */}
-{deployedOrders.length > 0 && (
-  <div className={cn(
-    "flex items-center justify-between px-4 py-2 border-b",
-    autoTradeEnabled 
-      ? "bg-success/10 border-success/30" 
-      : "bg-warning/10 border-warning/30"
-  )}>
-    <span className={cn(
-      "text-xs font-medium",
-      autoTradeEnabled ? "text-success" : "text-warning"
-    )}>
-      {autoTradeEnabled 
-        ? `AUTO: ${deployedOrders.length / 2} arb levels active` 
-        : `${deployedOrders.length} orders deployed`}
-    </span>
-    ...
-  </div>
-)}
+// BEFORE (broken):
+const ordersAtPrice = sideOrders.filter(o => Math.abs(o.price - price) < 0.005);
+
+// AFTER (fixed):
+const ordersAtPrice = sideOrders.filter(o => 
+  o.levelPrice !== undefined && Math.abs(o.levelPrice - level.price) < 0.005
+);
 ```
 
 ---
@@ -145,22 +112,19 @@ Add visual indicator when auto-trading is active (in the deployed orders banner)
 ## Visual Result
 
 ```text
-Auto Trade OFF (current):
-┌──────────────────────────────────────┐
-│  [Quick Deploy] button available     │
-│  User must click to deploy orders    │
-└──────────────────────────────────────┘
+BEFORE (orders invisible):
+┌─────────────────────────────┐
+│  50¢  │  BUY  │  SELL       │  ← Order deployed but not shown
+│  49¢  │  BUY  │  SELL       │
+│  48¢  │  BUY  │  SELL       │
+└─────────────────────────────┘
 
-Auto Trade ON (new):
-┌──────────────────────────────────────┐
-│  AUTO: 5 arb levels active           │
-│  ████ L1: 52¢ YES + 47¢ NO → $125    │
-│  ███  L2: 51¢ YES + 48¢ NO → $90     │
-│  ██   L3: 50¢ YES + 49¢ NO → $75     │
-│  ██   L4: 53¢ YES + 46¢ NO → $65     │
-│  █    L5: 54¢ YES + 45¢ NO → $55     │
-│        (auto-updates every 300ms)    │
-└──────────────────────────────────────┘
+AFTER (orders visible):
+┌─────────────────────────────┐
+│  50¢  │ [L1] ██  │  ██       │  ← Order shows with tier label
+│  49¢  │ [L2] ██  │  ██       │  ← Order shows with tier label
+│  48¢  │  BUY  │  SELL       │
+└─────────────────────────────┘
 ```
 
 ---
@@ -169,17 +133,15 @@ Auto Trade ON (new):
 
 | File | Changes |
 |------|---------|
-| `src/components/trading/auto/AutoLadder.tsx` | Add `useEffect` for auto-deployment when `autoTradeEnabled` is true, add ref to track previous levels, update deployed orders banner styling |
+| `src/types/auto-trading.ts` | Add `levelPrice` field to `ActiveLadderOrder` interface |
+| `src/components/trading/auto/AutoLadder.tsx` | Include `levelPrice` when creating orders in auto-deploy, quick deploy, and confirm paired order handlers |
+| `src/components/trading/auto/BetAngelLadder.tsx` | Match orders to rows using `levelPrice` instead of execution `price` |
 
 ---
 
 ## Technical Notes
 
-- Uses `useRef` to track previous profitable levels and avoid redundant updates
-- Only redeploys when the set of profitable levels actually changes (not every 300ms)
-- Replaces all orders on each update (simulates cancel + redeploy cycle)
-- Tiered distribution: L1 gets 25%, L2 gets 18%, down to L7 gets 8%
-- Position size split evenly between YES and NO legs at each level
-- Pausing the order book also pauses auto-deployment
-- The `isDeploying` flag prevents race conditions during deployment
-
+- `levelPrice` is the stable reference price (e.g., 0.50) used to identify which row an order belongs to
+- `price` remains the actual execution price (e.g., 0.485) for display/trading purposes
+- Matching tolerance of 0.005 (0.5¢) is sufficient for reference prices since they're on a fixed 1¢ grid
+- Backward compatible: old orders without `levelPrice` simply won't show indicators (graceful degradation)
