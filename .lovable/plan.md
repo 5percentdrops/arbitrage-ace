@@ -1,106 +1,92 @@
 
-# Fix Arbitrage Logic - Make YES + NO Prices Independent
+# Restore Pause Button Visibility + Add Cancel (X) Button for Selections
 
-## Problem
-The current arbitrage calculation always produces `totalCost = 1.0` because:
-```typescript
-const yesPrice = level.price;
-const noPrice = 1 - level.price;
-// totalCost = price + (1 - price) = 1.0 always!
-```
+## Issues Identified
 
-This means **no levels will ever show as profitable**, breaking all the tiered selection and preview features.
+### 1. Pause Button May Be Hidden
+The Pause button exists in the code but may not be visible due to:
+- The header has many controls (Position Size input, Arb Only toggle, Pause, Refresh) that may overflow on smaller screens
+- The `flex items-center gap-4` layout may cause wrapping or overflow issues
 
-## Solution
-Generate **independent YES and NO ask prices** that can sum to less than $1.00. In real markets, arbitrage exists when market inefficiencies cause the combined ask prices to be below $1.00.
+### 2. No Cancel Button for Selections
+When rows are selected/previewed (showing tier labels like "L1: $250"), there's no quick way to cancel/clear the selection. The user wants an (X) button to dismiss the preview.
 
 ---
 
-## Implementation Steps
+## Implementation Plan
 
-### 1. Update Mock Data Generator
-**File:** `src/services/autoApi.ts`
+### 1. Fix Header Layout for Pause Button Visibility
 
-Generate levels with independent YES/NO ask prices that sometimes sum to less than $1.00:
+**File:** `src/components/trading/auto/AutoLadder.tsx`
 
-```typescript
-// For each price level, generate a slight discount on combined asks
-// to create arbitrage opportunities
-const yesAskPrice = level.price; // YES asks at the level price
-const noAskPrice = 1 - level.price - randomDiscount; // NO asks slightly below complement
+Reorganize the header controls to ensure Pause button is always visible:
+- Move Pause and Refresh buttons to a prominent position
+- Use `flex-wrap` to handle smaller screens gracefully
+- Consider grouping related controls together
 
-// Some levels will have discounts creating arb opportunities
+```tsx
+<CardHeader className="pb-2 flex-row flex-wrap items-center justify-between gap-2">
+  <div className="flex items-center gap-3">
+    <CardTitle>...</CardTitle>
+    {/* Pause/Refresh buttons immediately after title for visibility */}
+    <div className="flex items-center gap-1">
+      <Button variant={isPaused ? "default" : "ghost"} size="sm" ...>
+        {isPaused ? <><Play /> Resume</> : <><Pause /> Pause</>}
+      </Button>
+      <Button variant="ghost" size="icon" ...>
+        <RefreshCw />
+      </Button>
+    </div>
+  </div>
+  <div className="flex items-center gap-3 flex-wrap">
+    {/* Position Size, Arb Only toggle */}
+  </div>
+</CardHeader>
 ```
 
-**Changes:**
-- Add a `yesAskPrice` and `noAskPrice` field to each level (or use existing yesAsk/noAsk as price values)
-- Randomly create 3-7 levels where `yesAskPrice + noAskPrice < 1.0`
-- The discount should be 1-4% gross edge to create realistic arb scenarios
+### 2. Add Cancel (X) Button When Rows Are Previewed
 
-### 2. Update Type Definition
-**File:** `src/types/auto-trading.ts`
+**File:** `src/components/trading/auto/AutoLadder.tsx`
 
-Add explicit ask price fields to `OrderBookLevel`:
-```typescript
-export interface OrderBookLevel {
-  price: number;      // Reference price for this row
-  yesBid: number;     // Size available at YES bid
-  yesAsk: number;     // Size available at YES ask  
-  yesAskPrice: number; // Actual YES ask price (may differ from level.price)
-  noBid: number;      // Size available at NO bid
-  noAsk: number;      // Size available at NO ask
-  noAskPrice: number;  // Actual NO ask price (may differ from 1-price)
-}
+Add a floating cancel button that appears when `previewPrices.size > 0` (rows are highlighted):
+
+```tsx
+{previewPrices.size > 0 && (
+  <div className="absolute top-2 right-2 z-20">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setPreviewPrices(new Map())}
+      className="h-6 w-6 bg-background/80 hover:bg-destructive/20"
+    >
+      <X className="h-4 w-4" />
+    </Button>
+  </div>
+)}
 ```
 
-### 3. Update Hook Edge Calculation
-**File:** `src/hooks/useAutoOrderBook.ts`
+### 3. Add Cancel Button When Orders Are Deployed
 
-Use the actual ask prices instead of computed prices:
-```typescript
-orderBook.levels.forEach(level => {
-  // Use actual ask prices, not computed from level.price
-  const yesPrice = level.yesAskPrice ?? level.price;
-  const noPrice = level.noAskPrice ?? (1 - level.price);
-  
-  const totalCost = yesPrice + noPrice;
-  const grossEdge = 1.0 - totalCost;
-  // ... rest of calculation
-});
-```
+Show a prominent "Cancel All" button when `deployedOrders.length > 0`:
 
-### 4. Update LadderRow Display
-**File:** `src/components/trading/auto/LadderRow.tsx`
-
-Display the actual ask prices instead of computed prices:
-- YES price column shows `level.yesAskPrice`
-- NO price column shows `level.noAskPrice`
-
----
-
-## Mock Data Example
-
-After the fix, levels will look like:
-```typescript
-{
-  price: 0.50,           // Reference row
-  yesBid: 150,
-  yesAsk: 200,
-  yesAskPrice: 0.49,     // Actual YES ask price
-  noBid: 180,
-  noAsk: 220,
-  noAskPrice: 0.50,      // Actual NO ask price
-  // totalCost = 0.49 + 0.50 = 0.99 → 1% gross edge!
-}
-```
-
-For non-arb levels:
-```typescript
-{
-  price: 0.55,
-  yesAskPrice: 0.55,
-  noAskPrice: 0.46,      // 0.55 + 0.46 = 1.01 → no arb
-}
+```tsx
+{deployedOrders.length > 0 && (
+  <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border-b border-warning/30">
+    <span className="text-xs text-warning font-medium">
+      {deployedOrders.length} orders deployed
+    </span>
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleCancelAll}
+      disabled={isCancelling}
+      className="h-6 gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+    >
+      <X className="h-3.5 w-3.5" />
+      Cancel All
+    </Button>
+  </div>
+)}
 ```
 
 ---
@@ -109,17 +95,45 @@ For non-arb levels:
 
 | File | Changes |
 |------|---------|
-| `src/types/auto-trading.ts` | Add `yesAskPrice` and `noAskPrice` to `OrderBookLevel` |
-| `src/services/autoApi.ts` | Generate independent ask prices with some arb opportunities |
-| `src/hooks/useAutoOrderBook.ts` | Use actual ask prices for edge calculation |
-| `src/components/trading/auto/LadderRow.tsx` | Display actual ask prices in price columns |
+| `src/components/trading/auto/AutoLadder.tsx` | Reorganize header layout, add X icon import, add cancel buttons for preview and deployed orders |
 
 ---
 
-## Expected Result
+## Visual Layout After Changes
 
-After this fix:
-- 3-7 levels will show as profitable (green glow)
-- Hovering a profitable row will preview all 7 top arb levels with tier labels
-- Clicking deploys tiered orders across the best opportunities
-- Position size input distributes funds according to tier weights
+```text
++-------------------------------------------------------------------------+
+| BTC Order Book Ladder [Pause] [⟳]    | Position Size: $___  ☑ Arb Only |
+| Tick: 0.01 | Range: 0.40-0.60                                           |
++-------------------------------------------------------------------------+
+| [!] 14 orders deployed                                    [X Cancel All]|
++-------------------------------------------------------------------------+
+| Best Arbitrage Found: YES @ 0.48 + NO @ 0.51 = +1.2%    [Quick Deploy] |
++-------------------------------------------------------------------------+
+|                          [ Header Row ]                                 |
+|  L1: $250  | 0.48 | ... +2.1% ... |  click [X]  | 0.52 |                |
+|  L2: $180  | 0.49 | ... +1.8% ...               | 0.51 |                |
++-------------------------------------------------------------------------+
+```
+
+---
+
+## Technical Details
+
+### New Import
+Add `X` icon from lucide-react:
+```typescript
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, DollarSign, X } from 'lucide-react';
+```
+
+### Clear Preview Function
+The preview is already using a Map, so clearing is simple:
+```typescript
+setPreviewPrices(new Map());
+```
+
+### Cancel All Behavior
+The existing `handleCancelAll` function already:
+- Clears `deployedOrders`
+- Calls `clearSelections()`
+- Shows loading state with `isCancelling`
