@@ -208,32 +208,46 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
 
   // Filter levels to show configurable % order book view below best ask prices
   // (for limit orders, we only place orders at prices lower than current market)
-  const visibleLevels = useMemo(() => {
-    if (!orderBook) return [];
+  // Auto-expands range if fewer than 5 levels are visible
+  const { visibleLevels, effectiveRangePct } = useMemo(() => {
+    if (!orderBook) return { visibleLevels: [], effectiveRangePct: orderBookRangePct };
     
-    // Best ask prices are the "main" prices
+    const MIN_VISIBLE_LEVELS = 5;
+    const MAX_RANGE_PCT = 50; // Cap auto-expansion at 50%
+    const RANGE_INCREMENT = 5; // Expand by 5% each iteration
+    
     const bestYesAsk = orderBook.best.yesAsk;
     const bestNoAsk = orderBook.best.noAsk;
     
-    // Show configurable range below best ask for each side
-    const rangeFactor = 1 - (orderBookRangePct / 100);
-    const yesLowerBound = bestYesAsk * rangeFactor;
-    const noLowerBound = bestNoAsk * rangeFactor;
+    const filterLevels = (rangePct: number) => {
+      const rangeFactor = 1 - (rangePct / 100);
+      const yesLowerBound = bestYesAsk * rangeFactor;
+      const noLowerBound = bestNoAsk * rangeFactor;
+      
+      return orderBook.levels.filter(level => {
+        const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
+        const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
+        
+        if (!yesInRange && !noInRange) return false;
+        
+        if (showProfitableOnly) {
+          return profitableLevels.has(level.price);
+        }
+        return true;
+      });
+    };
     
-    return orderBook.levels.filter(level => {
-      // YES ask must be within range below best (exclusive of best)
-      const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
-      // NO ask must be within range below best (exclusive of best)
-      const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
-      
-      // Show level if EITHER side has a valid limit order opportunity
-      if (!yesInRange && !noInRange) return false;
-      
-      if (showProfitableOnly) {
-        return profitableLevels.has(level.price);
-      }
-      return true;
-    });
+    // Start with user-selected range
+    let currentRange = orderBookRangePct;
+    let filtered = filterLevels(currentRange);
+    
+    // Auto-expand if fewer than MIN_VISIBLE_LEVELS
+    while (filtered.length < MIN_VISIBLE_LEVELS && currentRange < MAX_RANGE_PCT) {
+      currentRange += RANGE_INCREMENT;
+      filtered = filterLevels(currentRange);
+    }
+    
+    return { visibleLevels: filtered, effectiveRangePct: currentRange };
   }, [orderBook, showProfitableOnly, profitableLevels, orderBookRangePct]);
 
   // Find midpoint level (LTP)
@@ -669,7 +683,12 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                   step={5}
                   className="w-24"
                 />
-                <span className="text-xs font-mono text-foreground w-8">{orderBookRangePct}%</span>
+                <span className="text-xs font-mono text-foreground w-16">
+                  {effectiveRangePct > orderBookRangePct 
+                    ? <span className="text-warning">{effectiveRangePct}%<span className="text-muted-foreground text-[10px]"> (auto)</span></span>
+                    : `${orderBookRangePct}%`
+                  }
+                </span>
               </div>
             </div>
           </CardHeader>
