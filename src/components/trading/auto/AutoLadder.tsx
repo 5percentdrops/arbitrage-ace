@@ -176,8 +176,13 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       return;
     }
     
-    // Create a fingerprint of current profitable levels
-    const currentLevelsKey = top7.map(([price]) => price.toFixed(2)).join(',');
+    // Create a fingerprint of current profitable levels WITH actual prices
+    // This triggers redeploy whenever YES or NO prices change at any level
+    const currentLevelsKey = top7.map(([price]) => {
+      const level = orderBook.levels.find(l => l.price === price);
+      if (!level) return price.toFixed(2);
+      return `${price.toFixed(2)}:${level.yesAskPrice.toFixed(3)}:${level.noAskPrice.toFixed(3)}`;
+    }).join(',');
     
     // Skip if levels haven't changed
     if (currentLevelsKey === prevProfitableLevelsRef.current) return;
