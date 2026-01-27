@@ -1,70 +1,143 @@
 
 
-# Dynamic Reference Price for Moving Order Book Window
+# Auto-Deploy 7 Limit Orders on Every Price Change
 
 ## Summary
 
-Make the YES and NO reference prices dynamic (not fixed at 50¢) so that the ±5% order book window moves as prices change. Each 300ms refresh will generate slightly different reference prices, causing the visible price range to shift accordingly.
+Automatically deploy up to 7 limit orders at profitable arbitrage levels (where YES + NO < $1.00) every time prices update. When `autoTradeEnabled` is true, the system will continuously monitor for profitable levels and auto-deploy/update orders on each 300ms refresh cycle.
 
 ---
 
 ## Current vs New Behavior
 
 ```text
-CURRENT (Fixed):
-  refPrice = 0.50 (always)
-  Window: 47.5¢ - 52.5¢ (never moves)
+CURRENT (Manual):
+  - Price updates every 300ms
+  - Orders only deploy on user click (Quick Deploy button)
+  - autoTradeEnabled toggle exists but does nothing
 
-NEW (Dynamic):
-  refPrice = 0.48 → Window: 45.6¢ - 50.4¢
-  refPrice = 0.52 → Window: 49.4¢ - 54.6¢
-  refPrice = 0.55 → Window: 52.25¢ - 57.75¢
-  (window follows price movement)
+NEW (Automatic):
+  - Price updates every 300ms
+  - When autoTradeEnabled=true:
+    → Find top 7 profitable levels (YES + NO < $1.00)
+    → Auto-deploy tiered orders across those levels
+    → Replace previous orders with new levels on each tick
+  - When autoTradeEnabled=false: Manual mode (current behavior)
 ```
 
 ---
 
 ## Implementation Plan
 
-### 1. Add Dynamic Reference Price to Mock Generator
+### 1. Add Auto-Deploy Effect to AutoLadder
 
-**File:** `src/services/autoApi.ts`
+**File:** `src/components/trading/auto/AutoLadder.tsx`
 
-Update `generateMockOrderBook()` to use a dynamic reference price that drifts over time:
+Add a `useEffect` that watches for profitable level changes and auto-deploys when enabled:
 
 ```typescript
-// Track price state between calls (simulates market movement)
-let currentRefPrice = 0.50;
+// Add useEffect import if not present
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 
-export function generateMockOrderBook(): OrderBookData {
-  // Drift the reference price randomly by ±0.5¢ each tick
-  const drift = (Math.random() - 0.5) * 0.01; // -0.5¢ to +0.5¢
-  currentRefPrice = Math.max(0.20, Math.min(0.80, currentRefPrice + drift));
+// Inside AutoLadder component, add ref to track previous levels
+const prevProfitableLevelsRef = useRef<string>('');
+
+// Add auto-deploy effect
+useEffect(() => {
+  // Only run when auto-trade is enabled and not paused
+  if (!autoTradeEnabled || isPaused || isDeploying) return;
   
-  const refPrice = Math.round(currentRefPrice * 100) / 100;
-  const tick = 0.01;
-  // ... rest of generation uses this dynamic refPrice
+  // Get current top 7 profitable levels
+  const top7 = getTop7Profitable();
+  if (top7.length === 0) return;
+  
+  // Create a fingerprint of current profitable levels
+  const currentLevelsKey = top7.map(([price]) => price.toFixed(2)).join(',');
+  
+  // Skip if levels haven't changed
+  if (currentLevelsKey === prevProfitableLevelsRef.current) return;
+  prevProfitableLevelsRef.current = currentLevelsKey;
+  
+  // Auto-deploy orders at these levels
+  const tierShares = calculateTieredShares(positionSize, top7.length);
+  
+  const newOrders: ActiveLadderOrder[] = top7.flatMap(([price, edge], index) => {
+    const level = orderBook?.levels.find(l => l.price === price);
+    if (!level) return [];
+    
+    return [
+      {
+        id: `auto-${Date.now()}-yes-${index}`,
+        ladderIndex: index + 1,
+        side: 'YES' as const,
+        price: level.yesAskPrice,
+        shares: tierShares[index],
+        filledShares: 0,
+        fillPercent: 0,
+        status: 'pending' as const,
+      },
+      {
+        id: `auto-${Date.now()}-no-${index}`,
+        ladderIndex: index + 1,
+        side: 'NO' as const,
+        price: level.noAskPrice,
+        shares: tierShares[index],
+        filledShares: 0,
+        fillPercent: 0,
+        status: 'pending' as const,
+      },
+    ];
+  });
+  
+  // Replace all orders with new ones (simulates cancel + redeploy)
+  setDeployedOrders(newOrders);
+  
+}, [autoTradeEnabled, isPaused, isDeploying, getTop7Profitable, positionSize, orderBook]);
 ```
 
-### 2. Update Best Prices to Match Reference
+### 2. Clear Orders When Auto-Trade Disabled
 
-**File:** `src/services/autoApi.ts`
+**File:** `src/components/trading/auto/AutoLadder.tsx`
 
-Update the `best` prices to be based on the dynamic reference:
+Add cleanup when auto-trade is turned off:
 
 ```typescript
-return {
-  tick,
-  refPrice,
-  levels,
-  best: {
-    yesBid: Math.round((refPrice - 0.01) * 100) / 100,
-    yesAsk: refPrice,
-    noBid: Math.round((1 - refPrice) * 100) / 100,
-    noAsk: Math.round((1 - refPrice + 0.01) * 100) / 100,
-  },
-  fee: { takerPct: 0.4, makerPct: 0.0 },
-};
+// Add effect to clear auto-deployed orders when disabled
+useEffect(() => {
+  if (!autoTradeEnabled) {
+    prevProfitableLevelsRef.current = '';
+    // Optionally clear orders when auto-trade disabled:
+    // setDeployedOrders([]);
+  }
+}, [autoTradeEnabled]);
+```
+
+### 3. Update UI to Show Auto Mode Status
+
+**File:** `src/components/trading/auto/AutoLadder.tsx`
+
+Add visual indicator when auto-trading is active (in the deployed orders banner):
+
+```typescript
+{/* Deployed Orders Banner - updated text */}
+{deployedOrders.length > 0 && (
+  <div className={cn(
+    "flex items-center justify-between px-4 py-2 border-b",
+    autoTradeEnabled 
+      ? "bg-success/10 border-success/30" 
+      : "bg-warning/10 border-warning/30"
+  )}>
+    <span className={cn(
+      "text-xs font-medium",
+      autoTradeEnabled ? "text-success" : "text-warning"
+    )}>
+      {autoTradeEnabled 
+        ? `AUTO: ${deployedOrders.length / 2} arb levels active` 
+        : `${deployedOrders.length} orders deployed`}
+    </span>
+    ...
+  </div>
+)}
 ```
 
 ---
@@ -72,25 +145,22 @@ return {
 ## Visual Result
 
 ```text
-Tick 1: refPrice = 50¢
-┌──────────────────────────────┐
-│  Range: 47.5¢ - 52.5¢        │
-│  ▓▓  52¢  │  ...             │
-│  ▓▓  51¢  │  ...             │
-│  ▓▓ ►50¢◄ │  ...  ← Current  │
-│  ▓▓  49¢  │  ...             │
-│  ▓▓  48¢  │  ...             │
-└──────────────────────────────┘
+Auto Trade OFF (current):
+┌──────────────────────────────────────┐
+│  [Quick Deploy] button available     │
+│  User must click to deploy orders    │
+└──────────────────────────────────────┘
 
-Tick 50: refPrice drifted to 54¢
-┌──────────────────────────────┐
-│  Range: 51.3¢ - 56.7¢        │
-│  ▓▓  56¢  │  ...             │
-│  ▓▓  55¢  │  ...             │
-│  ▓▓ ►54¢◄ │  ...  ← Current  │
-│  ▓▓  53¢  │  ...             │
-│  ▓▓  52¢  │  ...             │
-└──────────────────────────────┘
+Auto Trade ON (new):
+┌──────────────────────────────────────┐
+│  AUTO: 5 arb levels active           │
+│  ████ L1: 52¢ YES + 47¢ NO → $125    │
+│  ███  L2: 51¢ YES + 48¢ NO → $90     │
+│  ██   L3: 50¢ YES + 49¢ NO → $75     │
+│  ██   L4: 53¢ YES + 46¢ NO → $65     │
+│  █    L5: 54¢ YES + 45¢ NO → $55     │
+│        (auto-updates every 300ms)    │
+└──────────────────────────────────────┘
 ```
 
 ---
@@ -99,14 +169,17 @@ Tick 50: refPrice drifted to 54¢
 
 | File | Changes |
 |------|---------|
-| `src/services/autoApi.ts` | Add module-level `currentRefPrice` variable that drifts each tick, update `generateMockOrderBook()` to use dynamic price, update `best` prices to match |
+| `src/components/trading/auto/AutoLadder.tsx` | Add `useEffect` for auto-deployment when `autoTradeEnabled` is true, add ref to track previous levels, update deployed orders banner styling |
 
 ---
 
 ## Technical Notes
 
-- Reference price drifts ±0.5¢ per 300ms tick (simulates market movement)
-- Price is bounded between 20¢ and 80¢ to stay realistic
-- The ±5% window automatically recalculates in `useAutoOrderBook.ts` since it uses `orderBook.refPrice`
-- No changes needed to the hook - it already reads `refPrice` from the order book data
+- Uses `useRef` to track previous profitable levels and avoid redundant updates
+- Only redeploys when the set of profitable levels actually changes (not every 300ms)
+- Replaces all orders on each update (simulates cancel + redeploy cycle)
+- Tiered distribution: L1 gets 25%, L2 gets 18%, down to L7 gets 8%
+- Position size split evenly between YES and NO legs at each level
+- Pausing the order book also pauses auto-deployment
+- The `isDeploying` flag prevents race conditions during deployment
 
