@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
@@ -659,14 +660,13 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               <div className="flex items-center gap-2">
                 <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground whitespace-nowrap">Depth:</span>
-                <input
-                  type="range"
+                <Slider
+                  value={[orderBookRangePct]}
+                  onValueChange={(values) => setOrderBookRangePct(values[0])}
                   min={5}
                   max={30}
                   step={5}
-                  value={orderBookRangePct}
-                  onChange={(e) => setOrderBookRangePct(Number(e.target.value))}
-                  className="w-20 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                  className="w-24"
                 />
                 <span className="text-xs font-mono text-foreground w-8">{orderBookRangePct}%</span>
               </div>
