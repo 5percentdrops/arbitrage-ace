@@ -93,6 +93,7 @@ export function BetAngelLadder({
           const bidValue = side === 'YES' ? level.yesBid : level.noBid;
           const askValue = side === 'YES' ? level.yesAsk : level.noAsk;
           const isProfitable = profitableLevels.has(level.price);
+          const levelEdge = levelEdges.get(level.price);
           const isLTP = ltpPrice !== undefined && Math.abs(price - ltpPrice) < 0.005;
           
           // Check for orders at this price
@@ -135,6 +136,7 @@ export function BetAngelLadder({
                 isLTP={isLTP}
                 momentum={momentum}
                 isProfitable={isProfitable}
+                edgePct={isProfitable ? levelEdge?.netEdgePct : undefined}
                 onClick={() => onPriceClick(level.price)}
               />
               <BetAngelCell
