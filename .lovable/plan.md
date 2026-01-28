@@ -1,37 +1,51 @@
 
-# Make Limit Orders Table Static
+# Fix Order Book Visibility with Sticky Orders Table
 
 ## Problem
 
-The Limit Orders Table below the order book ladder shifts up and down as the order book range changes because it's rendered in normal document flow after the dynamically-sized order book card.
+The sticky orders table is now overlapping and covering the order book ladder. When `sticky bottom-0` is applied, the table hovers over the content below it without any reserved space, blocking the view of the trading ladder.
 
 ## Solution
 
-Make the Limit Orders Table sticky at the bottom of the viewport so it remains static regardless of how the order book content changes. This provides a fixed reference point for viewing active orders while scrolling through the order book.
+Instead of making the orders table sticky, use a **fixed layout** where:
+1. The page content (header + ladder) fills the available space above
+2. The orders table is fixed at the bottom with a reserved height
+3. Add padding to the main content area to prevent overlap
+
+This ensures both the order book and orders table are always visible without overlap.
 
 ---
 
-## Technical Implementation
+## Technical Changes
 
 ### File: `src/components/trading/auto/AutoLadder.tsx`
 
-**Change the bottom Limit Orders Table wrapper to use sticky positioning:**
+**1. Change the root container to use flex column with full height:**
 
-Replace the current simple rendering (lines 750-755):
+Update the outer `div` (around line 466) to use a flex layout that fills the viewport:
+
 ```tsx
-{/* Limit Orders Table Below Ladder */}
-<LimitOrdersTable
-  orders={deployedOrders}
-  onCancelAll={handleCancelAll}
-  isCancelling={isCancelling}
-/>
+<div className="flex flex-col h-[calc(100vh-140px)]">
 ```
 
-With a sticky container:
+**2. Make the main content area scrollable:**
+
+Wrap the main content (from the "Out of Range Warning" through the Card with ladders) in a scrollable container:
+
 ```tsx
-{/* Limit Orders Table - Sticky at bottom */}
+<div className="flex-1 overflow-y-auto space-y-4 pb-4">
+  {/* All existing content: warnings, header, card with ladders */}
+</div>
+```
+
+**3. Change the orders table from sticky to fixed-at-bottom:**
+
+Replace the sticky wrapper with a non-sticky container that stays at the bottom of the flex layout:
+
+```tsx
+{/* Limit Orders Table - Fixed at bottom */}
 {deployedOrders.length > 0 && (
-  <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm border-t border-border pt-4">
+  <div className="flex-shrink-0 bg-background border-t border-border pt-4">
     <LimitOrdersTable
       orders={deployedOrders}
       onCancelAll={handleCancelAll}
@@ -41,12 +55,41 @@ With a sticky container:
 )}
 ```
 
-**Key changes:**
-- `sticky bottom-0`: Pins the table to the bottom of viewport when scrolling
-- `z-30`: Ensures table stays above other content
-- `bg-background/95 backdrop-blur-sm`: Semi-transparent background with blur for visual separation
-- `border-t border-border`: Adds a top border to visually separate from content above
-- Conditional rendering: Only show when there are orders (cleaner UX when no orders)
+**4. Also show empty state when no orders (optional, for consistent layout):**
+
+To keep the layout stable even when no orders exist, show the empty state at the bottom:
+
+```tsx
+{/* Limit Orders Table - Fixed at bottom */}
+<div className="flex-shrink-0 bg-background border-t border-border pt-4">
+  <LimitOrdersTable
+    orders={deployedOrders}
+    onCancelAll={handleCancelAll}
+    isCancelling={isCancelling}
+  />
+</div>
+```
+
+---
+
+## Visual Layout
+
+```text
++------------------------------------------+
+|          HEADER (fixed controls)         |
++------------------------------------------+
+|                                          |
+|         ORDER BOOK LADDER                |
+|         (scrollable area)                |
+|                                          |
+|         - YES side | NO side             |
+|         - Visible levels                 |
+|                                          |
++------------------------------------------+
+|         LIMIT ORDERS TABLE               |  <- Always at bottom
+|         (non-scrollable, fixed height)   |
++------------------------------------------+
+```
 
 ---
 
@@ -54,6 +97,6 @@ With a sticky container:
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/AutoLadder.tsx` | Wrap bottom LimitOrdersTable in sticky container with `sticky bottom-0` positioning |
+| `src/components/trading/auto/AutoLadder.tsx` | Use flex column layout with scrollable content area and fixed-bottom orders table |
 
-The orders table will now stay fixed at the bottom of the viewport, providing a stable view of active orders regardless of order book depth or range changes.
+The order book will now be fully visible in a scrollable area, and the orders table will remain fixed at the bottom without overlapping the content.
