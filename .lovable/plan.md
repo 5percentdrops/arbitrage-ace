@@ -1,57 +1,52 @@
 
-# Remove Confirmation Step for One-Click Order Deployment
+# Make Limit Orders Table Static
 
-## Current Behavior
+## Problem
 
-When you click on the order ladder:
-- **Buy/Sell cells**: Deploy 7-tier orders instantly (correct)
-- **Price cell** (center): Shows a confirmation banner with "Confirm" button (needs fix)
-
-## Desired Behavior
-
-Clicking any cell should immediately deploy orders without any confirmation step.
+The Limit Orders Table below the order book ladder shifts up and down as the order book range changes because it's rendered in normal document flow after the dynamically-sized order book card.
 
 ## Solution
 
-Modify `handleArbRowClick` to deploy orders directly instead of setting a `pairedSelection` state for confirmation. The function will work like `handleCellClick` - immediately deploying the 7-tier arbitrage orders when a profitable level is clicked.
+Make the Limit Orders Table sticky at the bottom of the viewport so it remains static regardless of how the order book content changes. This provides a fixed reference point for viewing active orders while scrolling through the order book.
 
 ---
 
-## Technical Changes
+## Technical Implementation
 
 ### File: `src/components/trading/auto/AutoLadder.tsx`
 
-**1. Update `handleArbRowClick` function (lines 369-401):**
+**Change the bottom Limit Orders Table wrapper to use sticky positioning:**
 
-Replace the current implementation that sets `pairedSelection` with direct order deployment logic:
-
-```typescript
-// Handle row click for instant arbitrage deployment
-const handleArbRowClick = useCallback((clickedPrice: number) => {
-  const edge = levelEdges.get(clickedPrice);
-  if (!edge?.isProfitable) return;
-  
-  // Get actual prices from the level
-  const level = orderBook?.levels.find(l => l.price === clickedPrice);
-  if (!level) return;
-  
-  // Deploy immediately using handleCellClick logic
-  handleCellClick(clickedPrice, 'YES', 'ask');
-}, [levelEdges, orderBook, handleCellClick]);
+Replace the current simple rendering (lines 750-755):
+```tsx
+{/* Limit Orders Table Below Ladder */}
+<LimitOrdersTable
+  orders={deployedOrders}
+  onCancelAll={handleCancelAll}
+  isCancelling={isCancelling}
+/>
 ```
 
-**2. Remove unused confirmation-related code:**
+With a sticky container:
+```tsx
+{/* Limit Orders Table - Sticky at bottom */}
+{deployedOrders.length > 0 && (
+  <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm border-t border-border pt-4">
+    <LimitOrdersTable
+      orders={deployedOrders}
+      onCancelAll={handleCancelAll}
+      isCancelling={isCancelling}
+    />
+  </div>
+)}
+```
 
-- Remove `pairedSelection` state (line 46)
-- Remove `handleConfirmPairedOrder` function (lines 403-452)
-- Remove `handleClearSelection` function (lines 454-458)
-- Remove the "Paired Selection Summary Banner" UI (lines 786-829)
-- Remove the "Mobile Paired Selection Banner" UI (lines 848-882)
-- Remove `pairedSelection` prop from both `BetAngelLadder` components
-
-**3. Clean up `BetAngelLadder.tsx`:**
-
-- Remove `pairedSelection` prop and related highlight logic since it's no longer needed
+**Key changes:**
+- `sticky bottom-0`: Pins the table to the bottom of viewport when scrolling
+- `z-30`: Ensures table stays above other content
+- `bg-background/95 backdrop-blur-sm`: Semi-transparent background with blur for visual separation
+- `border-t border-border`: Adds a top border to visually separate from content above
+- Conditional rendering: Only show when there are orders (cleaner UX when no orders)
 
 ---
 
@@ -59,7 +54,6 @@ const handleArbRowClick = useCallback((clickedPrice: number) => {
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/AutoLadder.tsx` | Remove confirmation flow - clicking any cell deploys orders instantly |
-| `src/components/trading/auto/BetAngelLadder.tsx` | Remove `pairedSelection` prop and paired highlight styling |
+| `src/components/trading/auto/AutoLadder.tsx` | Wrap bottom LimitOrdersTable in sticky container with `sticky bottom-0` positioning |
 
-After this change, clicking any profitable cell (Buy, Sell, or Price) will immediately deploy the 7-tier arbitrage orders without any confirmation step.
+The orders table will now stay fixed at the bottom of the viewport, providing a stable view of active orders regardless of order book depth or range changes.
