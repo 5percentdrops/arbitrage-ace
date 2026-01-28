@@ -686,7 +686,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             )}
 
             {/* BetAngel Side-by-Side Ladders with Spread Indicator */}
-            <div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-2 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-4">
               <BetAngelLadder
                 side="YES"
                 levels={visibleLevels}
