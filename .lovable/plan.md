@@ -1,58 +1,57 @@
 
+# Remove Confirmation Step for One-Click Order Deployment
 
-# Fix Order Book Empty State Bug
+## Current Behavior
 
-## Problem
+When you click on the order ladder:
+- **Buy/Sell cells**: Deploy 7-tier orders instantly (correct)
+- **Price cell** (center): Shows a confirmation banner with "Confirm" button (needs fix)
 
-After the recent change to calculate best prices dynamically, no cells are showing because the filtering logic is now impossible to satisfy:
+## Desired Behavior
 
-**Current Filter Logic:**
-```typescript
-level.yesAskPrice < bestYesAsk  // Show prices BELOW best ask
-```
-
-**But `bestYesAsk` is now:**
-```typescript
-Math.min(...levels.map(l => l.yesAskPrice))  // The MINIMUM of all prices
-```
-
-No price can ever be less than the minimum - so zero levels pass the filter.
-
-## Root Cause
-
-There's a conceptual mismatch:
-- **Filter intent**: Show prices below "best market ask" (for limit order placement)
-- **Best ask calculation**: Returns the lowest ask price in the entire book
-
-When "best ask" equals the lowest price, no level can be below it.
+Clicking any cell should immediately deploy orders without any confirmation step.
 
 ## Solution
 
-Change the filter to use **less than or equal** (`<=`) instead of **strictly less than** (`<`). This ensures at least the best price level is always included, plus any levels within the configured range.
-
-The filter should show:
-- The best ask level itself (where immediate market orders would execute)
-- Levels within the range below best ask (where limit orders can be placed)
+Modify `handleArbRowClick` to deploy orders directly instead of setting a `pairedSelection` state for confirmation. The function will work like `handleCellClick` - immediately deploying the 7-tier arbitrage orders when a profitable level is clicked.
 
 ---
 
-## Technical Implementation
+## Technical Changes
 
 ### File: `src/components/trading/auto/AutoLadder.tsx`
 
-**Update the filter conditions (around lines 228-229):**
+**1. Update `handleArbRowClick` function (lines 369-401):**
 
-Replace:
+Replace the current implementation that sets `pairedSelection` with direct order deployment logic:
+
 ```typescript
-const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < bestYesAsk;
-const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < bestNoAsk;
+// Handle row click for instant arbitrage deployment
+const handleArbRowClick = useCallback((clickedPrice: number) => {
+  const edge = levelEdges.get(clickedPrice);
+  if (!edge?.isProfitable) return;
+  
+  // Get actual prices from the level
+  const level = orderBook?.levels.find(l => l.price === clickedPrice);
+  if (!level) return;
+  
+  // Deploy immediately using handleCellClick logic
+  handleCellClick(clickedPrice, 'YES', 'ask');
+}, [levelEdges, orderBook, handleCellClick]);
 ```
 
-With:
-```typescript
-const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice <= bestYesAsk;
-const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice <= bestNoAsk;
-```
+**2. Remove unused confirmation-related code:**
+
+- Remove `pairedSelection` state (line 46)
+- Remove `handleConfirmPairedOrder` function (lines 403-452)
+- Remove `handleClearSelection` function (lines 454-458)
+- Remove the "Paired Selection Summary Banner" UI (lines 786-829)
+- Remove the "Mobile Paired Selection Banner" UI (lines 848-882)
+- Remove `pairedSelection` prop from both `BetAngelLadder` components
+
+**3. Clean up `BetAngelLadder.tsx`:**
+
+- Remove `pairedSelection` prop and related highlight logic since it's no longer needed
 
 ---
 
@@ -60,7 +59,7 @@ const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice <= bestNo
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/AutoLadder.tsx` | Change filter from `<` to `<=` to include the best ask level and fix empty state |
+| `src/components/trading/auto/AutoLadder.tsx` | Remove confirmation flow - clicking any cell deploys orders instantly |
+| `src/components/trading/auto/BetAngelLadder.tsx` | Remove `pairedSelection` prop and paired highlight styling |
 
-This one-character fix (changing `<` to `<=`) restores visibility of all levels within the configured range, including the best market price.
-
+After this change, clicking any profitable cell (Buy, Sell, or Price) will immediately deploy the 7-tier arbitrage orders without any confirmation step.
