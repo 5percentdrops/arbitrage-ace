@@ -36,11 +36,6 @@ interface ManualTradePanelProps {
   onAllowManualChange: (allow: boolean) => void;
   
   estimatedShares: number | null;
-  
-  // Signal data
-  crowdSide?: 'UP' | 'DOWN';
-  crowdPct?: number;
-  secondsRemaining: number;
 }
 
 export function ManualTradePanel({
@@ -58,9 +53,6 @@ export function ManualTradePanel({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
-  crowdSide,
-  crowdPct,
-  secondsRemaining,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
 
@@ -107,31 +99,74 @@ export function ManualTradePanel({
         )}
 
         {/* Signal Section */}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Crowd:</span>
-            {crowdSide && crowdPct ? (
-              <span className={cn(
-                "font-mono font-semibold",
-                crowdSide === 'UP' ? 'text-success' : 'text-destructive'
-              )}>
-                {crowdSide} {crowdPct}%
-              </span>
-            ) : (
-              <span className="text-muted-foreground text-xs">--</span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Time:</span>
-            <span className={cn(
-              "font-mono font-semibold",
-              secondsRemaining <= 300 && "text-destructive"
-            )}>
-              {formatTime(secondsRemaining)}
-            </span>
+        <div className="space-y-3 p-3 rounded-lg bg-secondary/50 border border-border">
+          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Signal</Label>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Crowd Probability */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label htmlFor="crowdPct" className="text-xs text-muted-foreground">
+                  Crowd Probability
+                </Label>
+              </div>
+              <div className="flex gap-2">
+                <ToggleGroup
+                  type="single"
+                  value={formState.crowdSide || ''}
+                  onValueChange={(v) => v && onFieldChange('crowdSide', v as 'UP' | 'DOWN')}
+                  className="justify-start"
+                >
+                  <ToggleGroupItem
+                    value="UP"
+                    className="px-3 h-8 text-xs data-[state=on]:bg-success data-[state=on]:text-success-foreground"
+                  >
+                    UP
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="DOWN"
+                    className="px-3 h-8 text-xs data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+                  >
+                    DOWN
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                <Input
+                  id="crowdPct"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  placeholder="%"
+                  value={formState.crowdPct || ''}
+                  onChange={(e) => onFieldChange('crowdPct', e.target.value)}
+                  className="w-16 h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Remaining Time */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label htmlFor="remainingTime" className="text-xs text-muted-foreground">
+                  Remaining Time (sec)
+                </Label>
+              </div>
+              <Input
+                id="remainingTime"
+                type="number"
+                min="0"
+                max="900"
+                step="1"
+                placeholder="e.g., 420"
+                value={formState.remainingTime || ''}
+                onChange={(e) => onFieldChange('remainingTime', e.target.value)}
+                className={cn(
+                  "h-8 text-xs",
+                  Number(formState.remainingTime) <= 300 && Number(formState.remainingTime) > 0 && "border-destructive"
+                )}
+              />
+            </div>
           </div>
         </div>
 
