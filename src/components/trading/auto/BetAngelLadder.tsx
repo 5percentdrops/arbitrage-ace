@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { BetAngelCell } from './BetAngelCell';
 import { BetAngelPriceCell, type PriceMomentum } from './BetAngelPriceCell';
-import type { OrderBookLevel, ActiveLadderOrder, LevelEdgeInfo, PairedArbSelection } from '@/types/auto-trading';
+import type { OrderBookLevel, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 
 interface BetAngelLadderProps {
   side: 'YES' | 'NO';
@@ -13,7 +13,6 @@ interface BetAngelLadderProps {
   ltpPrice?: number;
   momentum?: PriceMomentum;
   previewPrices: Map<number, { tier: number; allocation: number }>;
-  pairedSelection?: PairedArbSelection | null;
   onBackClick: (price: number) => void;
   onLayClick: (price: number) => void;
   onPriceClick: (price: number) => void;
@@ -28,7 +27,6 @@ export function BetAngelLadder({
   ltpPrice,
   momentum = 'same',
   previewPrices,
-  pairedSelection,
   onBackClick,
   onLayClick,
   onPriceClick,
@@ -107,30 +105,18 @@ export function BetAngelLadder({
           const previewData = previewPrices.get(level.price);
           const isInPreview = !!previewData;
           
-          // Paired selection state - highlight this row if it's part of the pair
-          const isPairedLevel = pairedSelection && level.price === pairedSelection.levelPrice;
-          const showPairedHighlight = isPairedLevel;
-          
           return (
             <div 
               key={level.price}
               className={cn(
                 "grid grid-cols-3 border-b border-border/30 transition-all relative cursor-pointer",
-                isProfitable && !showPairedHighlight && "bg-success/5 hover:bg-success/15",
-                isInPreview && !showPairedHighlight && "ring-2 ring-inset ring-primary/60 bg-primary/10",
-                showPairedHighlight && "ring-2 ring-inset ring-success bg-success/20"
+                isProfitable && "bg-success/5 hover:bg-success/15",
+                isInPreview && "ring-2 ring-inset ring-primary/60 bg-primary/10"
               )}
               onClick={() => isProfitable && onPriceClick(level.price)}
             >
-              {/* Paired selection indicator */}
-              {showPairedHighlight && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10 text-[9px] bg-success text-success-foreground px-1.5 py-0.5 rounded-r font-bold">
-                  ${side === 'YES' ? pairedSelection.yesAllocation : pairedSelection.noAllocation}
-                </div>
-              )}
-              
-              {/* Tier label overlay (for non-paired preview) */}
-              {isInPreview && previewData && !showPairedHighlight && (
+              {/* Tier label overlay */}
+              {isInPreview && previewData && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10 text-[9px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-r font-bold">
                   L{previewData.tier}: ${previewData.allocation}
                 </div>
