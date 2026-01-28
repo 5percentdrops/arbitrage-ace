@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, X, Eye } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Zap, TrendingUp, Filter, Pause, Play, X, Eye, ChevronDown, ChevronUp, ListOrdered } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useAutoOrderBook } from '@/hooks/useAutoOrderBook';
 import { SpreadCalculator } from './SpreadCalculator';
@@ -43,6 +45,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [orderBookRangePct, setOrderBookRangePct] = useState(10); // 10% default
   const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
+  const [ordersTableOpen, setOrdersTableOpen] = useState(true);
   
   
   // Ref to track previous profitable levels for auto-deploy
@@ -750,14 +753,42 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       </div>
       </div>
 
-      {/* Limit Orders Table - Fixed at bottom (mobile/tablet only, hidden on xl where it's in sidebar) */}
-      <div className="flex-shrink-0 xl:hidden bg-background border-t border-border pt-4 max-h-48 overflow-y-auto">
-        <LimitOrdersTable
-          orders={deployedOrders}
-          onCancelAll={handleCancelAll}
-          isCancelling={isCancelling}
-        />
-      </div>
+      {/* Limit Orders Table - Collapsible at bottom (mobile/tablet only) */}
+      <Collapsible 
+        open={ordersTableOpen} 
+        onOpenChange={setOrdersTableOpen}
+        className="flex-shrink-0 xl:hidden bg-background border-t border-border"
+      >
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full h-8 flex items-center justify-between px-4 hover:bg-muted/50"
+          >
+            <div className="flex items-center gap-2">
+              <ListOrdered className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Limit Orders</span>
+              {deployedOrders.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {deployedOrders.length}
+                </Badge>
+              )}
+            </div>
+            {ordersTableOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="max-h-48 overflow-y-auto">
+          <LimitOrdersTable
+            orders={deployedOrders}
+            onCancelAll={handleCancelAll}
+            isCancelling={isCancelling}
+          />
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
