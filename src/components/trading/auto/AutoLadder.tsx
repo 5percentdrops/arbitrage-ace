@@ -14,7 +14,7 @@ import { LimitOrdersTable } from './LimitOrdersTable';
 import { BetAngelLadder } from './BetAngelLadder';
 import { QuickStakeButtons } from './QuickStakeButtons';
 import { SpreadIndicator } from './SpreadIndicator';
-import type { LadderSelection, ActiveLadderOrder, LevelEdgeInfo, PairedArbSelection } from '@/types/auto-trading';
+import type { LadderSelection, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
 import type { TokenSymbol } from '@/types/trading';
 
 // Tiered distribution - L1 (best edge) gets most, L7 gets least
@@ -43,7 +43,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [orderBookRangePct, setOrderBookRangePct] = useState(10); // 10% default
   const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
-  const [pairedSelection, setPairedSelection] = useState<PairedArbSelection | null>(null);
+  
   
   // Ref to track previous profitable levels for auto-deploy
   const prevProfitableLevelsRef = useRef<string>('');
@@ -365,7 +365,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     }
   }, [autoTradeEnabled]);
 
-  // Handle row click for arbitrage pairing
+  // Handle row click for instant arbitrage deployment
   const handleArbRowClick = useCallback((clickedPrice: number) => {
     const edge = levelEdges.get(clickedPrice);
     if (!edge?.isProfitable) return;
@@ -374,88 +374,9 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     const level = orderBook?.levels.find(l => l.price === clickedPrice);
     if (!level) return;
     
-    const yesPrice = level.yesAskPrice;
-    const noPrice = level.noAskPrice;
-    const totalCost = yesPrice + noPrice;
-    
-    // Only proceed if total < $1.00 (arb exists)
-    if (totalCost >= 1.0) return;
-    
-    // Calculate allocation: split stake evenly between YES and NO
-    const perLegAllocation = Math.floor(positionSize / 2);
-    
-    setPairedSelection({
-      levelPrice: clickedPrice,
-      yesPrice,
-      noPrice,
-      totalCost,
-      edgePct: edge.netEdgePct,
-      yesAllocation: perLegAllocation,
-      noAllocation: perLegAllocation,
-    });
-    
-    // Highlight this level in preview
-    const previewMap = new Map<number, { tier: number; allocation: number }>();
-    previewMap.set(clickedPrice, { tier: 1, allocation: perLegAllocation });
-    setPreviewPrices(previewMap);
-  }, [levelEdges, orderBook, positionSize]);
-
-  // Handle confirmation of paired order
-  const handleConfirmPairedOrder = useCallback(async () => {
-    if (!pairedSelection) return;
-    
-    setIsDeploying(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const arbPerShare = 1 - pairedSelection.totalCost;
-      const arbAmount = arbPerShare * pairedSelection.yesAllocation;
-      
-      const newOrders: ActiveLadderOrder[] = [
-        {
-          id: `order-${Date.now()}-yes`,
-          ladderIndex: 1,
-          side: 'YES',
-          price: pairedSelection.yesPrice,
-          levelPrice: pairedSelection.levelPrice,
-          shares: pairedSelection.yesAllocation,
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending',
-          arbAmount,
-        },
-        {
-          id: `order-${Date.now()}-no`,
-          ladderIndex: 1,
-          side: 'NO',
-          price: pairedSelection.noPrice,
-          levelPrice: pairedSelection.levelPrice,
-          shares: pairedSelection.noAllocation,
-          filledShares: 0,
-          fillPercent: 0,
-          status: 'pending',
-          arbAmount,
-        },
-      ];
-      
-      setDeployedOrders(prev => [...prev, ...newOrders]);
-      setPairedSelection(null);
-      setPreviewPrices(new Map());
-      
-      toast({
-        title: "Paired Arb Order Deployed",
-        description: `YES @ ${Math.round(pairedSelection.yesPrice * 100)}¢ + NO @ ${Math.round(pairedSelection.noPrice * 100)}¢ = ${Math.round(pairedSelection.totalCost * 100)}¢`,
-      });
-    } finally {
-      setIsDeploying(false);
-    }
-  }, [pairedSelection]);
-
-  // Clear paired selection
-  const handleClearSelection = useCallback(() => {
-    setPairedSelection(null);
-    setPreviewPrices(new Map());
-  }, []);
+    // Deploy immediately using handleCellClick logic
+    handleCellClick(clickedPrice, 'YES', 'ask');
+  }, [levelEdges, orderBook, handleCellClick]);
 
   // Quick deploy best arb with tiered sizing
   const handleQuickDeploy = useCallback(async () => {
@@ -770,7 +691,6 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 ltpPrice={midpointPrice}
                 momentum="same"
                 previewPrices={previewPrices}
-                pairedSelection={pairedSelection}
                 onBackClick={(price) => handleCellClick(price, 'YES', 'bid')}
                 onLayClick={(price) => handleCellClick(price, 'YES', 'ask')}
                 onPriceClick={handleArbRowClick}
@@ -783,50 +703,6 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                   noBestAsk={1 - midpointPrice}
                 />
                 
-                {/* Paired Selection Summary Banner */}
-                {pairedSelection && (
-                  <div className="bg-success/10 border border-success/30 rounded-lg p-3 text-center min-w-[200px]">
-                    <div className="text-xs text-success font-medium mb-1">
-                      Paired Arbitrage Ready
-                    </div>
-                    <div className="font-mono text-sm">
-                      <span className="text-[hsl(var(--poly-yes))]">
-                        YES @ {Math.round(pairedSelection.yesPrice * 100)}¢
-                      </span>
-                      {' + '}
-                      <span className="text-[hsl(var(--poly-no))]">
-                        NO @ {Math.round(pairedSelection.noPrice * 100)}¢
-                      </span>
-                    </div>
-                    <div className="font-mono text-sm font-bold text-success mt-1">
-                      = {Math.round(pairedSelection.totalCost * 100)}¢
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Edge: +{pairedSelection.edgePct.toFixed(2)}%
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      ${pairedSelection.yesAllocation} + ${pairedSelection.noAllocation}
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleClearSelection}
-                        className="flex-1 h-7 text-xs"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleConfirmPairedOrder}
-                        disabled={isDeploying}
-                        className="flex-1 h-7 text-xs bg-success hover:bg-success/90 text-success-foreground"
-                      >
-                        {isDeploying ? 'Deploying...' : 'Confirm'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
               
               <BetAngelLadder
@@ -838,48 +714,13 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 ltpPrice={1 - midpointPrice}
                 momentum="same"
                 previewPrices={previewPrices}
-                pairedSelection={pairedSelection}
+                
                 onBackClick={(price) => handleCellClick(price, 'NO', 'bid')}
                 onLayClick={(price) => handleCellClick(price, 'NO', 'ask')}
                 onPriceClick={handleArbRowClick}
               />
             </div>
 
-            {/* Mobile Paired Selection Banner */}
-            {pairedSelection && (
-              <div className="md:hidden bg-success/10 border-t border-success/30 p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-success font-medium">Paired Arbitrage</div>
-                    <div className="font-mono text-sm">
-                      <span className="text-[hsl(var(--poly-yes))]">{Math.round(pairedSelection.yesPrice * 100)}¢</span>
-                      {' + '}
-                      <span className="text-[hsl(var(--poly-no))]">{Math.round(pairedSelection.noPrice * 100)}¢</span>
-                      {' = '}
-                      <span className="font-bold text-success">{Math.round(pairedSelection.totalCost * 100)}¢</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleClearSelection}
-                      className="h-8"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleConfirmPairedOrder}
-                      disabled={isDeploying}
-                      className="h-8 bg-success hover:bg-success/90 text-success-foreground"
-                    >
-                      {isDeploying ? 'Deploying...' : 'Confirm'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
