@@ -463,7 +463,9 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-[calc(100vh-180px)]">
+      {/* Scrollable Main Content */}
+      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
       {/* Out of Range Warning */}
       {isOutOfRange && (
         <Alert variant="destructive" className="bg-destructive/10">
@@ -746,17 +748,16 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           />
         </div>
       </div>
+      </div>
 
-      {/* Limit Orders Table - Sticky at bottom */}
-      {deployedOrders.length > 0 && (
-        <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm border-t border-border pt-4">
-          <LimitOrdersTable
-            orders={deployedOrders}
-            onCancelAll={handleCancelAll}
-            isCancelling={isCancelling}
-          />
-        </div>
-      )}
+      {/* Limit Orders Table - Fixed at bottom */}
+      <div className="flex-shrink-0 bg-background border-t border-border pt-4">
+        <LimitOrdersTable
+          orders={deployedOrders}
+          onCancelAll={handleCancelAll}
+          isCancelling={isCancelling}
+        />
+      </div>
     </div>
   );
 }
