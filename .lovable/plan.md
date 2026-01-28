@@ -1,70 +1,94 @@
 
-# Enhanced Spread/Arbitrage Indicator Between YES and NO Ladders
+
+# Show Arbitrage Percentage Per Row on the Ladder
 
 ## Overview
 
-Currently, the `SpreadIndicator` between the YES and NO ladders uses the midpoint price for calculations, which doesn't reflect actual arbitrage opportunities. You want to show the real available arbitrage percentage when opportunities exist and make the spread indicator more prominent.
+Display the actual arbitrage percentage (net edge %) on each row where arbitrage is found, replacing the generic probability percentage that currently shows.
 
 ## Changes
 
-### 1. Update SpreadIndicator Props and Logic
+### 1. Update BetAngelPriceCell to Accept Edge Info
 
-**File: `src/components/trading/auto/SpreadIndicator.tsx`**
+**File: `src/components/trading/auto/BetAngelPriceCell.tsx`**
 
-Enhance the component to accept and display real arbitrage data:
-
-- Add optional `bestArbPct` prop for the actual best arbitrage percentage
-- Add optional `hasArbitrage` prop to indicate if any arb opportunities exist
-- Add the count of profitable levels if available
-- Make the indicator more visually prominent when arbitrage is found
+Add a new optional `edgePct` prop to display the arbitrage percentage when a level is profitable:
 
 ```tsx
-interface SpreadIndicatorProps {
-  yesBestAsk: number;
-  noBestAsk: number;
-  bestArbPct?: number;      // Actual best arb percentage from level edges
-  arbLevelCount?: number;   // Number of profitable levels available
+interface BetAngelPriceCellProps {
+  price: number;
+  isLTP?: boolean;
+  momentum?: PriceMomentum;
+  isProfitable?: boolean;
+  edgePct?: number;  // NEW: Net edge percentage for this level
+  onClick?: () => void;
 }
 ```
 
-The component will:
-- Show "Arb: +X.XX%" with the actual best arbitrage percentage when available
-- Display the number of profitable arb levels (e.g., "7 levels")
-- Use a more prominent visual style with a pulsing glow effect when arb is available
-- Fall back to spread display when no arbitrage exists
+Update the display logic:
+- When `isProfitable` is true and `edgePct` is provided, show the edge percentage (e.g., "+1.85%") instead of the generic probability
+- Style it prominently in green to indicate the arb opportunity
+- Keep the price in cents as the main display
 
-### 2. Pass Best Arbitrage Data to SpreadIndicator
+Visual result for a profitable row:
+```
++-------------+
+|    48¢      |  <- Price in cents
+|  +1.85%     |  <- Arb edge % (green, instead of "48%")
++-------------+
+```
 
-**File: `src/components/trading/auto/AutoLadder.tsx`**
+For non-profitable rows, continue showing the probability:
+```
++-------------+
+|    52¢      |
+|    52%      |
++-------------+
+```
 
-Update the `SpreadIndicator` usage around line 706-710 to pass the real arbitrage data:
+### 2. Pass Edge Info from BetAngelLadder to PriceCell
 
-- Pass `bestArb?.edge.netEdgePct` as the actual best arbitrage percentage
-- Pass `profitableLevels.size` to show how many arb levels exist
-- This ensures the indicator reflects real-time arbitrage opportunities
+**File: `src/components/trading/auto/BetAngelLadder.tsx`**
+
+Look up the edge info for each level and pass it to `BetAngelPriceCell`:
+
+```tsx
+// Inside the levels.map() around line 91-100
+const levelEdge = levelEdges.get(level.price);
+
+// Then pass to BetAngelPriceCell around line 133-138
+<BetAngelPriceCell
+  price={price}
+  isLTP={isLTP}
+  momentum={momentum}
+  isProfitable={isProfitable}
+  edgePct={isProfitable ? levelEdge?.netEdgePct : undefined}  // NEW
+  onClick={() => onPriceClick(level.price)}
+/>
+```
 
 ## Visual Result
 
-When no arbitrage:
+Before (current):
 ```
-+-------------------+
-|   Spread: 2¢      |
-|   52¢ + 50¢ = 102¢|
-+-------------------+
++-------+-------+-------+
+| Buy   | 48¢   | Sell  |   <- Profitable row
+|       | 48%   |       |   <- Shows probability
++-------+-------+-------+
 ```
 
-When arbitrage available:
+After (proposed):
 ```
-+-------------------+
-|   Arb: +1.85%     |  <- Glowing green, prominent
-|   7 levels        |
-|   48¢ + 50¢ = 98¢ |
-+-------------------+
++-------+-------+-------+
+| Buy   | 48¢   | Sell  |   <- Profitable row
+|       |+1.85% |       |   <- Shows ARB edge % in green
++-------+-------+-------+
 ```
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/SpreadIndicator.tsx` | Add `bestArbPct` and `arbLevelCount` props, enhance styling for arb opportunities |
-| `src/components/trading/auto/AutoLadder.tsx` | Pass `bestArbPct` and `arbLevelCount` from `bestArb` and `profitableLevels` to SpreadIndicator |
+| `src/components/trading/auto/BetAngelPriceCell.tsx` | Add `edgePct` prop, display arb % when profitable |
+| `src/components/trading/auto/BetAngelLadder.tsx` | Look up edge info and pass `edgePct` to price cell |
+
