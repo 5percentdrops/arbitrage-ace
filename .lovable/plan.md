@@ -1,38 +1,30 @@
 
+# Fix Uneven Ladder Columns
 
-# Remove Middle Spread/Arb Indicator
+## Problem
 
-## Overview
+The grid layout still uses a 3-column template: `grid-cols-[1fr,auto,1fr]`
 
-Remove the `SpreadIndicator` component positioned between the YES and NO ladders. Since each profitable row now displays its own arbitrage percentage directly in the price cell, the central indicator is redundant.
+After removing the middle SpreadIndicator, only 2 items remain but the layout still expects 3, causing the NO ladder to squeeze into the middle `auto` column instead of taking equal space.
 
-## Change
+## Solution
 
 **File: `src/components/trading/auto/AutoLadder.tsx`**
 
-Delete the entire center column div containing the SpreadIndicator (lines 704-715):
-
+Change line 689 from:
 ```tsx
-// DELETE THIS ENTIRE BLOCK (lines 704-715):
-{/* Center Spread Indicator + Paired Selection */}
-<div className="hidden md:flex flex-col items-center pt-20 gap-4">
-  <SpreadIndicator
-    yesBestAsk={orderBook?.best.yesAsk ?? midpointPrice}
-    noBestAsk={orderBook?.best.noAsk ?? (1 - midpointPrice)}
-    bestArbPct={profitableLevels.size > 0 
-      ? Math.max(...Array.from(levelEdges.values()).filter(e => e.isProfitable).map(e => e.netEdgePct))
-      : undefined
-    }
-    arbLevelCount={profitableLevels.size}
-  />
-</div>
+<div className="grid grid-cols-1 md:grid-cols-[1fr,auto,1fr] gap-2 p-4">
 ```
 
-## Result
+To:
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-4">
+```
 
-The YES and NO ladders will sit directly next to each other without any middle separator. Each row already shows its own arb percentage when profitable, so the central indicator is no longer needed.
+This gives both YES and NO ladders equal width (50% each on medium+ screens).
+
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/components/trading/auto/AutoLadder.tsx` | Remove SpreadIndicator div block (lines 704-715) |
-
+| `src/components/trading/auto/AutoLadder.tsx` | Change grid from 3-column to 2-column layout (line 689) |
