@@ -7,6 +7,7 @@ interface BetAngelPriceCellProps {
   isLTP?: boolean;
   momentum?: PriceMomentum;
   isProfitable?: boolean;
+  edgePct?: number;  // Net edge percentage for this level
   onClick?: () => void;
 }
 
@@ -15,6 +16,7 @@ export function BetAngelPriceCell({
   isLTP, 
   momentum = 'same',
   isProfitable,
+  edgePct,
   onClick 
 }: BetAngelPriceCellProps) {
   const cents = Math.round(price * 100);
@@ -47,8 +49,11 @@ export function BetAngelPriceCell({
         {cents}¢
         {isLTP && <span className="ml-0.5 text-[10px]">◄</span>}
       </div>
-      <div className="text-[9px] text-muted-foreground">
-        {cents}%
+      <div className={cn(
+        "text-[9px]",
+        isProfitable && edgePct !== undefined ? "text-success font-bold" : "text-muted-foreground"
+      )}>
+        {isProfitable && edgePct !== undefined ? `+${edgePct.toFixed(2)}%` : `${cents}%`}
       </div>
     </div>
   );
