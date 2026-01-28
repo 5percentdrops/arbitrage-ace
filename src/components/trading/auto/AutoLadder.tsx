@@ -747,12 +747,16 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         </div>
       </div>
 
-      {/* Limit Orders Table Below Ladder */}
-      <LimitOrdersTable
-        orders={deployedOrders}
-        onCancelAll={handleCancelAll}
-        isCancelling={isCancelling}
-      />
+      {/* Limit Orders Table - Sticky at bottom */}
+      {deployedOrders.length > 0 && (
+        <div className="sticky bottom-0 z-30 bg-background/95 backdrop-blur-sm border-t border-border pt-4">
+          <LimitOrdersTable
+            orders={deployedOrders}
+            onCancelAll={handleCancelAll}
+            isCancelling={isCancelling}
+          />
+        </div>
+      )}
     </div>
   );
 }
