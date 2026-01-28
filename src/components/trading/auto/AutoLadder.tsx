@@ -704,10 +704,14 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
               {/* Center Spread Indicator + Paired Selection */}
               <div className="hidden md:flex flex-col items-center pt-20 gap-4">
                 <SpreadIndicator
-                  yesBestAsk={midpointPrice}
-                  noBestAsk={1 - midpointPrice}
+                  yesBestAsk={orderBook?.best.yesAsk ?? midpointPrice}
+                  noBestAsk={orderBook?.best.noAsk ?? (1 - midpointPrice)}
+                  bestArbPct={profitableLevels.size > 0 
+                    ? Math.max(...Array.from(levelEdges.values()).filter(e => e.isProfitable).map(e => e.netEdgePct))
+                    : undefined
+                  }
+                  arbLevelCount={profitableLevels.size}
                 />
-                
               </div>
               
               <BetAngelLadder
