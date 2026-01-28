@@ -1,4 +1,4 @@
-import { ArrowUpDown, AlertTriangle, Check, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUpDown, AlertTriangle, Check, Loader2, TrendingUp, TrendingDown, Users, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,12 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { TOKENS, type TokenSymbol } from '@/types/trading';
 import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType } from '@/types/manual-trading';
 import { cn } from '@/lib/utils';
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
 
 interface ManualTradePanelProps {
   formState: ManualTradeFormState;
@@ -30,6 +36,11 @@ interface ManualTradePanelProps {
   onAllowManualChange: (allow: boolean) => void;
   
   estimatedShares: number | null;
+  
+  // Signal data
+  crowdSide?: 'UP' | 'DOWN';
+  crowdPct?: number;
+  secondsRemaining: number;
 }
 
 export function ManualTradePanel({
@@ -47,6 +58,9 @@ export function ManualTradePanel({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
+  crowdSide,
+  crowdPct,
+  secondsRemaining,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
 
@@ -92,6 +106,34 @@ export function ManualTradePanel({
           </Alert>
         )}
 
+        {/* Signal Section */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Crowd:</span>
+            {crowdSide && crowdPct ? (
+              <span className={cn(
+                "font-mono font-semibold",
+                crowdSide === 'UP' ? 'text-success' : 'text-destructive'
+              )}>
+                {crowdSide} {crowdPct}%
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-xs">--</span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Time:</span>
+            <span className={cn(
+              "font-mono font-semibold",
+              secondsRemaining <= 300 && "text-destructive"
+            )}>
+              {formatTime(secondsRemaining)}
+            </span>
+          </div>
+        </div>
 
         {/* Asset Selection */}
         <div className="space-y-2">

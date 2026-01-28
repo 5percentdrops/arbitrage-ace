@@ -19,6 +19,11 @@ interface TradingTabsProps {
   allowManualWhileAuto: boolean;
   onAllowManualChange: (allow: boolean) => void;
   estimatedShares: number | null;
+  
+  // Signal section data
+  crowdSide?: 'UP' | 'DOWN';
+  crowdPct?: number;
+  secondsRemaining: number;
 }
 
 export function TradingTabs({
@@ -36,6 +41,9 @@ export function TradingTabs({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
+  crowdSide,
+  crowdPct,
+  secondsRemaining,
 }: TradingTabsProps) {
   return (
     <ManualTradePanel
@@ -53,6 +61,9 @@ export function TradingTabs({
       allowManualWhileAuto={allowManualWhileAuto}
       onAllowManualChange={onAllowManualChange}
       estimatedShares={estimatedShares}
+      crowdSide={crowdSide}
+      crowdPct={crowdPct}
+      secondsRemaining={secondsRemaining}
     />
   );
 }
