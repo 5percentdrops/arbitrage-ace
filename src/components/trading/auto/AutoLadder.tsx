@@ -750,8 +750,8 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
       </div>
       </div>
 
-      {/* Limit Orders Table - Fixed at bottom */}
-      <div className="flex-shrink-0 bg-background border-t border-border pt-4">
+      {/* Limit Orders Table - Fixed at bottom (mobile/tablet only, hidden on xl where it's in sidebar) */}
+      <div className="flex-shrink-0 xl:hidden bg-background border-t border-border pt-4 max-h-48 overflow-y-auto">
         <LimitOrdersTable
           orders={deployedOrders}
           onCancelAll={handleCancelAll}
