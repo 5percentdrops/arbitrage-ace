@@ -265,22 +265,32 @@ const Index = () => {
                   onRefresh={roundTimer.refresh}
                 />
               </div>
-              <TradingTabs
-                formState={manualTrading.formState}
-                onFieldChange={manualTrading.updateField}
-                validationErrors={manualTrading.validationErrors}
-                isValid={manualTrading.isValid}
-                canSubmit={manualTrading.canSubmit}
-                isSubmitting={manualTrading.isSubmitting}
-                submitError={manualTrading.submitError}
-                submitSuccess={manualTrading.submitSuccess}
-                onSubmit={manualTrading.submitOrder}
-                isBotRunning={state.status === 'running'}
-                onToggleBot={(enabled) => enabled ? startBot() : stopBot()}
-                allowManualWhileAuto={manualTrading.allowManualWhileAuto}
-                onAllowManualChange={manualTrading.setAllowManualWhileAuto}
-                estimatedShares={manualTrading.estimatedShares}
-              />
+              {(() => {
+                const matchingAlert = decisionAlerts.find(
+                  a => a.asset === manualTrading.formState.asset
+                );
+                return (
+                  <TradingTabs
+                    formState={manualTrading.formState}
+                    onFieldChange={manualTrading.updateField}
+                    validationErrors={manualTrading.validationErrors}
+                    isValid={manualTrading.isValid}
+                    canSubmit={manualTrading.canSubmit}
+                    isSubmitting={manualTrading.isSubmitting}
+                    submitError={manualTrading.submitError}
+                    submitSuccess={manualTrading.submitSuccess}
+                    onSubmit={manualTrading.submitOrder}
+                    isBotRunning={state.status === 'running'}
+                    onToggleBot={(enabled) => enabled ? startBot() : stopBot()}
+                    allowManualWhileAuto={manualTrading.allowManualWhileAuto}
+                    onAllowManualChange={manualTrading.setAllowManualWhileAuto}
+                    estimatedShares={manualTrading.estimatedShares}
+                    crowdSide={matchingAlert?.majority_side}
+                    crowdPct={matchingAlert?.majority_pct}
+                    secondsRemaining={roundTimer.secondsRemaining}
+                  />
+                );
+              })()}
               <PositionsTable positions={positions} onClosePosition={closePosition} isLoading={isLoadingPositions} />
               <OrderHistoryTable orders={orders} isLoading={isLoadingOrders} lastRefresh={lastRefresh} />
             </div>
