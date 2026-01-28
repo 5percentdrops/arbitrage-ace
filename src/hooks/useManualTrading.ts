@@ -29,7 +29,6 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     limitPrice: '',
     useNotional: true,
     notionalUsd: '',
-    crowdSide: '',
     crowdPct: '',
     remainingTime: '',
   });
