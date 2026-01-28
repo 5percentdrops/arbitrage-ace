@@ -99,7 +99,6 @@ export interface ManualTradeFormState {
   useNotional: boolean;
   notionalUsd: string;
   // Signal fields
-  crowdSide: 'UP' | 'DOWN' | '';
   crowdPct: string;
   remainingTime: string;
 }
@@ -113,7 +112,6 @@ export const INITIAL_FORM_STATE: ManualTradeFormState = {
   limitPrice: '',
   useNotional: true,
   notionalUsd: '',
-  crowdSide: '',
   crowdPct: '',
   remainingTime: '',
 };

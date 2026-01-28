@@ -107,41 +107,20 @@ export function ManualTradePanel({
               <div className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 <Label htmlFor="crowdPct" className="text-xs text-muted-foreground">
-                  Crowd Probability
+                  Crowd Probability (%)
                 </Label>
               </div>
-              <div className="flex gap-2">
-                <ToggleGroup
-                  type="single"
-                  value={formState.crowdSide || ''}
-                  onValueChange={(v) => v && onFieldChange('crowdSide', v as 'UP' | 'DOWN')}
-                  className="justify-start"
-                >
-                  <ToggleGroupItem
-                    value="UP"
-                    className="px-3 h-8 text-xs data-[state=on]:bg-success data-[state=on]:text-success-foreground"
-                  >
-                    UP
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="DOWN"
-                    className="px-3 h-8 text-xs data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
-                  >
-                    DOWN
-                  </ToggleGroupItem>
-                </ToggleGroup>
-                <Input
-                  id="crowdPct"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  placeholder="%"
-                  value={formState.crowdPct || ''}
-                  onChange={(e) => onFieldChange('crowdPct', e.target.value)}
-                  className="w-16 h-8 text-xs"
-                />
-              </div>
+              <Input
+                id="crowdPct"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                placeholder="e.g., 67"
+                value={formState.crowdPct || ''}
+                onChange={(e) => onFieldChange('crowdPct', e.target.value)}
+                className="h-8 text-xs"
+              />
             </div>
 
             {/* Remaining Time */}
