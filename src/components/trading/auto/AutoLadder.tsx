@@ -209,32 +209,71 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     }
   }, [clearSelections]);
 
-  // Filter levels to show configurable % order book view below best ask prices
-  // (for limit orders, we only place orders at prices lower than current market)
-  const visibleLevels = useMemo(() => {
-    if (!orderBook) return [];
+  // Tiered filtering with auto-loosen fallback
+  // Priority: Strict (both sides below chance) > Relaxed (either side) > Depth only
+  type FilterMode = 'strict' | 'relaxed' | 'depth';
+  
+  const { visibleLevels, filterMode } = useMemo<{ visibleLevels: typeof orderBook.levels; filterMode: FilterMode }>(() => {
+    if (!orderBook) return { visibleLevels: [], filterMode: 'strict' as FilterMode };
     
-    const yesLastPrice = orderBook.refPrice;
-    const noLastPrice = 1 - orderBook.refPrice;
+    const yesChance = orderBook.refPrice;
+    const noChance = 1 - orderBook.refPrice;
+    const rangePct = orderBookRangePct / 100;
     
-    const yesUpperBound = yesLastPrice;
-    const yesLowerBound = yesLastPrice * (1 - orderBookRangePct / 100);
-    const noUpperBound = noLastPrice;
-    const noLowerBound = noLastPrice * (1 - orderBookRangePct / 100);
+    // Depth bounds (lower limits based on slider)
+    const yesLowerBound = yesChance * (1 - rangePct);
+    const noLowerBound = noChance * (1 - rangePct);
     
-    return orderBook.levels.filter(level => {
-      // Both YES and NO prices must be strictly below their respective chance %
-      const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < yesUpperBound;
-      const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < noUpperBound;
-      
-      // Require BOTH sides to be in range (strictly below chance %)
-      if (!yesInRange || !noInRange) return false;
-      
-      if (showProfitableOnly) {
-        return profitableLevels.has(level.price);
-      }
-      return true;
-    });
+    // Helper to check if a level passes strict filtering
+    const isStrictPass = (level: typeof orderBook.levels[0]) => {
+      const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < yesChance;
+      const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < noChance;
+      return yesInRange && noInRange;
+    };
+    
+    // Helper to check if a level passes relaxed filtering (either side)
+    const isRelaxedPass = (level: typeof orderBook.levels[0]) => {
+      const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < yesChance;
+      const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < noChance;
+      return yesInRange || noInRange;
+    };
+    
+    // Helper to check if a level is within depth window (by row price, not ask prices)
+    const isInDepthWindow = (level: typeof orderBook.levels[0]) => {
+      const refPrice = orderBook.refPrice;
+      return level.price >= refPrice * (1 - rangePct) && level.price <= refPrice * (1 + rangePct);
+    };
+    
+    // Apply arb filter if enabled
+    const applyArbFilter = (levels: typeof orderBook.levels) => {
+      if (!showProfitableOnly) return levels;
+      return levels.filter(level => profitableLevels.has(level.price));
+    };
+    
+    // Pass A: Strict - both sides must be strictly below chance %
+    const strictLevels = orderBook.levels.filter(isStrictPass);
+    const strictWithArb = applyArbFilter(strictLevels);
+    if (strictWithArb.length > 0) {
+      return { visibleLevels: strictWithArb, filterMode: 'strict' as FilterMode };
+    }
+    
+    // Pass B: Relaxed - at least one side strictly below chance %
+    const relaxedLevels = orderBook.levels.filter(isRelaxedPass);
+    const relaxedWithArb = applyArbFilter(relaxedLevels);
+    if (relaxedWithArb.length > 0) {
+      return { visibleLevels: relaxedWithArb, filterMode: 'relaxed' as FilterMode };
+    }
+    
+    // Pass C: Depth only - show rows within depth window regardless of ask prices
+    // If Arb Only is ON and still empty, ignore it to prevent blank ladder
+    const depthLevels = orderBook.levels.filter(isInDepthWindow);
+    const depthWithArb = applyArbFilter(depthLevels);
+    if (depthWithArb.length > 0) {
+      return { visibleLevels: depthWithArb, filterMode: 'depth' as FilterMode };
+    }
+    
+    // Final fallback: show depth levels even if no arb opportunities
+    return { visibleLevels: depthLevels, filterMode: 'depth' as FilterMode };
   }, [orderBook, showProfitableOnly, profitableLevels, orderBookRangePct]);
 
   // Find midpoint level (LTP)
@@ -554,6 +593,21 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                     <Filter className="h-3 w-3" />
                     Arb Only
                   </Label>
+                  
+                  {/* Filter Mode Indicator */}
+                  <Badge 
+                    variant={filterMode === 'strict' ? 'default' : 'secondary'}
+                    className={cn(
+                      "text-[10px] h-5 px-1.5",
+                      filterMode === 'strict' && "bg-success text-success-foreground",
+                      filterMode === 'relaxed' && "bg-warning text-warning-foreground",
+                      filterMode === 'depth' && "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {filterMode === 'strict' && 'Strict'}
+                    {filterMode === 'relaxed' && 'Loosened'}
+                    {filterMode === 'depth' && 'Depth Only'}
+                  </Badge>
                 </div>
 
                 {/* Cancel Preview/Orders */}
