@@ -1,77 +1,65 @@
 
-## What’s happening (why you see no prices)
-Right now `visibleLevels` requires **the same row** to satisfy both:
-- `YES ask < current YES chance (refPrice)`
-- `NO ask < current NO chance (1 - refPrice)`
 
-But in the simulated order book, most rows won’t have **both legs** priced below their respective current market chances at the same time (that’s an extremely strict constraint), so the filter can easily return **0 rows**, especially with “Arb Only” also ON.
+# Fix Empty Order Book - Remove Auto-Loosen Filtering
 
-You also asked for: if 0 rows match → **auto-loosen** instead of showing empty.
+## Problem
+The order book is empty because the tiered filtering logic (Strict → Loosened → Depth Only) introduced complexity but the core filter constraints are still too strict:
+- Strict mode requires `yesAskPrice < refPrice` AND `noAskPrice < (1 - refPrice)` simultaneously
+- The simulated data rarely satisfies both conditions at the same time
+- The fallback to "Depth Only" is also filtering by `level.price` being near `refPrice`, which may not match actual ask prices
 
-## Goal
-Keep your intended strict rule (“both sides must be below the chance %”), but ensure the ladder never goes blank by adding a **tiered fallback** (auto-loosen).
+## Solution
+Replace the complex tiered filtering with simple depth-based filtering that shows all levels within the configured range, then apply the "Arb Only" filter on top if enabled.
 
-## Implementation plan
+## Changes
 
-### 1) Update filtering to use a tiered fallback (AutoLadder.tsx)
-**File:** `src/components/trading/auto/AutoLadder.tsx`  
-**Area:** `visibleLevels` `useMemo` (around current lines ~212–238)
+### File: `src/components/trading/auto/AutoLadder.tsx`
 
-We’ll compute thresholds:
-- `yesChance = orderBook.refPrice`
-- `noChance = 1 - orderBook.refPrice`
-- keep your depth window (lower bounds) as-is:
-  - `yesLowerBound = yesChance * (1 - orderBookRangePct / 100)`
-  - `noLowerBound = noChance * (1 - orderBookRangePct / 100)`
+**Replace lines 212-277** (the entire `visibleLevels` useMemo block)
 
-Then filter in **three passes**:
+Current complex tiered logic will be replaced with:
 
-**Pass A (strict):** must be in depth AND both sides strictly below chance
-- `yesLowerBound <= yesAskPrice < yesChance`
-- `noLowerBound <= noAskPrice < noChance`
+```tsx
+// Simple filtering: show levels within depth range around refPrice
+const visibleLevels = useMemo(() => {
+  if (!orderBook) return [];
+  
+  const refPrice = orderBook.refPrice;
+  const rangePct = orderBookRangePct / 100;
+  
+  // Filter by reference price range (simple depth window)
+  const depthLevels = orderBook.levels.filter(level => {
+    // Show levels whose reference price is within the depth window
+    return level.price >= refPrice * (1 - rangePct) && 
+           level.price <= refPrice * (1 + rangePct);
+  });
+  
+  // Apply arb filter if enabled
+  if (showProfitableOnly) {
+    return depthLevels.filter(level => profitableLevels.has(level.price));
+  }
+  
+  return depthLevels;
+}, [orderBook, showProfitableOnly, profitableLevels, orderBookRangePct]);
+```
 
-If **Pass A** returns at least 1 level → use it.
+**Remove the `filterMode` state and Badge** (lines 597-610)
 
-**Pass B (auto-loosen #1):** must be in depth AND at least one side strictly below chance
-- `(yesLowerBound <= yesAskPrice < yesChance) OR (noLowerBound <= noAskPrice < noChance)`
+Since we're removing the tiered filtering, the "Strict / Loosened / Depth Only" badge is no longer needed.
 
-If **Pass B** returns at least 1 level → use it.
+**Remove the `FilterMode` type declaration** (line 214)
 
-**Pass C (auto-loosen #2):** show a sane “depth window” even if no asks are below chance (prevents blank ladder)
-- Use depth based on the row reference price instead of asks:
-  - keep rows whose `level.price` is within the configured depth around `refPrice`
-  - example logic: `level.price` between `refPrice * (1 - rangePct)` and `refPrice * (1 + rangePct)`
-  - (or alternatively: show the nearest N rows to refPrice)
+## Summary of Changes
 
-This ensures the order book never goes fully empty.
+| Location | Change |
+|----------|--------|
+| Lines 212-277 | Replace tiered filtering with simple depth + arb filter |
+| Lines 597-610 | Remove filter mode Badge from UI |
+| Line 214 | Remove `FilterMode` type |
 
-### 2) Keep “Arb Only” behavior consistent with fallback
-Currently we apply `showProfitableOnly` after the range checks. With fallback logic, we need to decide how “Arb Only” interacts:
+## Result
+- Order book will show all levels within the configured depth range (5-30%)
+- "Arb Only" toggle still works - when ON, only profitable levels appear
+- No more empty order book - levels are always visible within the depth window
+- Simpler, more predictable behavior
 
-- In **Pass A / B**, keep the `showProfitableOnly` check the same.
-- In **Pass C**, if `showProfitableOnly` is ON and we still get 0 rows, we’ll auto-loosen one more time by temporarily ignoring `showProfitableOnly` (otherwise Pass C could still be empty).
-
-Result: “Arb Only” stays meaningful, but won’t cause a blank ladder when the market has no profitable rows.
-
-### 3) Add a small UI indicator when auto-loosen is active
-So users understand why they’re seeing rows that don’t meet the strict rule.
-
-**File:** `src/components/trading/auto/AutoLadder.tsx`  
-**Location:** near the ladder header controls (where the slider/toggles are)
-
-Add a derived label/badge such as:
-- “Filter: Strict”
-- “Filter: Loosened (either side)”
-- “Filter: Loosened (depth only)”
-
-This is important so the behavior is transparent.
-
-### 4) Quick sanity checks to run after implementation
-1. With default settings (depth 10%, Arb Only ON), the ladder should not be blank.
-2. If strict rows exist, the indicator should show “Strict”.
-3. If strict rows don’t exist, it should auto-switch to loosened mode and show the badge.
-4. Confirm “strictly less than” is still enforced whenever we’re in strict/relaxed modes (no equal-to chance prices).
-
-## Notes (why this is the correct fix for your requirement)
-- Your “both sides must be below current chance” rule is valid, but it can be rare in real data and especially in this simulation.
-- Auto-loosen is the right UX to avoid an empty ladder while still prioritizing strict opportunities when they exist.
