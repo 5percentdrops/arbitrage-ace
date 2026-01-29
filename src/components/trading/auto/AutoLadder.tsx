@@ -223,10 +223,12 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     const noLowerBound = noLastPrice * (1 - orderBookRangePct / 100);
     
     return orderBook.levels.filter(level => {
+      // Both YES and NO prices must be strictly below their respective chance %
       const yesInRange = level.yesAskPrice >= yesLowerBound && level.yesAskPrice < yesUpperBound;
       const noInRange = level.noAskPrice >= noLowerBound && level.noAskPrice < noUpperBound;
       
-      if (!yesInRange && !noInRange) return false;
+      // Require BOTH sides to be in range (strictly below chance %)
+      if (!yesInRange || !noInRange) return false;
       
       if (showProfitableOnly) {
         return profitableLevels.has(level.price);
