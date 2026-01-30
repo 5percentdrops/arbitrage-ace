@@ -1,8 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { BetAngelCell } from './BetAngelCell';
 import { BetAngelPriceCell, type PriceMomentum } from './BetAngelPriceCell';
 import type { OrderBookLevel, ActiveLadderOrder, LevelEdgeInfo } from '@/types/auto-trading';
+
+interface DragPreview {
+  orderId: string;
+  targetLevelPrice: number;
+  arbPct: number;
+}
 
 interface BetAngelLadderProps {
   side: 'YES' | 'NO';
@@ -16,6 +22,13 @@ interface BetAngelLadderProps {
   onBackClick: (price: number) => void;
   onLayClick: (price: number) => void;
   onPriceClick: (price: number) => void;
+  // Drag-and-drop props
+  dragPreview?: DragPreview | null;
+  onDragStart?: (orderId: string, side: 'YES' | 'NO', type: 'back' | 'lay') => void;
+  onDragEnd?: () => void;
+  onDragOver?: (orderId: string, side: 'YES' | 'NO', type: 'back' | 'lay', levelPrice: number, targetSide: 'YES' | 'NO', targetType: 'back' | 'lay') => void;
+  onOrderDrop?: (orderId: string, levelPrice: number, side: 'YES' | 'NO', type: 'back' | 'lay') => void;
+  autoTradeEnabled?: boolean;
 }
 
 export function BetAngelLadder({
@@ -30,7 +43,20 @@ export function BetAngelLadder({
   onBackClick,
   onLayClick,
   onPriceClick,
+  dragPreview,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onOrderDrop,
+  autoTradeEnabled = false,
 }: BetAngelLadderProps) {
+  // Track active drag state locally
+  const [activeDrag, setActiveDrag] = useState<{
+    orderId: string;
+    side: 'YES' | 'NO';
+    type: 'back' | 'lay';
+  } | null>(null);
+
   // Calculate max depth for scaling bars
   const maxDepth = useMemo(() => {
     let max = 0;
@@ -49,6 +75,38 @@ export function BetAngelLadder({
 
   // Calculate probability display
   const probability = ltpPrice ? Math.round(ltpPrice * 100) : 50;
+
+  // Handler for drag start from a cell
+  const handleCellDragStart = (orderId: string, orderSide: 'YES' | 'NO', orderType: 'back' | 'lay') => {
+    setActiveDrag({ orderId, side: orderSide, type: orderType });
+    onDragStart?.(orderId, orderSide, orderType);
+  };
+
+  // Handler for drag end
+  const handleCellDragEnd = () => {
+    setActiveDrag(null);
+    onDragEnd?.();
+  };
+
+  // Handler for drag over a cell
+  const handleCellDragOver = (levelPrice: number, targetType: 'back' | 'lay') => {
+    if (!activeDrag) return;
+    // Only allow if same side and same column type
+    if (activeDrag.side !== side || activeDrag.type !== targetType) return;
+    onDragOver?.(activeDrag.orderId, activeDrag.side, activeDrag.type, levelPrice, side, targetType);
+  };
+
+  // Handler for drop on a cell
+  const handleCellDrop = (levelPrice: number, targetType: 'back' | 'lay') => {
+    if (!activeDrag) return;
+    // Validate: same side AND same column
+    if (activeDrag.side !== side || activeDrag.type !== targetType) return;
+    onOrderDrop?.(activeDrag.orderId, levelPrice, side, targetType);
+    setActiveDrag(null);
+  };
+
+  // Check if drag is disabled
+  const isDragDisabled = autoTradeEnabled;
 
   return (
     <div className="flex flex-col border border-border rounded-lg overflow-hidden">
@@ -96,15 +154,28 @@ export function BetAngelLadder({
           const levelEdge = levelEdges.get(level.price);
           const isLTP = ltpPrice !== undefined && Math.abs(price - ltpPrice) < 0.005;
           
-          // Check for orders at this price
+          // Check for orders at this price level
           const ordersAtPrice = sideOrders.filter(o => o.levelPrice !== undefined && Math.abs(o.levelPrice - level.price) < 0.005);
-          const hasBackOrder = ordersAtPrice.some(o => o.price <= price);
-          const hasLayOrder = ordersAtPrice.some(o => o.price >= price);
-          const orderLabel = ordersAtPrice[0]?.ladderIndex ? `L${ordersAtPrice[0].ladderIndex}` : undefined;
+          const backOrder = ordersAtPrice.find(o => o.orderType === 'back');
+          const layOrder = ordersAtPrice.find(o => o.orderType === 'lay');
+          const hasBackOrder = !!backOrder;
+          const hasLayOrder = !!layOrder;
+          const backOrderLabel = backOrder?.ladderIndex ? `L${backOrder.ladderIndex}` : undefined;
+          const layOrderLabel = layOrder?.ladderIndex ? `L${layOrder.ladderIndex}` : undefined;
           
           // Preview state
           const previewData = previewPrices.get(level.price);
           const isInPreview = !!previewData;
+          
+          // Drop target state - check if this level is the current drag target
+          const isBackDropTarget = activeDrag && 
+            activeDrag.side === side && 
+            activeDrag.type === 'back' && 
+            dragPreview?.targetLevelPrice === level.price;
+          const isLayDropTarget = activeDrag && 
+            activeDrag.side === side && 
+            activeDrag.type === 'lay' && 
+            dragPreview?.targetLevelPrice === level.price;
           
           return (
             <div 
@@ -127,9 +198,20 @@ export function BetAngelLadder({
                 value={bidValue}
                 maxDepth={maxDepth}
                 type="back"
+                levelPrice={level.price}
                 onClick={(e) => { e.stopPropagation(); onBackClick(level.price); }}
                 hasOrder={hasBackOrder}
-                orderLabel={hasBackOrder ? orderLabel : undefined}
+                orderLabel={backOrderLabel}
+                orderId={backOrder?.id}
+                orderSide={side}
+                onDragStart={handleCellDragStart}
+                onDragEnd={handleCellDragEnd}
+                onDragOver={(lp) => handleCellDragOver(lp, 'back')}
+                onDragLeave={handleCellDragEnd}
+                onDrop={(lp) => handleCellDrop(lp, 'back')}
+                isDropTarget={isBackDropTarget}
+                dropPreviewArbPct={isBackDropTarget ? dragPreview?.arbPct : undefined}
+                isDragDisabled={isDragDisabled}
               />
               <BetAngelPriceCell
                 price={price}
@@ -143,9 +225,20 @@ export function BetAngelLadder({
                 value={askValue}
                 maxDepth={maxDepth}
                 type="lay"
+                levelPrice={level.price}
                 onClick={(e) => { e.stopPropagation(); onLayClick(level.price); }}
                 hasOrder={hasLayOrder}
-                orderLabel={hasLayOrder ? orderLabel : undefined}
+                orderLabel={layOrderLabel}
+                orderId={layOrder?.id}
+                orderSide={side}
+                onDragStart={handleCellDragStart}
+                onDragEnd={handleCellDragEnd}
+                onDragOver={(lp) => handleCellDragOver(lp, 'lay')}
+                onDragLeave={handleCellDragEnd}
+                onDrop={(lp) => handleCellDrop(lp, 'lay')}
+                isDropTarget={isLayDropTarget}
+                dropPreviewArbPct={isLayDropTarget ? dragPreview?.arbPct : undefined}
+                isDragDisabled={isDragDisabled}
               />
             </div>
           );
