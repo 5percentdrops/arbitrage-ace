@@ -50,6 +50,7 @@ export interface ActiveLadderOrder {
   id: string;
   ladderIndex: number; // L1, L2, ... L7
   side: 'YES' | 'NO';
+  orderType: 'back' | 'lay';  // Which column: back=Buy, lay=Sell
   price: number;
   levelPrice: number;  // Reference level price for stable row matching
   shares: number;

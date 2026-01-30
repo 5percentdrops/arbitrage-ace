@@ -47,6 +47,15 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
   const [previewPrices, setPreviewPrices] = useState<Map<number, { tier: number; allocation: number }>>(new Map());
   const [ordersTableOpen, setOrdersTableOpen] = useState(true);
   
+  // Drag preview state
+  const [dragPreview, setDragPreview] = useState<{
+    orderId: string;
+    orderSide: 'YES' | 'NO';
+    orderType: 'back' | 'lay';
+    targetLevelPrice: number;
+    arbPct: number;
+  } | null>(null);
+  
   
   // Ref to track previous profitable levels for auto-deploy
   const prevProfitableLevelsRef = useRef<string>('');
@@ -137,6 +146,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           id: `order-${Date.now()}-yes-${index}`,
           ladderIndex: index + 1,
           side: 'YES' as const,
+          orderType: 'back' as const,
           price: level.yesAskPrice,
           levelPrice: price,
           shares: tierShares[index],
@@ -149,6 +159,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
           id: `order-${Date.now()}-no-${index}`,
           ladderIndex: index + 1,
           side: 'NO' as const,
+          orderType: 'back' as const,
           price: level.noAskPrice,
           levelPrice: price,
           shares: tierShares[index],
@@ -181,6 +192,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
         id: `order-${Date.now()}-${i}`,
         ladderIndex: i + 1,
         side: i % 2 === 0 ? 'YES' : 'NO',
+        orderType: 'back' as const,
         price: currentEdge.yesPrice + (i - 3) * 0.01,
         levelPrice: Math.round((currentEdge.yesPrice + (i - 3) * 0.01) * 100) / 100,
         shares: Math.floor(size * (1 - i * 0.1)),
@@ -305,6 +317,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             id: `auto-${Date.now()}-yes-${index}`,
             ladderIndex: index + 1,
             side: 'YES' as const,
+            orderType: 'back' as const,
             price: level.yesAskPrice,
             levelPrice: price,
             shares: tierShares[index],
@@ -317,6 +330,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             id: `auto-${Date.now()}-no-${index}`,
             ladderIndex: index + 1,
             side: 'NO' as const,
+            orderType: 'back' as const,
             price: level.noAskPrice,
             levelPrice: price,
             shares: tierShares[index],
@@ -353,6 +367,84 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
     handleCellClick(clickedPrice, 'YES', 'ask');
   }, [levelEdges, orderBook, handleCellClick]);
 
+  // Drag handlers for order repositioning
+  const handleDragOver = useCallback((
+    orderId: string,
+    orderSide: 'YES' | 'NO',
+    orderType: 'back' | 'lay',
+    targetLevelPrice: number,
+    targetSide: 'YES' | 'NO',
+    targetType: 'back' | 'lay'
+  ) => {
+    // Validate constraints - same side AND same column
+    if (orderSide !== targetSide || orderType !== targetType) {
+      setDragPreview(null);
+      return;
+    }
+    
+    // Calculate arb % at new price level
+    const level = orderBook?.levels.find(l => Math.abs(l.price - targetLevelPrice) < 0.005);
+    if (!level) return;
+    
+    const totalCost = level.yesAskPrice + level.noAskPrice;
+    const fee = orderBook?.fee.takerPct || 2;
+    const netEdgePct = (1 - totalCost) * 100 - (fee * 2);
+    
+    setDragPreview({
+      orderId,
+      orderSide,
+      orderType,
+      targetLevelPrice,
+      arbPct: netEdgePct,
+    });
+  }, [orderBook]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragPreview(null);
+  }, []);
+
+  const handleOrderDrop = useCallback((
+    orderId: string,
+    newLevelPrice: number,
+    targetSide: 'YES' | 'NO',
+    targetType: 'back' | 'lay'
+  ) => {
+    const order = deployedOrders.find(o => o.id === orderId);
+    if (!order) return;
+    
+    // Validate constraints
+    if (order.side !== targetSide || order.orderType !== targetType) return;
+    
+    // Find new level
+    const level = orderBook?.levels.find(l => Math.abs(l.price - newLevelPrice) < 0.005);
+    if (!level) return;
+    
+    const oldPrice = order.price;
+    
+    // Calculate new arb
+    const totalCost = level.yesAskPrice + level.noAskPrice;
+    const fee = orderBook?.fee.takerPct || 2;
+    const arbPct = (1 - totalCost) * 100 - (fee * 2);
+    
+    // Update order
+    setDeployedOrders(prev => prev.map(o => {
+      if (o.id !== orderId) return o;
+      return {
+        ...o,
+        price: order.side === 'YES' ? level.yesAskPrice : level.noAskPrice,
+        levelPrice: newLevelPrice,
+        arbAmount: (1 - totalCost) * o.shares,
+      };
+    }));
+    
+    toast({
+      title: "Order Moved",
+      description: `${order.ladderIndex ? `L${order.ladderIndex}` : 'Order'} moved from ${Math.round(oldPrice * 100)}¢ to ${Math.round(newLevelPrice * 100)}¢ (${arbPct >= 0 ? '+' : ''}${arbPct.toFixed(2)}% arb)`,
+    });
+    
+    setDragPreview(null);
+  }, [deployedOrders, orderBook]);
+
   // Quick deploy best arb with tiered sizing
   const handleQuickDeploy = useCallback(async () => {
     if (!bestArb) return;
@@ -379,6 +471,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             id: `order-${Date.now()}-yes-${index}`,
             ladderIndex: index + 1,
             side: 'YES' as const,
+            orderType: 'back' as const,
             price: level.yesAskPrice,
             levelPrice: price,
             shares: tierShares[index],
@@ -391,6 +484,7 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
             id: `order-${Date.now()}-no-${index}`,
             ladderIndex: index + 1,
             side: 'NO' as const,
+            orderType: 'back' as const,
             price: level.noAskPrice,
             levelPrice: price,
             shares: tierShares[index],
@@ -669,6 +763,16 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 onBackClick={(price) => handleCellClick(price, 'YES', 'bid')}
                 onLayClick={(price) => handleCellClick(price, 'YES', 'ask')}
                 onPriceClick={handleArbRowClick}
+                dragPreview={dragPreview?.orderSide === 'YES' ? {
+                  orderId: dragPreview.orderId,
+                  targetLevelPrice: dragPreview.targetLevelPrice,
+                  arbPct: dragPreview.arbPct,
+                } : null}
+                onDragStart={(orderId, side, type) => {}}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onOrderDrop={handleOrderDrop}
+                autoTradeEnabled={autoTradeEnabled}
               />
               
               
@@ -681,10 +785,19 @@ export function AutoLadder({ asset, marketId }: AutoLadderProps) {
                 ltpPrice={1 - midpointPrice}
                 momentum="same"
                 previewPrices={previewPrices}
-                
                 onBackClick={(price) => handleCellClick(price, 'NO', 'bid')}
                 onLayClick={(price) => handleCellClick(price, 'NO', 'ask')}
                 onPriceClick={handleArbRowClick}
+                dragPreview={dragPreview?.orderSide === 'NO' ? {
+                  orderId: dragPreview.orderId,
+                  targetLevelPrice: dragPreview.targetLevelPrice,
+                  arbPct: dragPreview.arbPct,
+                } : null}
+                onDragStart={(orderId, side, type) => {}}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onOrderDrop={handleOrderDrop}
+                autoTradeEnabled={autoTradeEnabled}
               />
             </div>
 
