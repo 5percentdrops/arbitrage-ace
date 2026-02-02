@@ -55,6 +55,7 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     lastUpdateTime: snapshotLastUpdated,
     error: wsError,
     reconnect: reconnectWebSocket,
+    isSimulated,
   } = usePolymarketWebSocket({
     assetIds,
     enabled: true,
@@ -224,6 +225,7 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     wsError,
     snapshotLastUpdated,
     reconnectWebSocket,
+    isSimulated,
     
     openOrders,
     isLoadingOrders,
