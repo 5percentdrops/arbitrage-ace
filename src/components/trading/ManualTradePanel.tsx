@@ -1,4 +1,4 @@
-import { ArrowUpDown, AlertTriangle, Check, Loader2, TrendingUp, TrendingDown, Users, Clock } from 'lucide-react';
+import { ArrowUpDown, AlertTriangle, Check, Loader2, TrendingUp, TrendingDown, Users, Clock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TOKENS, type TokenSymbol } from '@/types/trading';
-import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType } from '@/types/manual-trading';
+import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType, WebSocketStatus } from '@/types/manual-trading';
 import { cn } from '@/lib/utils';
 
 function formatTime(seconds: number): string {
@@ -36,6 +38,12 @@ interface ManualTradePanelProps {
   onAllowManualChange: (allow: boolean) => void;
   
   estimatedShares: number | null;
+  
+  // WebSocket status
+  wsStatus?: WebSocketStatus;
+  wsError?: string | null;
+  lastPriceUpdate?: Date | null;
+  onReconnect?: () => void;
 }
 
 export function ManualTradePanel({
@@ -53,6 +61,10 @@ export function ManualTradePanel({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
+  wsStatus = 'disconnected',
+  wsError,
+  lastPriceUpdate,
+  onReconnect,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
 
@@ -63,6 +75,52 @@ export function ManualTradePanel({
           <div className="flex items-center gap-2">
             <ArrowUpDown className="h-5 w-5 text-primary" />
             <CardTitle className="text-base font-semibold">Manual Trading</CardTitle>
+            {/* WebSocket Connection Status */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1.5">
+                    {wsStatus === 'connected' ? (
+                      <Badge variant="secondary" className="bg-success/20 text-success border-success/30 text-[10px] px-1.5 py-0">
+                        <Wifi className="h-3 w-3 mr-1" />
+                        Live
+                      </Badge>
+                    ) : wsStatus === 'connecting' ? (
+                      <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0 animate-pulse">
+                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        Connecting
+                      </Badge>
+                    ) : wsStatus === 'error' ? (
+                      <Badge 
+                        variant="destructive" 
+                        className="text-[10px] px-1.5 py-0 cursor-pointer"
+                        onClick={onReconnect}
+                      >
+                        <WifiOff className="h-3 w-3 mr-1" />
+                        Error
+                      </Badge>
+                    ) : (
+                      <Badge 
+                        variant="outline" 
+                        className="text-[10px] px-1.5 py-0 text-muted-foreground cursor-pointer"
+                        onClick={onReconnect}
+                      >
+                        <WifiOff className="h-3 w-3 mr-1" />
+                        Offline
+                      </Badge>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  {wsStatus === 'connected' && lastPriceUpdate && (
+                    <span>Real-time prices • Updated {lastPriceUpdate.toLocaleTimeString()}</span>
+                  )}
+                  {wsStatus === 'connecting' && <span>Connecting to Polymarket WebSocket...</span>}
+                  {wsStatus === 'error' && <span>{wsError || 'Connection failed'} • Click to retry</span>}
+                  {wsStatus === 'disconnected' && <span>Click to reconnect</span>}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="auto-toggle" className="text-xs text-muted-foreground cursor-pointer">

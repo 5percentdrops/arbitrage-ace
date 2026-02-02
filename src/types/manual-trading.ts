@@ -1,5 +1,8 @@
 import type { TokenSymbol } from './trading';
 
+// WebSocket Connection Status
+export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+
 // Round Information (from backend)
 export interface RoundInfo {
   asset: TokenSymbol;

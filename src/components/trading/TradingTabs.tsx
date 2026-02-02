@@ -1,5 +1,5 @@
 import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
-import type { ManualTradeFormState, ValidationErrors } from '@/types/manual-trading';
+import type { ManualTradeFormState, ValidationErrors, WebSocketStatus } from '@/types/manual-trading';
 
 interface TradingTabsProps {
   formState: ManualTradeFormState;
@@ -19,6 +19,11 @@ interface TradingTabsProps {
   allowManualWhileAuto: boolean;
   onAllowManualChange: (allow: boolean) => void;
   estimatedShares: number | null;
+  // WebSocket status
+  wsStatus?: WebSocketStatus;
+  wsError?: string | null;
+  lastPriceUpdate?: Date | null;
+  onReconnect?: () => void;
 }
 
 export function TradingTabs({
@@ -36,6 +41,10 @@ export function TradingTabs({
   allowManualWhileAuto,
   onAllowManualChange,
   estimatedShares,
+  wsStatus,
+  wsError,
+  lastPriceUpdate,
+  onReconnect,
 }: TradingTabsProps) {
   return (
     <ManualTradePanel
@@ -53,6 +62,10 @@ export function TradingTabs({
       allowManualWhileAuto={allowManualWhileAuto}
       onAllowManualChange={onAllowManualChange}
       estimatedShares={estimatedShares}
+      wsStatus={wsStatus}
+      wsError={wsError}
+      lastPriceUpdate={lastPriceUpdate}
+      onReconnect={onReconnect}
     />
   );
 }

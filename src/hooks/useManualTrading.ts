@@ -1,12 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { apiGet, apiPost } from '@/lib/api';
+import { usePolymarketWebSocket } from '@/hooks/usePolymarketWebSocket';
+import { getAssetIds } from '@/lib/polymarketConfig';
 import type { TokenSymbol } from '@/types/trading';
 import type {
   ManualOrder,
   ManualTradeFormState,
   MarketSnapshot,
   OpenOrder,
-  INITIAL_FORM_STATE,
+  WebSocketStatus,
 } from '@/types/manual-trading';
 
 export interface UseManualTradingOptions {
@@ -38,16 +40,25 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Market snapshot state
-  const [marketSnapshot, setMarketSnapshot] = useState<MarketSnapshot | null>(null);
-  const [isLoadingSnapshot, setIsLoadingSnapshot] = useState(false);
-  const [snapshotError, setSnapshotError] = useState<string | null>(null);
-  const [snapshotLastUpdated, setSnapshotLastUpdated] = useState<Date | null>(null);
-
-  // Open orders state
+  // Open orders state (still fetched via REST)
   const [openOrders, setOpenOrders] = useState<OpenOrder[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+
+  // Get asset IDs for WebSocket based on selected asset
+  const assetIds = useMemo(() => getAssetIds(formState.asset), [formState.asset]);
+
+  // WebSocket connection for real-time market data
+  const {
+    marketSnapshot,
+    connectionStatus: wsStatus,
+    lastUpdateTime: snapshotLastUpdated,
+    error: wsError,
+    reconnect: reconnectWebSocket,
+  } = usePolymarketWebSocket({
+    assetIds,
+    enabled: true,
+  });
 
   // Validation
   const validate = useCallback((): ValidationErrors => {
@@ -92,24 +103,7 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     return notional / price;
   }, [formState.useNotional, formState.notionalUsd, formState.outcome, marketSnapshot]);
 
-  // Fetch market snapshot
-  const fetchMarketSnapshot = useCallback(async () => {
-    setIsLoadingSnapshot(true);
-    setSnapshotError(null);
-    
-    const response = await apiGet<MarketSnapshot>('/book/best', { asset: formState.asset });
-    
-    if (response.success && response.data) {
-      setMarketSnapshot(response.data);
-      setSnapshotLastUpdated(new Date());
-    } else {
-      setSnapshotError(response.error || 'Failed to fetch market data');
-    }
-    
-    setIsLoadingSnapshot(false);
-  }, [formState.asset]);
-
-  // Fetch open orders
+  // Fetch open orders (still uses REST API)
   const fetchOpenOrders = useCallback(async () => {
     setIsLoadingOrders(true);
     setOrdersError(null);
@@ -126,19 +120,12 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     setIsLoadingOrders(false);
   }, [formState.asset]);
 
-  // Auto-refresh market snapshot and orders
+  // Auto-refresh open orders
   useEffect(() => {
-    fetchMarketSnapshot();
     fetchOpenOrders();
-    
-    const snapshotInterval = setInterval(fetchMarketSnapshot, 5000);
     const ordersInterval = setInterval(fetchOpenOrders, 10000);
-    
-    return () => {
-      clearInterval(snapshotInterval);
-      clearInterval(ordersInterval);
-    };
-  }, [fetchMarketSnapshot, fetchOpenOrders]);
+    return () => clearInterval(ordersInterval);
+  }, [fetchOpenOrders]);
 
   // Submit order
   const submitOrder = useCallback(async () => {
@@ -231,11 +218,12 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
     setAllowManualWhileAuto,
     isBotRunning,
     
+    // WebSocket-powered market data
     marketSnapshot,
-    isLoadingSnapshot,
-    snapshotError,
+    wsStatus,
+    wsError,
     snapshotLastUpdated,
-    fetchMarketSnapshot,
+    reconnectWebSocket,
     
     openOrders,
     isLoadingOrders,
