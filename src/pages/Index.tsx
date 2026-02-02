@@ -284,6 +284,7 @@ const Index = () => {
                 wsError={manualTrading.wsError}
                 lastPriceUpdate={manualTrading.snapshotLastUpdated}
                 onReconnect={manualTrading.reconnectWebSocket}
+                isSimulated={manualTrading.isSimulated}
               />
               <PositionsTable positions={positions} onClosePosition={closePosition} isLoading={isLoadingPositions} />
               <OrderHistoryTable orders={orders} isLoading={isLoadingOrders} lastRefresh={lastRefresh} />

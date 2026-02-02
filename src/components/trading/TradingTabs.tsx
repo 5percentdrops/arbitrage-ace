@@ -24,6 +24,7 @@ interface TradingTabsProps {
   wsError?: string | null;
   lastPriceUpdate?: Date | null;
   onReconnect?: () => void;
+  isSimulated?: boolean;
 }
 
 export function TradingTabs({
@@ -45,6 +46,7 @@ export function TradingTabs({
   wsError,
   lastPriceUpdate,
   onReconnect,
+  isSimulated,
 }: TradingTabsProps) {
   return (
     <ManualTradePanel
@@ -66,6 +68,7 @@ export function TradingTabs({
       wsError={wsError}
       lastPriceUpdate={lastPriceUpdate}
       onReconnect={onReconnect}
+      isSimulated={isSimulated}
     />
   );
 }

@@ -44,6 +44,7 @@ interface ManualTradePanelProps {
   wsError?: string | null;
   lastPriceUpdate?: Date | null;
   onReconnect?: () => void;
+  isSimulated?: boolean;
 }
 
 export function ManualTradePanel({
@@ -65,6 +66,7 @@ export function ManualTradePanel({
   wsError,
   lastPriceUpdate,
   onReconnect,
+  isSimulated = false,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
 
@@ -80,10 +82,15 @@ export function ManualTradePanel({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1.5">
-                    {wsStatus === 'connected' ? (
+                    {wsStatus === 'connected' && !isSimulated ? (
                       <Badge variant="secondary" className="bg-success/20 text-success border-success/30 text-[10px] px-1.5 py-0">
                         <Wifi className="h-3 w-3 mr-1" />
                         Live
+                      </Badge>
+                    ) : wsStatus === 'connected' && isSimulated ? (
+                      <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0">
+                        <Wifi className="h-3 w-3 mr-1" />
+                        Simulated
                       </Badge>
                     ) : wsStatus === 'connecting' ? (
                       <Badge variant="secondary" className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0 animate-pulse">
@@ -112,8 +119,11 @@ export function ManualTradePanel({
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
-                  {wsStatus === 'connected' && lastPriceUpdate && (
+                  {wsStatus === 'connected' && !isSimulated && lastPriceUpdate && (
                     <span>Real-time prices • Updated {lastPriceUpdate.toLocaleTimeString()}</span>
+                  )}
+                  {wsStatus === 'connected' && isSimulated && (
+                    <span>Simulated data • Configure real token IDs in polymarketConfig.ts</span>
                   )}
                   {wsStatus === 'connecting' && <span>Connecting to Polymarket WebSocket...</span>}
                   {wsStatus === 'error' && <span>{wsError || 'Connection failed'} • Click to retry</span>}
