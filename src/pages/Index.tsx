@@ -280,6 +280,10 @@ const Index = () => {
                 allowManualWhileAuto={manualTrading.allowManualWhileAuto}
                 onAllowManualChange={manualTrading.setAllowManualWhileAuto}
                 estimatedShares={manualTrading.estimatedShares}
+                wsStatus={manualTrading.wsStatus}
+                wsError={manualTrading.wsError}
+                lastPriceUpdate={manualTrading.snapshotLastUpdated}
+                onReconnect={manualTrading.reconnectWebSocket}
               />
               <PositionsTable positions={positions} onClosePosition={closePosition} isLoading={isLoadingPositions} />
               <OrderHistoryTable orders={orders} isLoading={isLoadingOrders} lastRefresh={lastRefresh} />
