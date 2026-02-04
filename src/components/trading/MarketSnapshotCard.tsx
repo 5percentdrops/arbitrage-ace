@@ -1,4 +1,4 @@
-import { BarChart3, RefreshCw, AlertCircle } from 'lucide-react';
+import { BarChart3, RefreshCw, Check, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,11 +12,6 @@ interface MarketSnapshotCardProps {
   error: string | null;
   lastUpdated: Date | null;
   onRefresh: () => void;
-}
-
-function formatPrice(price: number | undefined): string {
-  if (price === undefined || price === null) return '—';
-  return price.toFixed(3);
 }
 
 function formatTimeAgo(date: Date | null): string {
@@ -35,14 +30,6 @@ export function MarketSnapshotCard({
   lastUpdated,
   onRefresh,
 }: MarketSnapshotCardProps) {
-  const spread = snapshot 
-    ? ((snapshot.yesAsk - snapshot.yesBid) + (snapshot.noAsk - snapshot.noBid)) / 2
-    : null;
-  
-  const combined = snapshot 
-    ? snapshot.yesAsk + snapshot.noAsk
-    : null;
-
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-3">
@@ -72,62 +59,36 @@ export function MarketSnapshotCard({
       <CardContent>
         {isLoading && !snapshot ? (
           <div className="space-y-3">
-            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-20 w-full" />
           </div>
         ) : snapshot ? (
-          <div className="space-y-4">
-            {/* Bid/Ask Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* YES Column */}
-              <div className="space-y-2">
-                <div className="text-center">
-                  <span className="text-xs font-medium text-success uppercase tracking-wide">
-                    YES
-                  </span>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Bid</span>
-                    <span className="font-mono font-medium">{formatPrice(snapshot.yesBid)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Ask</span>
-                    <span className="font-mono font-medium text-success">{formatPrice(snapshot.yesAsk)}</span>
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 gap-6">
+            {/* UP Column */}
+            <div className="flex flex-col items-center space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-success" />
+                <span className="text-sm font-bold text-success uppercase tracking-wide">UP</span>
               </div>
-
-              {/* NO Column */}
-              <div className="space-y-2">
-                <div className="text-center">
-                  <span className="text-xs font-medium text-destructive uppercase tracking-wide">
-                    NO
-                  </span>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Bid</span>
-                    <span className="font-mono font-medium">{formatPrice(snapshot.noBid)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Ask</span>
-                    <span className="font-mono font-medium text-destructive">{formatPrice(snapshot.noAsk)}</span>
-                  </div>
-                </div>
+              <div className="text-3xl font-mono font-bold">
+                {Math.round(snapshot.yesAsk * 100)}¢
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {Math.round(snapshot.yesAsk * 100)}% chance
               </div>
             </div>
 
-            {/* Combined stats */}
-            <div className="flex justify-between items-center pt-2 border-t border-border text-sm">
-              <span className="text-muted-foreground">Combined (YES + NO Ask)</span>
-              <span className="font-mono font-medium">
-                {combined ? combined.toFixed(3) : '—'}
-                {spread !== null && (
-                  <span className="text-muted-foreground ml-2">
-                    ({(spread * 100).toFixed(1)}% spread)
-                  </span>
-                )}
-              </span>
+            {/* DOWN Column */}
+            <div className="flex flex-col items-center space-y-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-destructive uppercase tracking-wide">DOWN</span>
+                <X className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="text-3xl font-mono font-bold">
+                {Math.round(snapshot.noAsk * 100)}¢
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {Math.round(snapshot.noAsk * 100)}% chance
+              </div>
             </div>
           </div>
         ) : (
