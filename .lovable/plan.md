@@ -1,52 +1,69 @@
 
-# Add Ticker Name to UP/DOWN Price Display
+
+# Add CVD Toggle and Telegram Channel Input to Settings
 
 ## Overview
-Add the selected asset ticker name (BTC, ETH, SOL, XRP) to the UP/DOWN price display section, so users can see which market they're viewing prices for.
+Add a simple Telegram Alerts section with:
+1. A CVD toggle switch (on/off) to enable/disable CVD-based alerts
+2. A Telegram chat/channel ID input field to specify where to listen for alerts
 
 ## Visual Design
 
 ```text
-Current:                           New:
-┌─────────────────────────────┐    ┌─────────────────────────────┐
-│  ✓ UP           DOWN ✗      │    │           BTC               │
-│                             │    │  ✓ UP           DOWN ✗      │
-│   48¢            52¢        │    │                             │
-│  48% chance    52% chance   │    │   48¢            52¢        │
-└─────────────────────────────┘    │  48% chance    52% chance   │
-                                   └─────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│ 📱 Telegram Alerts                              │
+│ Configure incoming alerts from Telegram         │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  CVD Alerts                                     │
+│  Enable CVD divergence signals      [  ON  ]   │
+│                                                 │
+│  Telegram Chat/Channel ID                       │
+│  ┌───────────────────────────────────────┐     │
+│  │ -1001234567890                        │     │
+│  └───────────────────────────────────────┘     │
+│  The chat or channel ID to listen for alerts   │
+│                                                 │
+└─────────────────────────────────────────────────┘
 ```
 
 ## Implementation
 
-### File: `src/components/trading/ManualTradePanel.tsx`
+### File: `src/hooks/useSettings.ts`
 
-**Change:** Add ticker name header above the UP/DOWN columns
+**Changes:**
+1. Add `cvdEnabled` (boolean) to `SettingsState`
+2. Add `telegramChatId` (string) to `SettingsState`
+3. Update defaults and reset function
 
-Add a centered ticker name at the top of the price display section using `formState.asset`:
-
-```tsx
-{marketSnapshot && (
-  <div className="grid grid-cols-2 gap-6 p-4 rounded-lg bg-secondary/50 border border-border">
-    {/* Ticker Name - spans both columns */}
-    <div className="col-span-2 text-center mb-2">
-      <span className="text-lg font-bold text-primary">{formState.asset}</span>
-    </div>
-    {/* UP column */}
-    ...
-    {/* DOWN column */}
-    ...
-  </div>
-)}
+```typescript
+export interface SettingsState {
+  // ... existing fields
+  // Telegram Alerts
+  cvdEnabled: boolean;
+  telegramChatId: string;
+}
 ```
+
+### File: `src/pages/Settings.tsx`
+
+**Changes:**
+1. Import `MessageCircle` icon and `Switch` component
+2. Add new "Telegram Alerts" Card section after Webhooks
+3. CVD toggle using Switch component
+4. Telegram Chat/Channel ID text input
 
 ## Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/components/trading/ManualTradePanel.tsx` | Add `formState.asset` ticker name header above UP/DOWN prices |
+| `src/hooks/useSettings.ts` | Add `cvdEnabled` and `telegramChatId` fields |
+| `src/pages/Settings.tsx` | Add Telegram Alerts section with CVD toggle and chat ID input |
 
-## Result
-- Ticker name displays prominently above the UP/DOWN prices
-- Automatically updates when user selects a different asset in the Asset toggle group
-- No additional props needed since `formState.asset` is already available
+## New Settings Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `cvdEnabled` | boolean | `false` | Toggle CVD divergence alerts on/off |
+| `telegramChatId` | string | `''` | Telegram chat/channel ID to monitor |
+
