@@ -4,12 +4,7 @@ export interface SettingsState {
   // Signal settings
   crowdPct: string;
   remainingTime: string;
-  // Webhook URLs
-  webhook1: string;
-  webhook2: string;
-  webhook3: string;
   // Telegram Alerts
-  cvdEnabled: boolean;
   telegramChatId: string;
 }
 
@@ -27,10 +22,6 @@ function loadSettings(): SettingsState {
   return {
     crowdPct: '',
     remainingTime: '',
-    webhook1: '',
-    webhook2: '',
-    webhook3: '',
-    cvdEnabled: false,
     telegramChatId: '',
   };
 }
@@ -61,10 +52,6 @@ export function useSettings() {
     const defaults: SettingsState = {
       crowdPct: '',
       remainingTime: '',
-      webhook1: '',
-      webhook2: '',
-      webhook3: '',
-      cvdEnabled: false,
       telegramChatId: '',
     };
     setSettings(defaults);

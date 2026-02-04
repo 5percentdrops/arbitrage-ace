@@ -1,10 +1,9 @@
-import { Settings as SettingsIcon, Users, Clock, Webhook, RotateCcw, MessageCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Clock, RotateCcw, MessageCircle } from 'lucide-react';
 import { TradingLayout } from '@/components/layout/TradingLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/utils';
 
@@ -95,62 +94,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Webhook Section */}
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Webhook className="h-4 w-4 text-primary" />
-              Webhook URLs
-            </CardTitle>
-            <CardDescription>
-              Configure webhook endpoints for external integrations and notifications
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Webhook 1 */}
-            <div className="space-y-2">
-              <Label htmlFor="webhook1" className="text-sm">
-                Webhook URL 1
-              </Label>
-              <Input
-                id="webhook1"
-                type="url"
-                placeholder="https://your-webhook-endpoint.com/1"
-                value={settings.webhook1}
-                onChange={(e) => updateSetting('webhook1', e.target.value)}
-              />
-            </div>
-
-            {/* Webhook 2 */}
-            <div className="space-y-2">
-              <Label htmlFor="webhook2" className="text-sm">
-                Webhook URL 2
-              </Label>
-              <Input
-                id="webhook2"
-                type="url"
-                placeholder="https://your-webhook-endpoint.com/2"
-                value={settings.webhook2}
-                onChange={(e) => updateSetting('webhook2', e.target.value)}
-              />
-            </div>
-
-            {/* Webhook 3 */}
-            <div className="space-y-2">
-              <Label htmlFor="webhook3" className="text-sm">
-                Webhook URL 3
-              </Label>
-              <Input
-                id="webhook3"
-                type="url"
-                placeholder="https://your-webhook-endpoint.com/3"
-                value={settings.webhook3}
-                onChange={(e) => updateSetting('webhook3', e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Telegram Alerts Section */}
         <Card className="border-border bg-card">
           <CardHeader className="pb-3">
@@ -162,25 +105,7 @@ export default function Settings() {
               Configure incoming alerts from Telegram
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* CVD Toggle */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="cvdEnabled" className="text-sm">
-                  CVD Alerts
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Enable CVD divergence signals
-                </p>
-              </div>
-              <Switch
-                id="cvdEnabled"
-                checked={settings.cvdEnabled}
-                onCheckedChange={(checked) => updateSetting('cvdEnabled', checked)}
-              />
-            </div>
-
-            {/* Telegram Chat/Channel ID */}
+          <CardContent>
             <div className="space-y-2">
               <Label htmlFor="telegramChatId" className="text-sm">
                 Telegram Chat/Channel ID
