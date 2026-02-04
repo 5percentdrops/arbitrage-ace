@@ -1,4 +1,4 @@
-import { ArrowUpDown, AlertTriangle, Check, Loader2, TrendingUp, TrendingDown, Users, Clock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, AlertTriangle, Check, X, Loader2, TrendingUp, TrendingDown, Users, Clock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TOKENS, type TokenSymbol } from '@/types/trading';
-import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType, WebSocketStatus } from '@/types/manual-trading';
+import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType, WebSocketStatus, MarketSnapshot } from '@/types/manual-trading';
 import { cn } from '@/lib/utils';
 
 function formatTime(seconds: number): string {
@@ -45,6 +45,7 @@ interface ManualTradePanelProps {
   lastPriceUpdate?: Date | null;
   onReconnect?: () => void;
   isSimulated?: boolean;
+  marketSnapshot?: MarketSnapshot | null;
 }
 
 export function ManualTradePanel({
@@ -67,6 +68,7 @@ export function ManualTradePanel({
   lastPriceUpdate,
   onReconnect,
   isSimulated = false,
+  marketSnapshot,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
 
@@ -146,6 +148,38 @@ export function ManualTradePanel({
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* UP/DOWN Prices - Polymarket Style */}
+        {marketSnapshot && (
+          <div className="grid grid-cols-2 gap-6 p-4 rounded-lg bg-secondary/50 border border-border">
+            {/* UP */}
+            <div className="flex flex-col items-center space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-success" />
+                <span className="text-sm font-bold text-success uppercase">UP</span>
+              </div>
+              <div className="text-3xl font-mono font-bold">
+                {Math.round(marketSnapshot.yesAsk * 100)}¢
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {Math.round(marketSnapshot.yesAsk * 100)}% chance
+              </div>
+            </div>
+            {/* DOWN */}
+            <div className="flex flex-col items-center space-y-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-destructive uppercase">DOWN</span>
+                <X className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="text-3xl font-mono font-bold">
+                {Math.round(marketSnapshot.noAsk * 100)}¢
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {Math.round(marketSnapshot.noAsk * 100)}% chance
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bot running warning */}
         {isBotRunning && (
           <Alert variant="destructive" className="bg-warning/10 border-warning/30">

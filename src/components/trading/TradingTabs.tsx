@@ -1,5 +1,5 @@
 import { ManualTradePanel } from '@/components/trading/ManualTradePanel';
-import type { ManualTradeFormState, ValidationErrors, WebSocketStatus } from '@/types/manual-trading';
+import type { ManualTradeFormState, ValidationErrors, WebSocketStatus, MarketSnapshot } from '@/types/manual-trading';
 
 interface TradingTabsProps {
   formState: ManualTradeFormState;
@@ -25,6 +25,7 @@ interface TradingTabsProps {
   lastPriceUpdate?: Date | null;
   onReconnect?: () => void;
   isSimulated?: boolean;
+  marketSnapshot?: MarketSnapshot | null;
 }
 
 export function TradingTabs({
@@ -47,6 +48,7 @@ export function TradingTabs({
   lastPriceUpdate,
   onReconnect,
   isSimulated,
+  marketSnapshot,
 }: TradingTabsProps) {
   return (
     <ManualTradePanel
@@ -69,6 +71,7 @@ export function TradingTabs({
       lastPriceUpdate={lastPriceUpdate}
       onReconnect={onReconnect}
       isSimulated={isSimulated}
+      marketSnapshot={marketSnapshot}
     />
   );
 }
