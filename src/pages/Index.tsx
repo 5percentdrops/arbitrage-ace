@@ -25,7 +25,6 @@ import { PositionsTable } from '@/components/trading/PositionsTable';
 import { RoundTimerCard } from '@/components/trading/RoundTimerCard';
 import { TradingTabs } from '@/components/trading/TradingTabs';
 import { DecisionAlertNotification } from '@/components/alerts/DecisionAlertNotification';
-import { MarketSnapshotCard } from '@/components/trading/MarketSnapshotCard';
 
 const Index = () => {
   // Decision Alerts notification state
@@ -253,14 +252,6 @@ const Index = () => {
             {/* Right Column - Data & Performance */}
             <div className="lg:col-span-8 xl:col-span-9 space-y-4">
               <PerformancePanel metrics={performance} />
-              <MarketSnapshotCard
-                asset={manualTrading.formState.asset}
-                snapshot={manualTrading.marketSnapshot}
-                isLoading={manualTrading.wsStatus === 'connecting'}
-                error={manualTrading.wsError}
-                lastUpdated={manualTrading.snapshotLastUpdated}
-                onRefresh={manualTrading.reconnectWebSocket}
-              />
               <div ref={roundTimerRef}>
                 <RoundTimerCard
                   roundStart={roundTimer.roundStart}
@@ -294,6 +285,7 @@ const Index = () => {
                 lastPriceUpdate={manualTrading.snapshotLastUpdated}
                 onReconnect={manualTrading.reconnectWebSocket}
                 isSimulated={manualTrading.isSimulated}
+                marketSnapshot={manualTrading.marketSnapshot}
               />
               <PositionsTable positions={positions} onClosePosition={closePosition} isLoading={isLoadingPositions} />
               <OrderHistoryTable orders={orders} isLoading={isLoadingOrders} lastRefresh={lastRefresh} />
