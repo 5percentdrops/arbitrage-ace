@@ -1,48 +1,55 @@
 
-# Fix: Display YES/NO Prices in Manual Trading Section
 
-## Problem
-The WebSocket connection is working correctly (connecting, receiving pings, and falling back to simulation), but the YES/NO price data is not being displayed anywhere on the page. The `MarketSnapshotCard` component exists but isn't rendered in `Index.tsx`.
+# Simplify Market Snapshot: UP/DOWN Prices (Polymarket Style)
 
-## Solution
-Add the `MarketSnapshotCard` component to the Manual Trading section to display the real-time YES/NO bid/ask prices from the Polymarket WebSocket.
+## Overview
+Replace the detailed bid/ask grid with a clean, simple display showing just the latest UP and DOWN prices in the Polymarket visual style.
+
+## Visual Design
+
+```text
+Current (Complex):                 New (Simple Polymarket Style):
+┌─────────────────────────────┐    ┌─────────────────────────────┐
+│  YES          NO            │    │   Market Snapshot (BTC)   ⟳ │
+│ ┌─────────┐ ┌─────────┐    │    │                             │
+│ │Bid 0.48 │ │Bid 0.52 │    │    │  ✓ UP           DOWN ✗      │
+│ │Ask 0.49 │ │Ask 0.53 │    │    │                             │
+│ └─────────┘ └─────────┘    │    │   48¢            52¢        │
+│                             │    │  48% chance    52% chance   │
+│ Combined: 1.02 (2% spread)  │    │                             │
+└─────────────────────────────┘    └─────────────────────────────┘
+```
 
 ## Implementation
 
-### File: `src/pages/Index.tsx`
-
-Add the MarketSnapshotCard import and render it in the right column above the trading tabs:
+### File: `src/components/trading/MarketSnapshotCard.tsx`
 
 **Changes:**
-1. Import `MarketSnapshotCard`
-2. Add it to the JSX between `PerformancePanel` and `RoundTimerCard`
-3. Pass the WebSocket-powered market data from `manualTrading` hook
 
-```tsx
-// Add import
-import { MarketSnapshotCard } from '@/components/trading/MarketSnapshotCard';
+1. Add `Check` and `X` icons from lucide-react
+2. Replace YES/NO labels with "✓ UP" and "DOWN ✗"
+3. Remove bid/ask detail rows
+4. Show single large price in cents (e.g., "48¢")
+5. Add percentage chance below each price
+6. Remove the combined stats footer (keep it simple)
 
-// In JSX (right column, after PerformancePanel):
-<MarketSnapshotCard
-  asset={manualTrading.formState.asset}
-  snapshot={manualTrading.marketSnapshot}
-  isLoading={manualTrading.wsStatus === 'connecting'}
-  error={manualTrading.wsError}
-  lastUpdated={manualTrading.snapshotLastUpdated}
-  onRefresh={manualTrading.reconnectWebSocket}
-/>
-```
+**New structure:**
+- Two columns side by side
+- Each column shows: icon + label, large cent price, percentage chance
+- Green for UP, red for DOWN
 
-## Visual Result
+## Technical Details
 
-After the fix, the Manual Trading page will show:
-- **Market Snapshot card** with YES bid/ask prices (green) and NO bid/ask prices (red)
-- Combined YES+NO ask price with spread percentage
-- Last update time and refresh button
-- Real-time updates every second (simulated or live)
+| Element | Current | New |
+|---------|---------|-----|
+| Labels | "YES" / "NO" | "✓ UP" / "DOWN ✗" |
+| Price format | 0.480 (decimal) | 48¢ (cents) |
+| Data shown | Bid + Ask | Ask price only |
+| Footer | Combined + spread | Removed |
 
 ## File Changed
 
-| File | Change |
-|------|--------|
-| `src/pages/Index.tsx` | Add MarketSnapshotCard to display YES/NO prices |
+| File | Changes |
+|------|---------|
+| `src/components/trading/MarketSnapshotCard.tsx` | Simplify to show only UP/DOWN prices with icons, matching Polymarket style |
+
