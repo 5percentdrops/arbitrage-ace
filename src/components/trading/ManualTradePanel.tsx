@@ -151,6 +151,10 @@ export function ManualTradePanel({
         {/* UP/DOWN Prices - Polymarket Style */}
         {marketSnapshot && (
           <div className="grid grid-cols-2 gap-6 p-4 rounded-lg bg-secondary/50 border border-border">
+            {/* Ticker Name - spans both columns */}
+            <div className="col-span-2 text-center mb-2">
+              <span className="text-lg font-bold text-primary">{formState.asset}</span>
+            </div>
             {/* UP */}
             <div className="flex flex-col items-center space-y-1">
               <div className="flex items-center gap-1.5">
