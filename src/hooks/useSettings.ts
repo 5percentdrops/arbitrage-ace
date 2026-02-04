@@ -8,6 +8,9 @@ export interface SettingsState {
   webhook1: string;
   webhook2: string;
   webhook3: string;
+  // Telegram Alerts
+  cvdEnabled: boolean;
+  telegramChatId: string;
 }
 
 const STORAGE_KEY = 'trading-settings';
@@ -27,6 +30,8 @@ function loadSettings(): SettingsState {
     webhook1: '',
     webhook2: '',
     webhook3: '',
+    cvdEnabled: false,
+    telegramChatId: '',
   };
 }
 
@@ -59,6 +64,8 @@ export function useSettings() {
       webhook1: '',
       webhook2: '',
       webhook3: '',
+      cvdEnabled: false,
+      telegramChatId: '',
     };
     setSettings(defaults);
     saveSettings(defaults);

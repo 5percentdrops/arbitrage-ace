@@ -1,9 +1,10 @@
-import { Settings as SettingsIcon, Users, Clock, Webhook, RotateCcw } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Clock, Webhook, RotateCcw, MessageCircle } from 'lucide-react';
 import { TradingLayout } from '@/components/layout/TradingLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { useSettings } from '@/hooks/useSettings';
 import { cn } from '@/lib/utils';
 
@@ -146,6 +147,54 @@ export default function Settings() {
                 value={settings.webhook3}
                 onChange={(e) => updateSetting('webhook3', e.target.value)}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Telegram Alerts Section */}
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary" />
+              Telegram Alerts
+            </CardTitle>
+            <CardDescription>
+              Configure incoming alerts from Telegram
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* CVD Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="cvdEnabled" className="text-sm">
+                  CVD Alerts
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Enable CVD divergence signals
+                </p>
+              </div>
+              <Switch
+                id="cvdEnabled"
+                checked={settings.cvdEnabled}
+                onCheckedChange={(checked) => updateSetting('cvdEnabled', checked)}
+              />
+            </div>
+
+            {/* Telegram Chat/Channel ID */}
+            <div className="space-y-2">
+              <Label htmlFor="telegramChatId" className="text-sm">
+                Telegram Chat/Channel ID
+              </Label>
+              <Input
+                id="telegramChatId"
+                type="text"
+                placeholder="-1001234567890"
+                value={settings.telegramChatId}
+                onChange={(e) => updateSetting('telegramChatId', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                The chat or channel ID to listen for alerts
+              </p>
             </div>
           </CardContent>
         </Card>
