@@ -1,69 +1,83 @@
 
 
-# Add CVD Toggle and Telegram Channel Input to Settings
+# Simplify Settings Page
 
 ## Overview
-Add a simple Telegram Alerts section with:
-1. A CVD toggle switch (on/off) to enable/disable CVD-based alerts
-2. A Telegram chat/channel ID input field to specify where to listen for alerts
+Streamline the Settings page to only keep:
+1. **Signal Parameters** - Crowd Probability and Remaining Time inputs
+2. **Telegram Alerts** - Only the Chat/Channel ID input (remove CVD toggle)
 
-## Visual Design
+Remove the Webhook URLs section entirely.
+
+## Changes
+
+### File: `src/hooks/useSettings.ts`
+
+**Remove fields:**
+- `webhook1`, `webhook2`, `webhook3`
+- `cvdEnabled`
+
+**Keep fields:**
+- `crowdPct`
+- `remainingTime`
+- `telegramChatId`
+
+### File: `src/pages/Settings.tsx`
+
+**Remove:**
+- Entire Webhook URLs Card section
+- CVD toggle from Telegram Alerts section
+- `Webhook` icon import
+
+**Keep:**
+- Signal Parameters section (Crowd % and Remaining Time)
+- Telegram Alerts section (only Chat/Channel ID input)
+
+## Final UI Layout
 
 ```text
 ┌─────────────────────────────────────────────────┐
-│ 📱 Telegram Alerts                              │
-│ Configure incoming alerts from Telegram         │
+│ ⚙️ Settings                           [Reset]   │
+│ Configure signal parameters and webhooks        │
 ├─────────────────────────────────────────────────┤
 │                                                 │
-│  CVD Alerts                                     │
-│  Enable CVD divergence signals      [  ON  ]   │
+│ 👥 Signal Parameters                            │
+│ Configure crowd probability and timing          │
+│                                                 │
+│  Crowd Probability (%)    Remaining Time (sec)  │
+│  ┌─────────────────┐      ┌─────────────────┐  │
+│  │ 67              │      │ 420             │  │
+│  └─────────────────┘      └─────────────────┘  │
+│                                                 │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│ 📱 Telegram Alerts                              │
+│ Configure incoming alerts from Telegram         │
 │                                                 │
 │  Telegram Chat/Channel ID                       │
 │  ┌───────────────────────────────────────┐     │
 │  │ -1001234567890                        │     │
 │  └───────────────────────────────────────┘     │
-│  The chat or channel ID to listen for alerts   │
 │                                                 │
 └─────────────────────────────────────────────────┘
 ```
-
-## Implementation
-
-### File: `src/hooks/useSettings.ts`
-
-**Changes:**
-1. Add `cvdEnabled` (boolean) to `SettingsState`
-2. Add `telegramChatId` (string) to `SettingsState`
-3. Update defaults and reset function
-
-```typescript
-export interface SettingsState {
-  // ... existing fields
-  // Telegram Alerts
-  cvdEnabled: boolean;
-  telegramChatId: string;
-}
-```
-
-### File: `src/pages/Settings.tsx`
-
-**Changes:**
-1. Import `MessageCircle` icon and `Switch` component
-2. Add new "Telegram Alerts" Card section after Webhooks
-3. CVD toggle using Switch component
-4. Telegram Chat/Channel ID text input
 
 ## Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useSettings.ts` | Add `cvdEnabled` and `telegramChatId` fields |
-| `src/pages/Settings.tsx` | Add Telegram Alerts section with CVD toggle and chat ID input |
+| `src/hooks/useSettings.ts` | Remove `webhook1`, `webhook2`, `webhook3`, `cvdEnabled` from interface, defaults, and reset |
+| `src/pages/Settings.tsx` | Remove Webhook section and CVD toggle, keep Signal and Telegram Chat ID |
 
-## New Settings Fields
+## Updated Settings Interface
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `cvdEnabled` | boolean | `false` | Toggle CVD divergence alerts on/off |
-| `telegramChatId` | string | `''` | Telegram chat/channel ID to monitor |
+```typescript
+export interface SettingsState {
+  // Signal settings
+  crowdPct: string;
+  remainingTime: string;
+  // Telegram Alerts
+  telegramChatId: string;
+}
+```
 
