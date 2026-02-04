@@ -1,4 +1,4 @@
-import { ArrowUpDown, AlertTriangle, Check, X, Loader2, TrendingUp, TrendingDown, Users, Clock, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, AlertTriangle, Check, X, Loader2, TrendingUp, TrendingDown, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -200,56 +200,6 @@ export function ManualTradePanel({
           </Alert>
         )}
 
-        {/* Signal Section */}
-        <div className="space-y-3 p-3 rounded-lg bg-secondary/50 border border-border">
-          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Signal</Label>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Crowd Probability */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label htmlFor="crowdPct" className="text-xs text-muted-foreground">
-                  Crowd Probability (%)
-                </Label>
-              </div>
-              <Input
-                id="crowdPct"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                placeholder="e.g., 67"
-                value={formState.crowdPct || ''}
-                onChange={(e) => onFieldChange('crowdPct', e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            {/* Remaining Time */}
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label htmlFor="remainingTime" className="text-xs text-muted-foreground">
-                  Remaining Time (sec)
-                </Label>
-              </div>
-              <Input
-                id="remainingTime"
-                type="number"
-                min="0"
-                max="900"
-                step="1"
-                placeholder="e.g., 420"
-                value={formState.remainingTime || ''}
-                onChange={(e) => onFieldChange('remainingTime', e.target.value)}
-                className={cn(
-                  "h-8 text-xs",
-                  Number(formState.remainingTime) <= 300 && Number(formState.remainingTime) > 0 && "border-destructive"
-                )}
-              />
-            </div>
-          </div>
-        </div>
 
         {/* Asset Selection */}
         <div className="space-y-2">
