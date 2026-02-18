@@ -1,14 +1,17 @@
-import { Settings as SettingsIcon, Users, Clock, RotateCcw, MessageCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Settings as SettingsIcon, Users, Clock, RotateCcw, MessageCircle, Eye, EyeOff } from 'lucide-react';
 import { TradingLayout } from '@/components/layout/TradingLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/hooks/useSettings';
+import { PriceAlertsPanel } from '@/components/settings/PriceAlertsPanel';
 import { cn } from '@/lib/utils';
 
 export default function Settings() {
-  const { settings, updateSetting, resetSettings } = useSettings();
+  const { settings, updateSetting, addAlertRule, deleteAlertRule, toggleAlertRule, resetSettings } = useSettings();
+  const [showBotToken, setShowBotToken] = useState(false);
 
   return (
     <TradingLayout>
@@ -105,7 +108,35 @@ export default function Settings() {
               Configure incoming alerts from Telegram
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Bot Token */}
+            <div className="space-y-2">
+              <Label htmlFor="telegramBotToken" className="text-sm">
+                Bot Token
+              </Label>
+              <div className="relative">
+                <Input
+                  id="telegramBotToken"
+                  type={showBotToken ? 'text' : 'password'}
+                  placeholder="123456789:AABBCCDDEEFFaabbccddeeff-1234567890"
+                  value={settings.telegramBotToken}
+                  onChange={(e) => updateSetting('telegramBotToken', e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowBotToken(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showBotToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Get your bot token from @BotFather on Telegram
+              </p>
+            </div>
+
+            {/* Chat/Channel ID */}
             <div className="space-y-2">
               <Label htmlFor="telegramChatId" className="text-sm">
                 Telegram Chat/Channel ID
@@ -123,6 +154,14 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Price Alerts Section */}
+        <PriceAlertsPanel
+          rules={settings.priceAlertRules}
+          onAdd={addAlertRule}
+          onDelete={deleteAlertRule}
+          onToggle={toggleAlertRule}
+        />
       </div>
     </TradingLayout>
   );
