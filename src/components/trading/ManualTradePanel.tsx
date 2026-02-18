@@ -76,42 +76,9 @@ export function ManualTradePanel({
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
   const [scaleMode, setScaleMode] = useState<'none' | 'scale-in' | 'scale-out'>('none');
   const [scaleStake, setScaleStake] = useState(100);
-  const [lockedBasePrice, setLockedBasePrice] = useState<number | null>(null);
-
-  // Derive live base price: prefer typed limit price, fall back to live snapshot
-  const liveBasePrice = (() => {
-    const parsed = parseFloat(formState.limitPrice);
-    if (!isNaN(parsed) && parsed > 0) return parsed;
-    if (marketSnapshot) {
-      return formState.outcome === 'YES' ? marketSnapshot.yesAsk : marketSnapshot.noAsk;
-    }
-    return 0.50;
-  })();
-
-  // When user manually types a limit price while scale mode is active, update the lock
-  const handleLimitPriceChange = (value: string) => {
-    onFieldChange('limitPrice', value);
-    if (scaleMode !== 'none') {
-      const parsed = parseFloat(value);
-      if (!isNaN(parsed) && parsed > 0) {
-        setLockedBasePrice(parsed);
-      }
-    }
-  };
-
   const toggleScaleMode = (mode: 'scale-in' | 'scale-out') => {
-    setScaleMode(prev => {
-      if (prev === mode) {
-        setLockedBasePrice(null);
-        return 'none';
-      }
-      setLockedBasePrice(liveBasePrice);
-      return mode;
-    });
+    setScaleMode(prev => prev === mode ? 'none' : mode);
   };
-
-  // The price passed to ScaleOrderPreview — frozen once scale mode is active
-  const effectiveBasePrice = lockedBasePrice ?? liveBasePrice;
 
 
   return (
@@ -406,7 +373,6 @@ export function ManualTradePanel({
             {scaleMode !== 'none' && (
               <ScaleOrderPreview
                 mode={scaleMode}
-                basePrice={effectiveBasePrice}
                 totalStake={scaleStake}
                 onStakeChange={setScaleStake}
               />
@@ -486,7 +452,7 @@ export function ManualTradePanel({
               step="0.001"
               placeholder="e.g., 0.42"
               value={formState.limitPrice}
-              onChange={(e) => handleLimitPriceChange(e.target.value)}
+              onChange={(e) => onFieldChange('limitPrice', e.target.value)}
               className={validationErrors.limitPrice ? 'border-destructive' : ''}
             />
             {validationErrors.limitPrice && (
