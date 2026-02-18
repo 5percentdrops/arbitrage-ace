@@ -22,6 +22,9 @@ interface RoundTimerCardProps {
   asset: TokenSymbol;
   onAssetChange: (asset: TokenSymbol) => void;
   onRefresh: () => void;
+  roundDuration: 5 | 15;
+  onDurationChange: (d: 5 | 15) => void;
+  alertThreshold: number;
 }
 
 function formatTime(date: Date): string {
@@ -44,7 +47,12 @@ export function RoundTimerCard({
   asset,
   onAssetChange,
   onRefresh,
+  roundDuration,
+  onDurationChange,
+  alertThreshold,
 }: RoundTimerCardProps) {
+  const isAlert = secondsRemaining <= alertThreshold;
+
   return (
     <Card className={cn(
       "border-border bg-card transition-all duration-300",
@@ -57,6 +65,34 @@ export function RoundTimerCard({
             <CardTitle className="text-base font-semibold">Round Status</CardTitle>
           </div>
           <div className="flex items-center gap-2">
+            {/* Duration toggle pills */}
+            <div className="flex items-center rounded-md border border-border overflow-hidden text-xs">
+              <button
+                type="button"
+                onClick={() => onDurationChange(5)}
+                className={cn(
+                  "px-2.5 py-1 font-medium transition-colors",
+                  roundDuration === 5
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-transparent text-muted-foreground hover:bg-muted"
+                )}
+              >
+                5m
+              </button>
+              <button
+                type="button"
+                onClick={() => onDurationChange(15)}
+                className={cn(
+                  "px-2.5 py-1 font-medium transition-colors border-l border-border",
+                  roundDuration === 15
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-transparent text-muted-foreground hover:bg-muted"
+                )}
+              >
+                15m
+              </button>
+            </div>
+
             <Select value={asset} onValueChange={(v) => onAssetChange(v as TokenSymbol)}>
               <SelectTrigger className="w-24 h-8 text-xs">
                 <SelectValue />
@@ -99,7 +135,7 @@ export function RoundTimerCard({
             value={progressPercent} 
             className={cn(
               "h-2 bg-muted",
-              secondsRemaining <= 300 && "[&>div]:bg-destructive"
+              isAlert && "[&>div]:bg-destructive"
             )}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -112,7 +148,7 @@ export function RoundTimerCard({
         <div className="text-center py-4">
           <div className={cn(
             "text-4xl font-mono font-bold tracking-wider",
-            secondsRemaining <= 300 ? "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]" : "text-foreground",
+            isAlert ? "text-destructive drop-shadow-[0_0_8px_hsl(var(--destructive)/0.7)]" : "text-foreground",
             isJustStarted && "text-primary"
           )}>
             {formatCountdown(secondsRemaining)}

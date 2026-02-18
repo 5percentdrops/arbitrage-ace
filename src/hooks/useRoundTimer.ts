@@ -15,29 +15,30 @@ export interface RoundTimerState {
   asset: TokenSymbol;
 }
 
-// Calculate UTC-aligned 15-minute round boundaries
-function calculateRoundBoundaries(now: Date): { start: Date; end: Date } {
+// Calculate UTC-aligned round boundaries for a given duration (5 or 15 minutes)
+function calculateRoundBoundaries(now: Date, durationMinutes: 5 | 15 = 15): { start: Date; end: Date } {
   const utcMinutes = now.getUTCMinutes();
-  const roundedMinutes = Math.floor(utcMinutes / 15) * 15;
+  const roundedMinutes = Math.floor(utcMinutes / durationMinutes) * durationMinutes;
   
   const start = new Date(now);
   start.setUTCMinutes(roundedMinutes, 0, 0);
   
   const end = new Date(start);
-  end.setUTCMinutes(roundedMinutes + 15);
+  end.setUTCMinutes(roundedMinutes + durationMinutes);
   
   return { start, end };
 }
 
 export function useRoundTimer(initialAsset: TokenSymbol = 'BTC') {
   const [asset, setAsset] = useState<TokenSymbol>(initialAsset);
+  const [roundDuration, setRoundDuration] = useState<5 | 15>(15);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('client-side');
   const [serverRoundInfo, setServerRoundInfo] = useState<RoundInfo | null>(null);
   
   // Calculate current round state
   const [timerState, setTimerState] = useState<RoundTimerState>(() => {
     const now = new Date();
-    const { start, end } = calculateRoundBoundaries(now);
+    const { start, end } = calculateRoundBoundaries(now, 15);
     const secondsRemaining = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
     const totalSeconds = 15 * 60;
     const elapsedSeconds = totalSeconds - secondsRemaining;
@@ -88,15 +89,17 @@ export function useRoundTimer(initialAsset: TokenSymbol = 'BTC') {
         end = new Date(serverRoundInfo.roundEndUtc);
         secondsRemaining = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
       } else {
-        // Client-side calculation
-        const boundaries = calculateRoundBoundaries(now);
+        // Client-side calculation using selected duration
+        const boundaries = calculateRoundBoundaries(now, roundDuration);
         start = boundaries.start;
         end = boundaries.end;
         secondsRemaining = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
       }
 
-      const totalSeconds = 15 * 60;
+      const totalSeconds = roundDuration * 60;
       const elapsedSeconds = totalSeconds - secondsRemaining;
+      // Red alert: last 5 min for 15m rounds, last 1 min for 5m rounds
+      const alertThreshold = roundDuration === 15 ? 300 : 60;
 
       setTimerState({
         roundStart: start,
@@ -117,12 +120,17 @@ export function useRoundTimer(initialAsset: TokenSymbol = 'BTC') {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [serverRoundInfo, syncStatus, asset, syncWithBackend]);
+  }, [serverRoundInfo, syncStatus, asset, syncWithBackend, roundDuration]);
+
+  const alertThreshold = roundDuration === 15 ? 300 : 60;
 
   return {
     ...timerState,
     asset,
     setAsset,
+    roundDuration,
+    setRoundDuration,
+    alertThreshold,
     refresh: syncWithBackend,
   };
 }
