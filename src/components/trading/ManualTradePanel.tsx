@@ -150,35 +150,37 @@ export function ManualTradePanel({
       <CardContent className="space-y-5">
         {/* UP/DOWN Prices - Polymarket Style */}
         {marketSnapshot && (
-          <div className="grid grid-cols-2 gap-6 p-4 rounded-lg bg-secondary/50 border border-border">
-            {/* Ticker Name - spans both columns */}
-            <div className="col-span-2 text-center mb-2">
+          <div className="space-y-2">
+            {/* Ticker above both blocks */}
+            <div className="text-center">
               <span className="text-lg font-bold text-primary">{formState.asset}</span>
             </div>
-            {/* UP */}
-            <div className="flex flex-col items-center space-y-1">
-              <div className="flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-success" />
-                <span className="text-sm font-bold text-success uppercase">UP</span>
+            <div className="grid grid-cols-2 gap-3">
+              {/* UP block */}
+              <div className="flex flex-col items-center space-y-1 p-4 rounded-lg bg-secondary/50 border border-success/20">
+                <div className="flex items-center gap-1.5">
+                  <Check className="h-4 w-4 text-success" />
+                  <span className="text-sm font-bold text-success uppercase">UP</span>
+                </div>
+                <div className="text-3xl font-mono font-bold">
+                  {Math.round(marketSnapshot.yesAsk * 100)}¢
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {Math.round(marketSnapshot.yesAsk * 100)}% chance
+                </div>
               </div>
-              <div className="text-3xl font-mono font-bold">
-                {Math.round(marketSnapshot.yesAsk * 100)}¢
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {Math.round(marketSnapshot.yesAsk * 100)}% chance
-              </div>
-            </div>
-            {/* DOWN */}
-            <div className="flex flex-col items-center space-y-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-destructive uppercase">DOWN</span>
-                <X className="h-4 w-4 text-destructive" />
-              </div>
-              <div className="text-3xl font-mono font-bold">
-                {Math.round(marketSnapshot.noAsk * 100)}¢
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {Math.round(marketSnapshot.noAsk * 100)}% chance
+              {/* DOWN block */}
+              <div className="flex flex-col items-center space-y-1 p-4 rounded-lg bg-secondary/50 border border-destructive/20">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-destructive uppercase">DOWN</span>
+                  <X className="h-4 w-4 text-destructive" />
+                </div>
+                <div className="text-3xl font-mono font-bold">
+                  {Math.round(marketSnapshot.noAsk * 100)}¢
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {Math.round(marketSnapshot.noAsk * 100)}% chance
+                </div>
               </div>
             </div>
           </div>
