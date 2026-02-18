@@ -276,6 +276,9 @@ const Index = () => {
                   asset={roundTimer.asset}
                   onAssetChange={roundTimer.setAsset}
                   onRefresh={roundTimer.refresh}
+                  roundDuration={roundTimer.roundDuration}
+                  onDurationChange={roundTimer.setRoundDuration}
+                  alertThreshold={roundTimer.alertThreshold}
                 />
               </div>
               <TradingTabs

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowUpDown, AlertTriangle, Check, X, Loader2, TrendingUp, TrendingDown, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,9 +9,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScaleOrderPreview } from '@/components/trading/ScaleOrderPreview';
 import { TOKENS, type TokenSymbol } from '@/types/trading';
 import type { ManualTradeFormState, ValidationErrors, ManualTradingOrderType, WebSocketStatus, MarketSnapshot } from '@/types/manual-trading';
 import { cn } from '@/lib/utils';
+
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -71,6 +74,23 @@ export function ManualTradePanel({
   marketSnapshot,
 }: ManualTradePanelProps) {
   const showBotWarning = isBotRunning && !allowManualWhileAuto;
+  const [scaleMode, setScaleMode] = useState<'none' | 'scale-in' | 'scale-out'>('none');
+  const [scaleStake, setScaleStake] = useState(100);
+
+  // Derive base price: prefer typed limit price, fall back to live snapshot
+  const basePrice = (() => {
+    const parsed = parseFloat(formState.limitPrice);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+    if (marketSnapshot) {
+      return formState.outcome === 'YES' ? marketSnapshot.yesAsk : marketSnapshot.noAsk;
+    }
+    return 0.50;
+  })();
+
+  const toggleScaleMode = (mode: 'scale-in' | 'scale-out') => {
+    setScaleMode(prev => prev === mode ? 'none' : mode);
+  };
+
 
   return (
     <Card className="border-border bg-card">
@@ -319,6 +339,58 @@ export function ManualTradePanel({
             </p>
           )}
         </div>
+
+        {/* Scale Orders Toggle — only for LIMIT orders */}
+        {formState.orderType === 'LIMIT' && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Scale Orders</Label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant={scaleMode === 'none' ? 'default' : 'outline'}
+                className="h-8 px-3 text-xs"
+                onClick={() => setScaleMode('none')}
+              >
+                OFF
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={scaleMode === 'scale-in' ? 'default' : 'outline'}
+                className={cn(
+                  "h-8 px-3 text-xs",
+                  scaleMode === 'scale-in' && "bg-success text-success-foreground hover:bg-success/90"
+                )}
+                onClick={() => toggleScaleMode('scale-in')}
+              >
+                Scale In ▼
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={scaleMode === 'scale-out' ? 'default' : 'outline'}
+                className={cn(
+                  "h-8 px-3 text-xs",
+                  scaleMode === 'scale-out' && "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                )}
+                onClick={() => toggleScaleMode('scale-out')}
+              >
+                Scale Out ▲
+              </Button>
+            </div>
+            {scaleMode !== 'none' && (
+              <ScaleOrderPreview
+                mode={scaleMode}
+                basePrice={basePrice}
+                totalStake={scaleStake}
+                onStakeChange={setScaleStake}
+              />
+            )}
+          </div>
+        )}
 
         {/* Shares / Notional Toggle */}
         <div className="flex items-center gap-3 py-2">
