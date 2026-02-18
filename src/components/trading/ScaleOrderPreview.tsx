@@ -2,51 +2,47 @@ import { useState } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 const PRICE_OFFSETS_CENTS = [0, 3, 6, 9, 12, 15, 18];
 const STAKE_PRESETS = [10, 25, 50, 100, 250, 500, 1000];
-const TIER_WEIGHTS = [0.25, 0.18, 0.15, 0.13, 0.11, 0.10, 0.08]; // heavy → light
+const TIER_WEIGHTS = [0.08, 0.10, 0.11, 0.13, 0.15, 0.18, 0.25]; // light → heavy (L1→L7)
 
 interface ScaleOrderPreviewProps {
   mode: 'scale-in' | 'scale-out';
-  /** Base price in decimal form (e.g. 0.52 = 52¢) */
-  basePrice: number;
   totalStake: number;
   onStakeChange: (v: number) => void;
 }
 
-
-export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }: ScaleOrderPreviewProps) {
+export function ScaleOrderPreview({ mode, totalStake, onStakeChange }: ScaleOrderPreviewProps) {
   const [customStake, setCustomStake] = useState('');
+  const [l1Price, setL1Price] = useState('');
 
-  const baseCents = Math.round(basePrice * 100);
+  const l1PriceCents = parseFloat(l1Price);
+  const hasL1Price = !isNaN(l1PriceCents) && l1PriceCents > 0;
 
   const tiers = PRICE_OFFSETS_CENTS.map((offsetCents, i) => {
-    let priceCents: number;
-    let weight: number;
-
-    if (mode === 'scale-in') {
-      // Buy dips: prices go DOWN from base.
-      // Lightest at top (L1 = base price), heaviest at bottom (L7 = cheapest).
-      priceCents = baseCents - offsetCents;
-      weight = TIER_WEIGHTS[6 - i]; // reversed: L1=8%, L7=25%
-    } else {
-      // Sell rallies: display highest sell price at TOP.
-      // L1 = base+18¢ (heaviest, best sell), L7 = base (lightest).
-      priceCents = baseCents + (18 - offsetCents);
-      weight = TIER_WEIGHTS[i]; // normal: L1=25%, L7=8%
+    if (!hasL1Price) {
+      return { tier: `L${i + 1}`, priceCents: null, weight: TIER_WEIGHTS[i], usd: totalStake * TIER_WEIGHTS[i] };
     }
 
+    // Both modes: L1 is lightest (8%), L7 is heaviest (25%)
+    // Scale In: price decreases from L1 downward
+    // Scale Out: price increases from L1 upward
+    const priceCents = mode === 'scale-in'
+      ? l1PriceCents - offsetCents
+      : l1PriceCents + offsetCents;
+
+    const weight = TIER_WEIGHTS[i]; // L1=8%, L7=25%
     const usd = totalStake * weight;
+
     return {
       tier: `L${i + 1}`,
       priceCents: Math.max(1, Math.min(99, priceCents)),
       weight,
       usd,
-      isTop: i === 0,
-      isBottom: i === 6,
     };
   });
 
@@ -72,6 +68,24 @@ export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }
         <span className="text-xs font-semibold text-foreground uppercase tracking-wide">
           {isScaleIn ? 'Scale In Preview — Buy Dips' : 'Scale Out Preview — Sell Rallies'}
         </span>
+      </div>
+
+      {/* L1 Price Input */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">L1 Price (¢)</Label>
+        <Input
+          type="number"
+          min="1"
+          max="99"
+          step="1"
+          placeholder="e.g. 52"
+          value={l1Price}
+          onChange={(e) => setL1Price(e.target.value)}
+          className="h-8 text-sm font-mono"
+        />
+        {!hasL1Price && (
+          <p className="text-[10px] text-muted-foreground">Enter L1 price to see tier breakdown</p>
+        )}
       </div>
 
       {/* Stake Presets */}
@@ -118,10 +132,8 @@ export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }
           </TableHeader>
           <TableBody>
             {tiers.map((tier, i) => {
-              // Scale In: heaviest at bottom (L7=25%), lightest at top (L1=8%)
-              // Scale Out: heaviest at top (L1=25%), lightest at bottom (L7=8%)
-              const isHeaviest = isScaleIn ? i === 6 : i === 0;
-              const isLightest = isScaleIn ? i === 0 : i === 6;
+              const isLightest = i === 0; // L1 always lightest
+              const isHeaviest = i === 6; // L7 always heaviest
               return (
                 <TableRow
                   key={tier.tier}
@@ -136,24 +148,21 @@ export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }
                     {tier.tier}
                   </TableCell>
                   <TableCell className="px-3 py-1.5 font-mono font-bold">
-                    {tier.priceCents}¢
+                    {tier.priceCents !== null ? `${tier.priceCents}¢` : '—'}
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-muted-foreground">
                     {Math.round(tier.weight * 100)}%
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-right font-mono font-semibold">
                     ${tier.usd.toFixed(2)}
+                    {isLightest && (
+                      <span className="ml-1 text-muted-foreground text-[10px]">▲ lightest</span>
+                    )}
                     {isHeaviest && isScaleIn && (
                       <span className="ml-1 text-success text-[10px]">▼ heaviest</span>
                     )}
-                    {isLightest && isScaleIn && (
-                      <span className="ml-1 text-muted-foreground text-[10px]">▲ lightest</span>
-                    )}
                     {isHeaviest && !isScaleIn && (
-                      <span className="ml-1 text-destructive text-[10px]">▲ heaviest</span>
-                    )}
-                    {isLightest && !isScaleIn && (
-                      <span className="ml-1 text-muted-foreground text-[10px]">▼ lightest</span>
+                      <span className="ml-1 text-destructive text-[10px]">▼ heaviest</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -165,7 +174,6 @@ export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }
 
       <p className="text-[10px] text-muted-foreground">
         Total: <span className="font-mono font-semibold">${totalStake.toFixed(2)}</span>
-        {' · '}Base price: <span className="font-mono">{baseCents}¢</span>
         {' · '}Steps: 3¢ per tier
       </p>
     </div>
