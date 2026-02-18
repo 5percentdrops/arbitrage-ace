@@ -1,4 +1,4 @@
-import { MousePointer, Layers, Zap, Settings } from 'lucide-react';
+import { MousePointer, Zap, Settings } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -21,7 +21,6 @@ import {
 
 const navItems = [
   { title: 'Manual Trading', url: '/', icon: MousePointer },
-  { title: 'Order Ladder', url: '/auto-trading', icon: Layers },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
