@@ -13,6 +13,8 @@ import { usePositions } from '@/hooks/usePositions';
 import { useRoundTimer } from '@/hooks/useRoundTimer';
 import { useManualTrading } from '@/hooks/useManualTrading';
 import { useDecisionAlerts } from '@/hooks/useDecisionAlerts';
+import { useSettings } from '@/hooks/useSettings';
+import { usePriceAlertMonitor } from '@/hooks/usePriceAlertMonitor';
 
 // Components
 import { TradingLayout } from '@/components/layout/TradingLayout';
@@ -103,9 +105,20 @@ const Index = () => {
   // Round Timer
   const roundTimer = useRoundTimer('BTC');
 
+  // Settings (for price alert rules + telegram creds)
+  const { settings } = useSettings();
+
   // Manual Trading
   const manualTrading = useManualTrading({
     isBotRunning: state.status === 'running'
+  });
+
+  // Price Alert Monitor — watches live market snapshot against configured rules
+  usePriceAlertMonitor({
+    marketSnapshot: manualTrading.marketSnapshot,
+    rules: settings.priceAlertRules,
+    telegramBotToken: settings.telegramBotToken,
+    telegramChatId: settings.telegramChatId,
   });
 
   // Handler to pre-fill manual trade from alert
