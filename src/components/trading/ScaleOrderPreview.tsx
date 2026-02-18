@@ -5,10 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
-const TIER_WEIGHTS = [0.25, 0.18, 0.15, 0.13, 0.11, 0.10, 0.08];
-// Price offsets in cents for each tier (applied downward for scale-in, upward for scale-out)
 const PRICE_OFFSETS_CENTS = [0, 3, 6, 9, 12, 15, 18];
 const STAKE_PRESETS = [10, 25, 50, 100, 250, 500, 1000];
+const TIER_WEIGHTS = [0.25, 0.18, 0.15, 0.13, 0.11, 0.10, 0.08]; // heavy → light
 
 interface ScaleOrderPreviewProps {
   mode: 'scale-in' | 'scale-out';
@@ -18,27 +17,36 @@ interface ScaleOrderPreviewProps {
   onStakeChange: (v: number) => void;
 }
 
+
 export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }: ScaleOrderPreviewProps) {
   const [customStake, setCustomStake] = useState('');
 
   const baseCents = Math.round(basePrice * 100);
 
-  const tiers = TIER_WEIGHTS.map((weight, i) => {
-    // Scale In: spread prices downward (cheapest at bottom = L7)
-    // Scale Out: spread prices upward (most expensive at top = L1 for sells)
-    const offsetCents = PRICE_OFFSETS_CENTS[i];
-    const priceCents = mode === 'scale-in'
-      ? baseCents - offsetCents
-      : baseCents + offsetCents;
+  const tiers = PRICE_OFFSETS_CENTS.map((offsetCents, i) => {
+    let priceCents: number;
+    let weight: number;
+
+    if (mode === 'scale-in') {
+      // Buy dips: prices go DOWN from base.
+      // Lightest at top (L1 = base price), heaviest at bottom (L7 = cheapest).
+      priceCents = baseCents - offsetCents;
+      weight = TIER_WEIGHTS[6 - i]; // reversed: L1=8%, L7=25%
+    } else {
+      // Sell rallies: display highest sell price at TOP.
+      // L1 = base+18¢ (heaviest, best sell), L7 = base (lightest).
+      priceCents = baseCents + (18 - offsetCents);
+      weight = TIER_WEIGHTS[i]; // normal: L1=25%, L7=8%
+    }
 
     const usd = totalStake * weight;
-
     return {
       tier: `L${i + 1}`,
       priceCents: Math.max(1, Math.min(99, priceCents)),
       weight,
       usd,
-      isEdge: i === 0 || i === 6,
+      isTop: i === 0,
+      isBottom: i === 6,
     };
   });
 
@@ -110,17 +118,18 @@ export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }
           </TableHeader>
           <TableBody>
             {tiers.map((tier, i) => {
-              const isBest = i === 0;
-              const isCheapest = i === 6;
+              // Scale In: heaviest at bottom (L7=25%), lightest at top (L1=8%)
+              // Scale Out: heaviest at top (L1=25%), lightest at bottom (L7=8%)
+              const isHeaviest = isScaleIn ? i === 6 : i === 0;
+              const isLightest = isScaleIn ? i === 0 : i === 6;
               return (
                 <TableRow
                   key={tier.tier}
                   className={cn(
                     "text-xs",
-                    isBest && isScaleIn && "bg-success/5",
-                    isCheapest && isScaleIn && "bg-muted/20",
-                    isBest && !isScaleIn && "bg-muted/20",
-                    isCheapest && !isScaleIn && "bg-destructive/5",
+                    isHeaviest && isScaleIn && "bg-success/5",
+                    isHeaviest && !isScaleIn && "bg-destructive/5",
+                    isLightest && "bg-muted/10",
                   )}
                 >
                   <TableCell className="px-3 py-1.5 font-mono font-medium text-muted-foreground">
@@ -134,16 +143,16 @@ export function ScaleOrderPreview({ mode, basePrice, totalStake, onStakeChange }
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-right font-mono font-semibold">
                     ${tier.usd.toFixed(2)}
-                    {isBest && isScaleIn && (
-                      <span className="ml-1 text-success text-[10px]">▲ heaviest</span>
+                    {isHeaviest && isScaleIn && (
+                      <span className="ml-1 text-success text-[10px]">▼ heaviest</span>
                     )}
-                    {isCheapest && isScaleIn && (
-                      <span className="ml-1 text-muted-foreground text-[10px]">▼ lightest</span>
+                    {isLightest && isScaleIn && (
+                      <span className="ml-1 text-muted-foreground text-[10px]">▲ lightest</span>
                     )}
-                    {isCheapest && !isScaleIn && (
+                    {isHeaviest && !isScaleIn && (
                       <span className="ml-1 text-destructive text-[10px]">▲ heaviest</span>
                     )}
-                    {isBest && !isScaleIn && (
+                    {isLightest && !isScaleIn && (
                       <span className="ml-1 text-muted-foreground text-[10px]">▼ lightest</span>
                     )}
                   </TableCell>
