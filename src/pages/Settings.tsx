@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, Users, Clock, RotateCcw, MessageCircle, Eye, EyeOff } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Clock, RotateCcw, MessageCircle, Eye, EyeOff, Webhook } from 'lucide-react';
 import { TradingLayout } from '@/components/layout/TradingLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -150,6 +150,36 @@ export default function Settings() {
               />
               <p className="text-xs text-muted-foreground">
                 The chat or channel ID to listen for alerts
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Webhook Listener Section */}
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Webhook className="h-4 w-4 text-primary" />
+              Webhook Listener
+            </CardTitle>
+            <CardDescription>
+              URL endpoint to receive incoming webhook signals
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="webhookUrl" className="text-sm">
+                Webhook URL
+              </Label>
+              <Input
+                id="webhookUrl"
+                type="url"
+                placeholder="https://example.com/webhook"
+                value={settings.webhookUrl}
+                onChange={(e) => updateSetting('webhookUrl', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Paste the URL where incoming signals will be received
               </p>
             </div>
           </CardContent>
