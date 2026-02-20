@@ -8,6 +8,8 @@ export interface SettingsState {
   // Telegram Alerts
   telegramChatId: string;
   telegramBotToken: string;
+  // Webhook
+  webhookUrl: string;
   // Price alert rules
   priceAlertRules: PriceAlertRule[];
 }
@@ -24,6 +26,7 @@ function loadSettings(): SettingsState {
         remainingTime: parsed.remainingTime ?? '',
         telegramChatId: parsed.telegramChatId ?? '',
         telegramBotToken: parsed.telegramBotToken ?? '',
+        webhookUrl: parsed.webhookUrl ?? '',
         priceAlertRules: parsed.priceAlertRules ?? [],
       };
     }
@@ -35,6 +38,7 @@ function loadSettings(): SettingsState {
     remainingTime: '',
     telegramChatId: '',
     telegramBotToken: '',
+    webhookUrl: '',
     priceAlertRules: [],
   };
 }
@@ -95,6 +99,7 @@ export function useSettings() {
       remainingTime: '',
       telegramChatId: '',
       telegramBotToken: '',
+      webhookUrl: '',
       priceAlertRules: [],
     };
     setSettings(defaults);
