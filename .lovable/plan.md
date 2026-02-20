@@ -1,68 +1,33 @@
 
-# Remove Order Ladder — Keep Manual Trading & Settings Only
+# Add Webhook URL Input Field to Settings
 
-## What Gets Removed
+## What Changes
 
-The Order Ladder (/auto-trading) route, page, sidebar link, and all associated files are stripped out entirely. The sidebar will only show **Manual Trading** and **Settings**.
-
----
-
-## Files to Delete
-
-These files exist solely for the Order Ladder page and have no use anywhere else:
-
-- `src/pages/AutoTrading.tsx` — the Order Ladder page itself
-- `src/components/trading/auto/AutoLadder.tsx`
-- `src/components/trading/auto/AutoOrdersPanel.tsx`
-- `src/components/trading/auto/BetAngelCell.tsx`
-- `src/components/trading/auto/BetAngelLadder.tsx`
-- `src/components/trading/auto/BetAngelPriceCell.tsx`
-- `src/components/trading/auto/LadderRow.tsx`
-- `src/components/trading/auto/LimitOrdersTable.tsx`
-- `src/components/trading/auto/QuickStakeButtons.tsx`
-- `src/components/trading/auto/SpreadCalculator.tsx`
-- `src/components/trading/auto/SpreadIndicator.tsx`
-- `src/hooks/useAutoOrderBook.ts`
-- `src/services/autoApi.ts`
-- `src/types/auto-trading.ts`
+A new "Webhook" card section is added to the Settings page with a single input field where the user can paste a webhook URL to listen on. The value is persisted in localStorage alongside the other settings.
 
 ---
 
-## Files to Modify
+## File Changes
 
-### `src/App.tsx`
-- Remove `import AutoTrading from "./pages/AutoTrading"`
-- Remove `<Route path="/auto-trading" element={<AutoTrading />} />`
+### `src/hooks/useSettings.ts`
+- Add `webhookUrl: string` to the `SettingsState` interface
+- Initialize it as `''` in `loadSettings()` defaults and `resetSettings()`
 
-### `src/components/layout/TradingSidebar.tsx`
-- Remove `Layers` from the lucide-react import
-- Remove the `{ title: 'Order Ladder', url: '/auto-trading', icon: Layers }` entry from `navItems`
+### `src/pages/Settings.tsx`
+- Add a `Webhook` icon import from lucide-react
+- Add a new Card section (between Telegram Alerts and Price Alerts) with:
+  - Title: "Webhook Listener"
+  - Description: "URL endpoint to receive incoming webhook signals"
+  - Single text input for the webhook URL, placeholder like `https://example.com/webhook`
+  - Helper text beneath
 
 ---
 
-## After the Change
-
-The sidebar will have exactly two items:
+## UI After Change
 
 ```text
-┌─────────────────────────┐
-│ ⚡ Crypto Arb Bot        │
-│   Polymarket Scanner    │
-├─────────────────────────┤
-│  Navigation             │
-│  ↖  Manual Trading      │
-│  ⚙  Settings            │
-└─────────────────────────┘
+Signal Parameters   [card]
+Telegram Alerts     [card]
+Webhook Listener    [card]   <-- NEW
+Price Alerts        [card]
 ```
-
-Navigating directly to `/auto-trading` will fall through to the `NotFound` (404) page.
-
----
-
-## Summary
-
-| Action | Files |
-|--------|-------|
-| Delete | `src/pages/AutoTrading.tsx` + all 11 files in `src/components/trading/auto/` + `src/hooks/useAutoOrderBook.ts` + `src/services/autoApi.ts` + `src/types/auto-trading.ts` |
-| Modify | `src/App.tsx` (remove route + import) |
-| Modify | `src/components/layout/TradingSidebar.tsx` (remove nav item) |
