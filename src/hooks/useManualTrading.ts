@@ -65,23 +65,19 @@ export function useManualTrading({ isBotRunning }: UseManualTradingOptions) {
   const validate = useCallback((): ValidationErrors => {
     const errors: ValidationErrors = {};
     
-    if (formState.useNotional) {
-      const notional = parseFloat(formState.notionalUsd);
-      if (isNaN(notional) || notional <= 0) {
-        errors.notionalUsd = 'Must be a positive number';
-      }
-    } else {
-      const shares = parseFloat(formState.shares);
-      if (isNaN(shares) || shares <= 0) {
-        errors.shares = 'Must be a positive number';
-      }
-    }
-
-    // Only validate limit price for LIMIT orders
-    if (formState.orderType === 'LIMIT') {
-      const price = parseFloat(formState.limitPrice);
-      if (isNaN(price) || price < 0.01 || price > 0.99) {
-        errors.limitPrice = 'Must be between 0.01 and 0.99';
+    // These fields are now managed by ScaleOrderPreview when in LIMIT mode,
+    // so we only validate them for MARKET orders or when not using notional
+    if (formState.orderType === 'MARKET') {
+      if (formState.useNotional) {
+        const notional = parseFloat(formState.notionalUsd);
+        if (isNaN(notional) || notional <= 0) {
+          errors.notionalUsd = 'Must be a positive number';
+        }
+      } else {
+        const shares = parseFloat(formState.shares);
+        if (isNaN(shares) || shares <= 0) {
+          errors.shares = 'Must be a positive number';
+        }
       }
     }
 
