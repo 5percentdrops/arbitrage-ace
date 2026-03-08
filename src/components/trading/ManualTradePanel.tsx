@@ -375,6 +375,11 @@ export function ManualTradePanel({
                 mode={scaleMode}
                 totalStake={scaleStake}
                 onStakeChange={setScaleStake}
+                marketPriceCents={
+                  marketSnapshot
+                    ? Math.round((formState.outcome === 'YES' ? marketSnapshot.yesAsk : marketSnapshot.noAsk) * 100)
+                    : null
+                }
               />
             )}
           </div>
