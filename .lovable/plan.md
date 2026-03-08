@@ -1,27 +1,33 @@
 
-
-# Auto-Fill L1 Price from Last Market Price
+# Add Webhook URL Input Field to Settings
 
 ## What Changes
 
-When scale-in or scale-out is activated, the L1 price input auto-fills with the current market price from the WebSocket snapshot — so the user doesn't have to type it manually.
+A new "Webhook" card section is added to the Settings page with a single input field where the user can paste a webhook URL to listen on. The value is persisted in localStorage alongside the other settings.
+
+---
 
 ## File Changes
 
-### `src/components/trading/ScaleOrderPreview.tsx`
-- Add optional `marketPriceCents` prop (number | null)
-- Add `useEffect`: when `marketPriceCents` changes and is valid, auto-set `l1Price` to that value
-- This only fires when the market price updates; the user can still override manually
+### `src/hooks/useSettings.ts`
+- Add `webhookUrl: string` to the `SettingsState` interface
+- Initialize it as `''` in `loadSettings()` defaults and `resetSettings()`
 
-### `src/components/trading/ManualTradePanel.tsx`
-- Compute the relevant market price in cents based on `formState.outcome` and `marketSnapshot`
-  - YES outcome → `Math.round(marketSnapshot.yesAsk * 100)`
-  - NO outcome → `Math.round(marketSnapshot.noAsk * 100)`
-- Pass `marketPriceCents` to `ScaleOrderPreview`
+### `src/pages/Settings.tsx`
+- Add a `Webhook` icon import from lucide-react
+- Add a new Card section (between Telegram Alerts and Price Alerts) with:
+  - Title: "Webhook Listener"
+  - Description: "URL endpoint to receive incoming webhook signals"
+  - Single text input for the webhook URL, placeholder like `https://example.com/webhook`
+  - Helper text beneath
 
-## Behavior
+---
 
-- When user toggles Scale In or Scale Out, L1 price is pre-filled from the live market price
-- If WebSocket updates, L1 price updates automatically (user can still edit manually)
-- If no market data available, L1 stays empty as before
+## UI After Change
 
+```text
+Signal Parameters   [card]
+Telegram Alerts     [card]
+Webhook Listener    [card]   <-- NEW
+Price Alerts        [card]
+```

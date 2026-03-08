@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,19 @@ interface ScaleOrderPreviewProps {
   mode: 'scale-in' | 'scale-out';
   totalStake: number;
   onStakeChange: (v: number) => void;
+  marketPriceCents?: number | null;
 }
 
-export function ScaleOrderPreview({ mode, totalStake, onStakeChange }: ScaleOrderPreviewProps) {
+export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPriceCents }: ScaleOrderPreviewProps) {
   const [customStake, setCustomStake] = useState('');
   const [l1Price, setL1Price] = useState('');
+
+  // Auto-fill L1 price from live market data
+  useEffect(() => {
+    if (marketPriceCents && marketPriceCents > 0) {
+      setL1Price(marketPriceCents.toString());
+    }
+  }, [marketPriceCents]);
 
   const l1PriceCents = parseFloat(l1Price);
   const hasL1Price = !isNaN(l1PriceCents) && l1PriceCents > 0;
