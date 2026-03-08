@@ -1,33 +1,17 @@
 
-# Add Webhook URL Input Field to Settings
 
-## What Changes
+# Fix: L1 Price Should Not Auto-Update After Being Set
 
-A new "Webhook" card section is added to the Settings page with a single input field where the user can paste a webhook URL to listen on. The value is persisted in localStorage alongside the other settings.
+## Problem
+The `useEffect` on line 25-29 overwrites the L1 price every time `marketPriceCents` changes. Once the user enters a value (or it's auto-filled on first load), it should stay locked.
 
----
+## Solution
 
-## File Changes
+### `src/components/trading/ScaleOrderPreview.tsx`
+- Add a `useRef` flag (`hasBeenSet`) initialized to `false`
+- In the `useEffect`, only set `l1Price` if `hasBeenSet` is still `false`, then flip it to `true`
+- When the user manually types in the L1 input, also set `hasBeenSet` to `true`
+- Reset `hasBeenSet` to `false` when the component unmounts/remounts (i.e., when scale mode is toggled off then on again — this happens naturally since the component unmounts)
 
-### `src/hooks/useSettings.ts`
-- Add `webhookUrl: string` to the `SettingsState` interface
-- Initialize it as `''` in `loadSettings()` defaults and `resetSettings()`
+This ensures the L1 price is filled exactly once (either from market data or manual entry) and never overwritten afterward.
 
-### `src/pages/Settings.tsx`
-- Add a `Webhook` icon import from lucide-react
-- Add a new Card section (between Telegram Alerts and Price Alerts) with:
-  - Title: "Webhook Listener"
-  - Description: "URL endpoint to receive incoming webhook signals"
-  - Single text input for the webhook URL, placeholder like `https://example.com/webhook`
-  - Helper text beneath
-
----
-
-## UI After Change
-
-```text
-Signal Parameters   [card]
-Telegram Alerts     [card]
-Webhook Listener    [card]   <-- NEW
-Price Alerts        [card]
-```
