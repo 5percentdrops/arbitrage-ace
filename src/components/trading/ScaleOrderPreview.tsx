@@ -14,6 +14,7 @@ interface ScaleOrderPreviewProps {
   mode: 'scale-in' | 'scale-out';
   totalStake: number;
   onStakeChange: (v: number) => void;
+  marketPriceCents?: number | null;
 }
 
 export function ScaleOrderPreview({ mode, totalStake, onStakeChange }: ScaleOrderPreviewProps) {
