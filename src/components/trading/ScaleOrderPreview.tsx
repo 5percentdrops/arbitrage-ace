@@ -90,7 +90,7 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
           step="1"
           placeholder="e.g. 52"
           value={l1Price}
-          onChange={(e) => setL1Price(e.target.value)}
+          onChange={(e) => { setL1Price(e.target.value); hasBeenSet.current = true; }}
           className="h-8 text-sm font-mono"
         />
         {!hasL1Price && (
