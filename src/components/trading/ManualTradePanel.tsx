@@ -385,86 +385,8 @@ export function ManualTradePanel({
           </div>
         )}
 
-        {/* Shares / Notional Toggle */}
-        <div className="flex items-center gap-3 py-2">
-          <Switch
-            id="use-notional"
-            checked={formState.useNotional}
-            onCheckedChange={(checked) => onFieldChange('useNotional', checked)}
-          />
-          <Label htmlFor="use-notional" className="text-sm cursor-pointer">
-            Specify USD amount instead of shares
-          </Label>
-        </div>
 
-        {/* Shares Input */}
-        {!formState.useNotional ? (
-          <div className="space-y-2">
-            <Label htmlFor="shares" className="text-xs text-muted-foreground">
-              Shares
-            </Label>
-            <Input
-              id="shares"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="e.g., 20"
-              value={formState.shares}
-              onChange={(e) => onFieldChange('shares', e.target.value)}
-              className={validationErrors.shares ? 'border-destructive' : ''}
-            />
-            {validationErrors.shares && (
-              <p className="text-xs text-destructive">{validationErrors.shares}</p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <Label htmlFor="notional" className="text-xs text-muted-foreground">
-              Spend USD
-            </Label>
-            <Input
-              id="notional"
-              type="number"
-              min="0.01"
-              step="0.01"
-              placeholder="e.g., 10.00"
-              value={formState.notionalUsd}
-              onChange={(e) => onFieldChange('notionalUsd', e.target.value)}
-              className={validationErrors.notionalUsd ? 'border-destructive' : ''}
-            />
-            {validationErrors.notionalUsd && (
-              <p className="text-xs text-destructive">{validationErrors.notionalUsd}</p>
-            )}
-            {estimatedShares !== null && (
-              <p className="text-xs text-muted-foreground">
-                Est. ~{estimatedShares.toFixed(1)} shares
-              </p>
-            )}
-          </div>
-        )}
 
-        {/* Limit Price - Only for LIMIT orders */}
-        {formState.orderType === 'LIMIT' && (
-          <div className="space-y-2">
-            <Label htmlFor="limitPrice" className="text-xs text-muted-foreground">
-              Limit Price <span className="text-muted-foreground/70">(0.01 - 0.99)</span>
-            </Label>
-            <Input
-              id="limitPrice"
-              type="number"
-              min="0.01"
-              max="0.99"
-              step="0.001"
-              placeholder="e.g., 0.42"
-              value={formState.limitPrice}
-              onChange={(e) => onFieldChange('limitPrice', e.target.value)}
-              className={validationErrors.limitPrice ? 'border-destructive' : ''}
-            />
-            {validationErrors.limitPrice && (
-              <p className="text-xs text-destructive">{validationErrors.limitPrice}</p>
-            )}
-          </div>
-        )}
 
         {/* Submit Button */}
         <Button
