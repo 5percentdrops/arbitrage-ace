@@ -159,8 +159,15 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
                   <TableCell className="px-3 py-1.5 font-mono font-medium text-muted-foreground">
                     {tier.tier}
                   </TableCell>
+                  <TableCell className="px-3 py-1.5">
+                    {isLightest ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/30">MKT</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground border-border">LMT</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="px-3 py-1.5 font-mono font-bold">
-                    {tier.priceCents !== null ? `${tier.priceCents}¢` : '—'}
+                    {isLightest ? 'MKT' : (tier.priceCents !== null ? `${tier.priceCents}¢` : '—')}
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-muted-foreground">
                     {Math.round(tier.weight * 100)}%
