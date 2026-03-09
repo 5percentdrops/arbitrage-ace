@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -135,6 +136,7 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="h-8 px-3 text-xs w-12">Tier</TableHead>
+              <TableHead className="h-8 px-3 text-xs w-16">Type</TableHead>
               <TableHead className="h-8 px-3 text-xs">Price</TableHead>
               <TableHead className="h-8 px-3 text-xs">Weight</TableHead>
               <TableHead className="h-8 px-3 text-xs text-right">USD</TableHead>
@@ -157,8 +159,15 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
                   <TableCell className="px-3 py-1.5 font-mono font-medium text-muted-foreground">
                     {tier.tier}
                   </TableCell>
+                  <TableCell className="px-3 py-1.5">
+                    {isLightest ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-warning/10 text-warning border-warning/30">MKT</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-muted text-muted-foreground border-border">LMT</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="px-3 py-1.5 font-mono font-bold">
-                    {tier.priceCents !== null ? `${tier.priceCents}¢` : '—'}
+                    {isLightest ? 'MKT' : (tier.priceCents !== null ? `${tier.priceCents}¢` : '—')}
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-muted-foreground">
                     {Math.round(tier.weight * 100)}%
@@ -184,7 +193,7 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
 
       <p className="text-[10px] text-muted-foreground">
         Total: <span className="font-mono font-semibold">${totalStake.toFixed(2)}</span>
-        {' · '}Steps: 3¢ per tier
+        {' · '}L1 executes at market · L2-L7 limit at 3¢ steps
       </p>
     </div>
   );

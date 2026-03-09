@@ -1,22 +1,33 @@
 
+# Add Webhook URL Input Field to Settings
 
-# L1 = Market Order, L2-L7 = Limit Orders
+## What Changes
 
-## Change
+A new "Webhook" card section is added to the Settings page with a single input field where the user can paste a webhook URL to listen on. The value is persisted in localStorage alongside the other settings.
 
-In the tier table, L1 should be labeled as a **Market** order (executes at current price), while L2-L7 remain **Limit** orders at their calculated prices.
+---
 
-## File: `src/components/trading/ScaleOrderPreview.tsx`
+## File Changes
 
-**Add "Type" column to the table** showing "MKT" for L1 and "LMT" for L2-L7.
+### `src/hooks/useSettings.ts`
+- Add `webhookUrl: string` to the `SettingsState` interface
+- Initialize it as `''` in `loadSettings()` defaults and `resetSettings()`
 
-**Update L1 price display**: Show "MKT" or the market price with a "MKT" badge instead of a fixed cent price, since it executes at whatever the current price is.
+### `src/pages/Settings.tsx`
+- Add a `Webhook` icon import from lucide-react
+- Add a new Card section (between Telegram Alerts and Price Alerts) with:
+  - Title: "Webhook Listener"
+  - Description: "URL endpoint to receive incoming webhook signals"
+  - Single text input for the webhook URL, placeholder like `https://example.com/webhook`
+  - Helper text beneath
 
-**Table header**: Add a "Type" column between Tier and Price.
+---
 
-**Row rendering**:
-- L1 (i === 0): Type = "MKT" badge (warning color), Price = market price or "Best"
-- L2-L7 (i > 0): Type = "LMT" badge (muted), Price = calculated cent price as before
+## UI After Change
 
-**Footer note**: Update to clarify "L1 executes at market · L2-L7 limit at 3¢ steps"
-
+```text
+Signal Parameters   [card]
+Telegram Alerts     [card]
+Webhook Listener    [card]   <-- NEW
+Price Alerts        [card]
+```
