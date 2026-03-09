@@ -136,6 +136,7 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="h-8 px-3 text-xs w-12">Tier</TableHead>
+              <TableHead className="h-8 px-3 text-xs w-16">Type</TableHead>
               <TableHead className="h-8 px-3 text-xs">Price</TableHead>
               <TableHead className="h-8 px-3 text-xs">Weight</TableHead>
               <TableHead className="h-8 px-3 text-xs text-right">USD</TableHead>
