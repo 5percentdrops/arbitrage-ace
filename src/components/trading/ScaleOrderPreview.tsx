@@ -193,7 +193,7 @@ export function ScaleOrderPreview({ mode, totalStake, onStakeChange, marketPrice
 
       <p className="text-[10px] text-muted-foreground">
         Total: <span className="font-mono font-semibold">${totalStake.toFixed(2)}</span>
-        {' · '}Steps: 3¢ per tier
+        {' · '}L1 executes at market · L2-L7 limit at 3¢ steps
       </p>
     </div>
   );
