@@ -1,0 +1,43 @@
+name: Codex Review
+
+on:
+  pull_request:
+
+jobs:
+  codex-review:
+    name: Codex Review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
+
+      - name: Run Codex review
+        id: review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          codex review \
+            --base origin/${{ github.base_ref }} \
+            -c model_reasoning_effort="high" \
+            "Review this PR thoroughly. Check: correctness, logic errors, security issues, performance, code quality, and test coverage. Be concise and actionable." \
+            > review-output.txt 2>&1 || true
+
+      - name: Post review as PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "## 🤖 Codex Review
+
+          $(cat review-output.txt)"
