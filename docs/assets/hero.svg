@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280" role="img" aria-label="Arbitrage Ace — Polymarket 15m arb scanner and bot">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="0.5" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="yesFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="noFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ef4444" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#ef4444" stop-opacity="0.06"/>
+    </linearGradient>
+    <linearGradient id="pnlFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0.04"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="280" fill="url(#bg)"/>
+
+  <!-- Brand bar -->
+  <rect x="0" y="0" width="1200" height="3" fill="url(#brand)"/>
+
+  <!-- Top chrome: traffic lights + caption -->
+  <circle cx="22" cy="22" r="5" fill="#ef4444"/>
+  <circle cx="40" cy="22" r="5" fill="#f59e0b"/>
+  <circle cx="58" cy="22" r="5" fill="#10b981"/>
+  <text x="600" y="27" text-anchor="middle" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" fill="#7d8590" letter-spacing="0.6">arbitrage-ace — Polymarket 15m Arb Scanner &amp; Bot</text>
+
+  <!-- Header label -->
+  <text x="40" y="60" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="12" fill="#7d8590" letter-spacing="2">LIVE FEED · BTC / ETH / SOL / XRP · 15m MARKETS</text>
+
+  <!-- ============ LEFT: Arb scanner table mock ============ -->
+  <g transform="translate(40, 80)">
+    <!-- Card frame -->
+    <rect x="0" y="0" width="380" height="172" rx="10" fill="#0b0f14" stroke="#21262d" stroke-width="1"/>
+    <text x="14" y="22" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="600" fill="#e6edf3">Scanner</text>
+    <g transform="translate(326, 12)">
+      <circle r="4" cx="0" cy="4" fill="#10b981"/>
+      <text x="10" y="8" font-family="ui-monospace, monospace" font-size="10" fill="#10b981">LIVE</text>
+    </g>
+
+    <!-- Table header -->
+    <g transform="translate(14, 38)">
+      <text font-family="ui-monospace, monospace" font-size="9" fill="#7d8590" letter-spacing="0.6">ASSET</text>
+      <text x="60" font-family="ui-monospace, monospace" font-size="9" fill="#7d8590" letter-spacing="0.6">YES</text>
+      <text x="120" font-family="ui-monospace, monospace" font-size="9" fill="#7d8590" letter-spacing="0.6">NO</text>
+      <text x="190" font-family="ui-monospace, monospace" font-size="9" fill="#7d8590" letter-spacing="0.6">EDGE</text>
+      <text x="270" font-family="ui-monospace, monospace" font-size="9" fill="#7d8590" letter-spacing="0.6">ROUND</text>
+    </g>
+    <line x1="14" y1="50" x2="366" y2="50" stroke="#21262d"/>
+
+    <!-- Row 1: BTC — detected -->
+    <g transform="translate(14, 60)">
+      <text font-family="ui-monospace, monospace" font-size="11" fill="#e6edf3" font-weight="600">BTC</text>
+      <text x="60" font-family="ui-monospace, monospace" font-size="11" fill="#10b981">0.52</text>
+      <text x="120" font-family="ui-monospace, monospace" font-size="11" fill="#ef4444">0.49</text>
+      <rect x="178" y="-9" width="48" height="16" rx="3" fill="#10b981" fill-opacity="0.18"/>
+      <text x="184" font-family="ui-monospace, monospace" font-size="10" fill="#10b981" font-weight="600">+1.8%</text>
+      <text x="270" font-family="ui-monospace, monospace" font-size="11" fill="#22d3ee">11:42</text>
+    </g>
+
+    <!-- Row 2: ETH — detected -->
+    <g transform="translate(14, 84)">
+      <text font-family="ui-monospace, monospace" font-size="11" fill="#e6edf3" font-weight="600">ETH</text>
+      <text x="60" font-family="ui-monospace, monospace" font-size="11" fill="#10b981">0.51</text>
+      <text x="120" font-family="ui-monospace, monospace" font-size="11" fill="#ef4444">0.50</text>
+      <rect x="178" y="-9" width="48" height="16" rx="3" fill="#10b981" fill-opacity="0.18"/>
+      <text x="184" font-family="ui-monospace, monospace" font-size="10" fill="#10b981" font-weight="600">+1.1%</text>
+      <text x="270" font-family="ui-monospace, monospace" font-size="11" fill="#22d3ee">11:47</text>
+    </g>
+
+    <!-- Row 3: SOL — flat -->
+    <g transform="translate(14, 108)">
+      <text font-family="ui-monospace, monospace" font-size="11" fill="#e6edf3" font-weight="600">SOL</text>
+      <text x="60" font-family="ui-monospace, monospace" font-size="11" fill="#7d8590">0.50</text>
+      <text x="120" font-family="ui-monospace, monospace" font-size="11" fill="#7d8590">0.50</text>
+      <text x="184" font-family="ui-monospace, monospace" font-size="10" fill="#7d8590">±0.0%</text>
+      <text x="270" font-family="ui-monospace, monospace" font-size="11" fill="#7d8590">11:51</text>
+    </g>
+
+    <!-- Row 4: XRP — detected -->
+    <g transform="translate(14, 132)">
+      <text font-family="ui-monospace, monospace" font-size="11" fill="#e6edf3" font-weight="600">XRP</text>
+      <text x="60" font-family="ui-monospace, monospace" font-size="11" fill="#10b981">0.53</text>
+      <text x="120" font-family="ui-monospace, monospace" font-size="11" fill="#ef4444">0.48</text>
+      <rect x="178" y="-9" width="48" height="16" rx="3" fill="#10b981" fill-opacity="0.18"/>
+      <text x="184" font-family="ui-monospace, monospace" font-size="10" fill="#10b981" font-weight="600">+2.4%</text>
+      <text x="270" font-family="ui-monospace, monospace" font-size="11" fill="#22d3ee">11:54</text>
+    </g>
+  </g>
+
+  <!-- ============ MIDDLE: Bot control + status ============ -->
+  <g transform="translate(440, 80)">
+    <rect x="0" y="0" width="320" height="172" rx="10" fill="#0b0f14" stroke="#21262d" stroke-width="1"/>
+
+    <!-- Status header -->
+    <g transform="translate(14, 22)">
+      <text font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="600" fill="#e6edf3">Bot</text>
+    </g>
+    <g transform="translate(248, 12)">
+      <rect x="0" y="0" width="58" height="20" rx="10" fill="#10b981" fill-opacity="0.18"/>
+      <circle cx="11" cy="10" r="3" fill="#10b981"/>
+      <text x="20" y="14" font-family="ui-monospace, monospace" font-size="10" fill="#10b981" font-weight="600">RUNNING</text>
+    </g>
+
+    <!-- Capital row -->
+    <g transform="translate(14, 42)">
+      <text font-family="ui-monospace, monospace" font-size="9" fill="#7d8590" letter-spacing="0.6">CAPITAL</text>
+      <text x="0" y="22" font-family="ui-monospace, monospace" font-size="22" font-weight="700" fill="#e6edf3">$1,284.50</text>
+      <text x="146" y="22" font-family="ui-monospace, monospace" font-size="11" fill="#10b981">+$284.50</text>
+    </g>
+
+    <!-- Mini PnL sparkline -->
+    <g transform="translate(14, 84)">
+      <rect x="0" y="0" width="292" height="56" rx="6" fill="url(#pnlFill)" stroke="#21262d"/>
+      <polyline fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"
+        points="6,46 28,40 50,42 72,34 94,38 116,28 138,30 160,22 182,26 204,18 226,22 248,14 270,16 286,10"/>
+      <line x1="6" y1="50" x2="286" y2="50" stroke="#21262d" stroke-dasharray="2 3"/>
+      <text x="8" y="14" font-family="ui-monospace, monospace" font-size="9" fill="#7d8590">PnL · 24h</text>
+      <text x="284" y="14" text-anchor="end" font-family="ui-monospace, monospace" font-size="9" fill="#10b981">+28.4%</text>
+    </g>
+  </g>
+
+  <!-- ============ RIGHT: YES/NO pricing gauge ============ -->
+  <g transform="translate(780, 80)">
+    <rect x="0" y="0" width="380" height="172" rx="10" fill="#0b0f14" stroke="#21262d" stroke-width="1"/>
+    <text x="14" y="22" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="600" fill="#e6edf3">BTC · Will BTC close &gt; $67.4k?</text>
+    <text x="282" y="22" font-family="ui-monospace, monospace" font-size="10" fill="#7d8590">resolves in 11:42</text>
+
+    <!-- YES bar -->
+    <g transform="translate(14, 42)">
+      <text font-family="ui-monospace, monospace" font-size="10" fill="#10b981" font-weight="600">YES</text>
+      <text x="352" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#10b981" font-weight="700">0.52</text>
+      <rect x="0" y="6" width="352" height="22" rx="4" fill="url(#yesFill)"/>
+      <rect x="0" y="6" width="183" height="22" rx="4" fill="#10b981" fill-opacity="0.55"/>
+    </g>
+
+    <!-- NO bar -->
+    <g transform="translate(14, 86)">
+      <text font-family="ui-monospace, monospace" font-size="10" fill="#ef4444" font-weight="600">NO</text>
+      <text x="352" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#ef4444" font-weight="700">0.49</text>
+      <rect x="0" y="6" width="352" height="22" rx="4" fill="url(#noFill)"/>
+      <rect x="0" y="6" width="172" height="22" rx="4" fill="#ef4444" fill-opacity="0.55"/>
+    </g>
+
+    <!-- Edge callout -->
+    <g transform="translate(14, 130)">
+      <rect x="0" y="0" width="352" height="30" rx="6" fill="#10b981" fill-opacity="0.10" stroke="#10b981" stroke-opacity="0.30"/>
+      <circle cx="14" cy="15" r="4" fill="#10b981"/>
+      <text x="26" y="19" font-family="ui-monospace, monospace" font-size="11" fill="#10b981" font-weight="600">EDGE +1.8% · BUY YES @ 0.52</text>
+    </g>
+  </g>
+
+  <!-- ============ Legend band ============ -->
+  <g transform="translate(40, 258)" font-family="ui-monospace, monospace" font-size="10" fill="#7d8590">
+    <rect x="0" y="0" width="10" height="10" rx="2" fill="#10b981"/>
+    <text x="16" y="9">edge &gt; threshold</text>
+
+    <rect x="170" y="0" width="10" height="10" rx="2" fill="#22d3ee"/>
+    <text x="186" y="9">live feed</text>
+
+    <rect x="280" y="0" width="10" height="10" rx="2" fill="#f59e0b"/>
+    <text x="296" y="9">alert pending</text>
+
+    <rect x="410" y="0" width="10" height="10" rx="2" fill="#ef4444"/>
+    <text x="426" y="9">no edge · skip</text>
+
+    <text x="1120" y="9" text-anchor="end">polymarket · polygon · ws</text>
+  </g>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Arbitrage Ace logo">
+  <defs>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="0.5" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square frame with gradient stroke -->
+  <rect x="8" y="8" width="184" height="184" rx="32" fill="url(#bg)" stroke="url(#frame)" stroke-width="6"/>
+
+  <!-- Inner ring -->
+  <rect x="22" y="22" width="156" height="156" rx="22" fill="none" stroke="#21262d" stroke-width="1"/>
+
+  <!-- "AA" / lightning bolt monogram -->
+  <path d="M118 50 L78 116 L98 116 L82 150 L122 84 L102 84 Z"
+        fill="url(#bolt)" stroke="#0d1117" stroke-width="1" stroke-linejoin="round"/>
+
+  <!-- Corner accent: dot indicator (live) -->
+  <circle cx="160" cy="40" r="6" fill="#10b981"/>
+  <circle cx="160" cy="40" r="11" fill="none" stroke="#10b981" stroke-opacity="0.45" stroke-width="1.5"/>
+</svg>
